@@ -3,6 +3,19 @@ import os
 from datetime import datetime
 import streamlit as st
 from groq import Groq
+import io
+from gtts import gTTS
+
+@st.cache_data(show_spinner=False)
+def get_pronunciation_audio(text: str, accent: str = "com") -> bytes:
+    """
+    Generates MP3 audio bytes for a given text.
+    accent options: 'com' (US), 'co.uk' (UK), 'com.au' (AU)
+    """
+    fp = io.BytesIO()
+    tts = gTTS(text=text, lang="en", tld=accent, slow=False)
+    tts.write_to_fp(fp)
+    return fp.getvalue()
 
 # Page Configuration
 st.set_page_config(page_title="Dynamic Leadership & Communication Coach", page_icon="🎭", layout="wide")
@@ -149,8 +162,8 @@ if st.sidebar.button("🎬 Start New Simulation", type="primary", use_container_
     st.session_state["target_framework"] = {}
     st.session_state["roleplay_active"] = True
     
-    with st.spinner("Setting up scenario & generating dynamic framework & vocabulary toolkit..."):
-        # 1. Generate Opening Statement from Counterpart Persona
+    with st.spinner("Generating custom scenario, dynamic framework, & target vocabulary..."):
+        # 1. Generate Opening Statement
         opening = client.chat.completions.create(
             model=MODEL_CHOICE,
             messages=st.session_state["chat_history"] + [
@@ -160,67 +173,58 @@ if st.sidebar.button("🎬 Start New Simulation", type="primary", use_container_
         )
         st.session_state["chat_history"].append({"role": "assistant", "content": opening.choices[0].message.content})
         
-        # 2. Dynamically Generate Both Tactical Framework & Target Vocab
-        toolkit_prompt = f"""
-        Generate a tailored communication playbook for this specific scenario:
+        # 2. Dynamically Generate Framework Guide AND Target Vocab specifically for this scenario
+        setup_prompt = f"""
+        Generate tailored tactical coaching material for a simulation:
         - Domain: {selected_domain}
-        - Focus Framework: {selected_framework}
-        - Counterpart Persona: {selected_persona}
+        - Focus: {selected_framework}
+        - Counterpart: {selected_persona}
 
-        Return ONLY a JSON object with two keys: "framework" and "vocabulary".
-        
-        Example JSON Structure:
-        {{
-            "framework": {{
-                "name": "Title of Technique (e.g. SBI Feedback Model or BLUF Executive Framing)",
-                "core_principle": "1-sentence summary of the strategic mindset or core objective.",
-                "execution_steps": [
-                    "Step 1: Actionable step name and short instruction",
-                    "Step 2: Actionable step name and short instruction",
-                    "Step 3: Actionable step name and short instruction"
-                ],
-                "pro_tip": "1 actionable tip for handling pushback in this specific interaction."
-            }},
-            "vocabulary": [
-                {{"phrase": "phrasal verb or idiom", "meaning": "short definition", "example": "relevant example sentence"}},
-                {{"phrase": "phrasal verb or idiom", "meaning": "short definition", "example": "relevant example sentence"}},
-                {{"phrase": "phrasal verb or idiom", "meaning": "short definition", "example": "relevant example sentence"}},
-                {{"phrase": "phrasal verb or idiom", "meaning": "short definition", "example": "relevant example sentence"}}
-            ]
+        Return ONLY a JSON object with these two exact keys:
+        1. "framework_guide": {{
+            "title": "Name of best-fit framework/technique",
+            "overview": "Brief summary of why this framework applies.",
+            "steps": ["Step 1 concise action", "Step 2 concise action", "Step 3 concise action"],
+            "model_phrase": "An example sentence demonstrating this technique in this exact scenario."
         }}
+        2. "target_vocab": [
+            {{"phrase": "phrasal verb / expression", "meaning": "definition", "example": "sample sentence in scenario context"}},
+            {{"phrase": "...", "meaning": "...", "example": "..."}},
+            {{"phrase": "...", "meaning": "...", "example": "..."}},
+            {{"phrase": "...", "meaning": "...", "example": "..."}}
+        ]
         """
         try:
-            toolkit_res = client.chat.completions.create(
+            setup_res = client.chat.completions.create(
                 model=MODEL_CHOICE,
-                messages=[{"role": "user", "content": toolkit_prompt}],
+                messages=[{"role": "user", "content": setup_prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"} if "llama-3" in MODEL_CHOICE.lower() else None
             )
-            res_content = toolkit_res.choices[0].message.content.strip()
+            res_content = setup_res.choices[0].message.content.strip()
             if res_content.startswith("```json"):
                 res_content = res_content.replace("```json", "").replace("```", "").strip()
             
-            parsed_toolkit = json.loads(res_content)
+            parsed_setup = json.loads(res_content)
             
-            st.session_state["target_framework"] = parsed_toolkit.get("framework", {})
-            st.session_state["target_vocab"] = parsed_toolkit.get("vocabulary", [])[:4]
-            
+            st.session_state["target_framework"] = parsed_setup.get("framework_guide", {})
+            st.session_state["target_vocab"] = parsed_setup.get("target_vocab", [])[:4]
         except Exception:
-            # Resilient Fallbacks
+            # Fallback default framework and vocabulary if parsing encounters an issue
             st.session_state["target_framework"] = {
-                "name": f"{selected_framework} Playbook",
-                "core_principle": "State your conclusion first, ground arguments in evidence, and invite collaborative alignment.",
-                "execution_steps": [
-                    "1. Frame the Core Problem: Lead with the primary outcome or blocker.",
-                    "2. Present Quantitative Evidence: Back up claims with clear numbers or facts.",
-                    "3. Propose Two Concrete Options: Offer actionable pathways forward."
+                "title": f"{selected_framework} Guidance",
+                "overview": "Focus on clear, direct, and structured executive communication.",
+                "steps": [
+                    "Lead with the core outcome or recommendation (BLUF)",
+                    "Acknowledge the counterpart's perspective and state trade-offs",
+                    "Propose concrete next steps or a decision boundary"
                 ],
-                "pro_tip": "Acknowledge counterpart pushback without becoming defensive before restating boundaries."
+                "model_phrase": "The bottom line is that we need to align on deliverables before extending scope."
             }
             st.session_state["target_vocab"] = [
-                {"phrase": "push back on", "meaning": "Firmly oppose or negotiate a constraint.", "example": "I need to push back on the timeline."},
-                {"phrase": "walk through", "meaning": "Explain step-by-step.", "example": "Let me walk you through the options."},
-                {"phrase": "iron out", "meaning": "Resolve details or conflicts.", "example": "We should iron out these risks early."},
+                {"phrase": "push back on", "meaning": "Firmly oppose or negotiate a constraint.", "example": "I need to push back on the deadline."},
+                {"phrase": "walk through", "meaning": "Explain step-by-step.", "example": "Let me walk you through the proposal."},
+                {"phrase": "iron out", "meaning": "Resolve details or conflicts.", "example": "We should iron out integration risks early."},
                 {"phrase": "touch base", "meaning": "Briefly connect for an update.", "example": "Let's touch base tomorrow morning."}
             ]
             
@@ -237,23 +241,31 @@ if st.session_state.get("roleplay_active"):
                 full_transcript.append(f"{speaker}: {msg['content']}")
         
         conversation_text = "\n".join(full_transcript)
+        fw_title = st.session_state.get("target_framework", {}).get("title", selected_framework)
         
+        # --- ENHANCED RETROSPECTIVE PROMPT WITH GRAMMAR & VOCAB AUDIT ---
         RETRO_PROMPT = f"""
-        You are an expert executive leadership and native English communication coach. Review this transcript:
+        You are an expert executive leadership and native English communication coach. Review this simulation transcript:
         Domain: {selected_domain}
         Focus: {selected_framework}
+        Framework Evaluated: {fw_title}
         Persona: {selected_persona}
         Evaluation Criteria Target: {domain_info['eval_focus']}
         
         Transcript:
         {conversation_text}
 
-        Generate a Session Retrospective Summary:
+        Generate a Session Retrospective Summary with these sections:
         1. 📊 **Executive Summary (BLUF):** Overall score (1-10) and core takeaway.
         2. 💪 **Key Strengths:** 2 specific moments where the user handled tone, pushback, or strategy well.
-        3. 🎯 **Domain Alignment ({selected_framework}):** How effectively the response met target criteria ({domain_info['eval_focus']}).
-        4. 💬 **Phrasal Verbs & Native Expressions Audit:** Highlight non-native or clunky phrasing and offer natural, high-impact native alternatives.
-        5. 🚀 **Actionable Focus Areas:** Top 2 high-leverage focus points for future interactions.
+        3. 🎯 **Framework Adherence ({fw_title}):** How effectively the user applied the recommended framework steps.
+        4. ✍️ **Grammar & Linguistic Precision Audit:** 
+           - Identify recurring grammatical mistakes, improper preposition/tense usages, or awkward syntax across the session.
+           - Provide explicit **Original vs. Corrected Native Version** comparisons.
+        5. 💬 **Vocabulary Range & Native Phrasing Audit:** 
+           - Evaluate vocabulary sophistication, precision, and usage of target expressions.
+           - Offer 3 high-impact native phrases/idioms/phrasal verbs that could replace plain phrasing used during the session.
+        6. 🚀 **Actionable Focus Areas:** Top 2 high-leverage focus points for future interactions.
         """
         
         with st.spinner("Generating Retrospective..."):
@@ -273,7 +285,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🎭 Active Simulation", 
     "📜 Retrospectives & Logs", 
     "📚 Vocabulary Builder",
-    "💡 Domain Framework Reference"
+    "💡 Reference Library"
 ])
 
 # ==========================================
@@ -294,7 +306,7 @@ with tab1:
                 new_entry = {
                     "id": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "domain": selected_domain,
-                    "framework": selected_framework,
+                    "framework": st.session_state.get("target_framework", {}).get("title", selected_framework),
                     "persona": selected_persona,
                     "turns": len(st.session_state["evaluations"]),
                     "retro": st.session_state["retro_summary"],
@@ -322,7 +334,6 @@ with tab1:
                 audio_bytes = audio_file.getvalue()
                 audio_id = hash(audio_bytes)
                 
-                # Prevent infinite generation loops
                 if st.session_state["processed_audio_id"] != audio_id:
                     st.session_state["processed_audio_id"] = audio_id
                     
@@ -345,18 +356,25 @@ with tab1:
                         ai_reply = ai_response.choices[0].message.content
                         st.session_state["chat_history"].append({"role": "assistant", "content": ai_reply})
                         
-                        # 3. Dynamic Coach Evaluation Turn
+                        # --- ENHANCED REAL-TIME TURN COACHING PROMPT ---
+                        fw_info = st.session_state.get("target_framework", {})
                         eval_prompt = f"""
-                        Analyze this spoken turn:
+                        Analyze this spoken turn from the user:
                         User Transcript: "{user_transcript}"
                         Domain: {selected_domain}
-                        Target Framework Principles: {st.session_state['target_framework'].get('name', selected_framework)}
+                        Target Framework: {fw_info.get('title', selected_framework)}
+                        Framework Steps: {fw_info.get('steps', [])}
                         Target Vocab Checklist: {[v.get('phrase') for v in st.session_state['target_vocab']]}
                         
-                        Provide concise coaching:
-                        1. 🎯 **Framework & Vocab Usage:** Did the response align with the framework steps or deploy target phrases?
-                        2. 💬 **Phrasal Verb / Idiom Swap:** 1 native expression alternative to elevate naturalness.
-                        3. 🛠️ **Tone & Execution Audit:** Evaluate against target metrics ({domain_info['eval_focus']}).
+                        Provide concise coaching structured in these 4 distinct points:
+                        1. 🎯 **Framework Adherence:** Did the user apply steps for {fw_info.get('title', 'the framework')}?
+                        2. ✍️ **Grammar & Precision Check:** 
+                           - Point out any grammatical errors, incorrect prepositions, tense mismatches, or awkward structures.
+                           - Provide the **exact corrected sentence** (e.g. *Original:* "..." -> *Corrected:* "..."). If error-free, explicitly state "Grammar was accurate."
+                        3. 📚 **Vocabulary Audit & Upgrades:** 
+                           - Did they use target expressions? 
+                           - Offer 1 native/executive word or phrasal verb upgrade to make the statement sound more natural.
+                        4. 🛠️ **Tone & Executive Presence:** Evaluate against standard: ({domain_info['eval_focus']}).
                         """
                         eval_response = client.chat.completions.create(
                             model=MODEL_CHOICE,
@@ -371,58 +389,72 @@ with tab1:
                         st.rerun()
 
         with col_coach:
-            # --- 1. DYNAMICALLY GENERATED FRAMEWORK PLAYBOOK ---
+            # --- DYNAMIC FRAMEWORK & STRATEGY CARD ---
             fw_data = st.session_state.get("target_framework", {})
-            fw_name = fw_data.get("name", selected_framework)
-            
-            with st.expander(f"🛠️ Dynamic Playbook: {fw_name}", expanded=True):
-                if fw_data.get("core_principle"):
-                    st.markdown(f"**Core Mindset:** *\"{fw_data['core_principle']}\"*")
-                    st.markdown("---")
+            with st.expander("🎯 Tactical Framework & Strategy Guide", expanded=True):
+                if fw_data:
+                    st.markdown(f"### **{fw_data.get('title', selected_framework)}**")
+                    st.caption(fw_data.get("overview", ""))
+                    st.markdown("**Recommended Steps to Follow:**")
+                    for step in fw_data.get("steps", []):
+                        st.markdown(f"- {step}")
+                    if fw_data.get("model_phrase"):
+                        st.info(f"💡 **Model Opening/Pivot:** \"{fw_data.get('model_phrase')}\"")
+                else:
+                    st.caption("Framework guidance will load when starting a simulation.")
+
+            # --- DYNAMIC TARGET VOCABULARY PANEL ---
+            # --- DYNAMIC TARGET VOCABULARY PANEL WITH TTS PREVIEW ---
+with st.expander("💡 Scenario Target Vocabulary", expanded=True):
+    st.caption("Incorporate these expressions into your turns:")
+    
+    # Accent selector for pronunciation style
+    accent_choice = st.radio(
+        "Pronunciation Accent:",
+        options=["🇺🇸 US", "🇬🇧 UK", "🇦🇺 AU"],
+        horizontal=True,
+        key="vocab_accent_selector"
+    )
+    tld_map = {"🇺🇸 US": "com", "🇬🇧 UK": "co.uk", "🇦🇺 AU": "com.au"}
+    selected_tld = tld_map[accent_choice]
+
+    st.divider()
+
+    for idx, item in enumerate(st.session_state.get("target_vocab", [])):
+        phrase = item.get("phrase", "")
+        meaning = item.get("meaning", "")
+        example = item.get("example", "")
+        
+        st.markdown(f"**`{phrase}`** — {meaning}")
+        st.caption(f"💬 *\"{example}\"*")
+        
+        col_audio, col_add = st.columns([2, 2])
+        
+        with col_audio:
+            # Generate and render audio player button
+            try:
+                audio_bytes = get_pronunciation_audio(phrase, accent=selected_tld)
+                st.audio(audio_bytes, format="audio/mp3")
+            except Exception:
+                st.caption("⚠️ Audio preview unavailable")
                 
-                st.markdown("**Execution Steps:**")
-                for step in fw_data.get("execution_steps", []):
-                    st.markdown(f"• {step}")
-                
-                if fw_data.get("pro_tip"):
-                    st.info(f"💡 **Pro-Tip:** {fw_data['pro_tip']}")
-
-            # --- 2. DYNAMIC TARGET VOCABULARY PANEL ---
-            with st.expander("💡 Recommended Target Vocabulary", expanded=False):
-                for idx, item in enumerate(st.session_state.get("target_vocab", [])):
-                    phrase = item.get("phrase", "")
-                    meaning = item.get("meaning", "")
-                    example = item.get("example", "")
+        with col_add:
+            btn_key = f"add_dyn_vocab_{idx}"
+            if st.button(f"➕ Add to Vocab", key=btn_key, use_container_width=True):
+                exists = any(v['word'].lower() == phrase.lower() for v in data['vocabulary'])
+                if not exists:
+                    data['vocabulary'].insert(0, {
+                        "word": phrase,
+                        "meaning": meaning,
+                        "example": example,
+                        "date": datetime.now().strftime("%Y-%m-%d")
+                    })
+                    save_data(data)
+                    st.toast(f"Saved '{phrase}'!", icon="✅")
+                else:
+                    st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
                     
-                    st.markdown(f"**`{phrase}`** — {meaning}")
-                    st.caption(f"💬 *\"{example}\"*")
-                    
-                    btn_key = f"add_dyn_vocab_{idx}"
-                    if st.button(f"➕ Add to Vocab List", key=btn_key):
-                        exists = any(v['word'].lower() == phrase.lower() for v in data['vocabulary'])
-                        if not exists:
-                            data['vocabulary'].insert(0, {
-                                "word": phrase,
-                                "meaning": meaning,
-                                "example": example,
-                                "date": datetime.now().strftime("%Y-%m-%d")
-                            })
-                            save_data(data)
-                            st.toast(f"Saved '{phrase}'!", icon="✅")
-                        else:
-                            st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
-                    st.divider()
-
-            # --- 3. REAL-TIME COACHING AUDIT LOG ---
-            st.subheader("📊 Real-Time Coaching Notes")
-            if not st.session_state["evaluations"]:
-                st.caption(f"Target metrics: **{domain_info['eval_focus']}**.\n\nFeedback will render here after your first spoken response.")
-            else:
-                for eval_item in reversed(st.session_state["evaluations"]):
-                    with st.expander(f"Turn {eval_item['turn']} Audit", expanded=True):
-                        st.caption(f"**You said:** \"{eval_item['transcript']}\"")
-                        st.markdown(eval_item["feedback"])
-
+        st.divider()
 # ==========================================
 # TAB 2: AUDIT LOG & RETROSPECTIVES
 # ==========================================
@@ -491,10 +523,10 @@ with tab3:
             st.divider()
 
 # ==========================================
-# TAB 4: GENERAL FRAMEWORK REFERENCE
+# TAB 4: REFERENCE LIBRARY
 # ==========================================
 with tab4:
-    st.title("💡 General Communication Framework Reference")
+    st.title("💡 Core Leadership Communication Reference Library")
     
     t_lead, t_exec, t_social = st.tabs(["👥 People Leadership", "👔 Executive Presence", "🗣️ Everyday Workplace"])
     
