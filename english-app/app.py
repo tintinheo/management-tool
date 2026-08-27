@@ -5,7 +5,7 @@ import streamlit as st
 from groq import Groq
 
 # Page Configuration
-st.set_page_config(page_title="Dynamic Workplace & Leadership Communication Coach", page_icon="🎭", layout="wide")
+st.set_page_config(page_title="Dynamic Leadership & Communication Coach", page_icon="🎭", layout="wide")
 
 # Local Storage Persistence Setup
 DATA_FILE = "practice_data.json"
@@ -120,6 +120,10 @@ if "retro_summary" not in st.session_state:
     st.session_state["retro_summary"] = None
 if "processed_audio_id" not in st.session_state:
     st.session_state["processed_audio_id"] = None
+if "target_vocab" not in st.session_state:
+    st.session_state["target_vocab"] = []
+if "target_framework" not in st.session_state:
+    st.session_state["target_framework"] = {}
 
 SYSTEM_ROLEPLAY_PROMPT = f"""
 You are participating in an interactive, turn-based real-world simulation.
@@ -141,9 +145,12 @@ if st.sidebar.button("🎬 Start New Simulation", type="primary", use_container_
     st.session_state["evaluations"] = []
     st.session_state["retro_summary"] = None
     st.session_state["processed_audio_id"] = None
+    st.session_state["target_vocab"] = []
+    st.session_state["target_framework"] = {}
     st.session_state["roleplay_active"] = True
     
-    with st.spinner("Setting up the scenario..."):
+    with st.spinner("Setting up scenario & generating dynamic framework & vocabulary toolkit..."):
+        # 1. Generate Opening Statement from Counterpart Persona
         opening = client.chat.completions.create(
             model=MODEL_CHOICE,
             messages=st.session_state["chat_history"] + [
@@ -152,6 +159,71 @@ if st.sidebar.button("🎬 Start New Simulation", type="primary", use_container_
             temperature=0.7
         )
         st.session_state["chat_history"].append({"role": "assistant", "content": opening.choices[0].message.content})
+        
+        # 2. Dynamically Generate Both Tactical Framework & Target Vocab
+        toolkit_prompt = f"""
+        Generate a tailored communication playbook for this specific scenario:
+        - Domain: {selected_domain}
+        - Focus Framework: {selected_framework}
+        - Counterpart Persona: {selected_persona}
+
+        Return ONLY a JSON object with two keys: "framework" and "vocabulary".
+        
+        Example JSON Structure:
+        {{
+            "framework": {{
+                "name": "Title of Technique (e.g. SBI Feedback Model or BLUF Executive Framing)",
+                "core_principle": "1-sentence summary of the strategic mindset or core objective.",
+                "execution_steps": [
+                    "Step 1: Actionable step name and short instruction",
+                    "Step 2: Actionable step name and short instruction",
+                    "Step 3: Actionable step name and short instruction"
+                ],
+                "pro_tip": "1 actionable tip for handling pushback in this specific interaction."
+            }},
+            "vocabulary": [
+                {{"phrase": "phrasal verb or idiom", "meaning": "short definition", "example": "relevant example sentence"}},
+                {{"phrase": "phrasal verb or idiom", "meaning": "short definition", "example": "relevant example sentence"}},
+                {{"phrase": "phrasal verb or idiom", "meaning": "short definition", "example": "relevant example sentence"}},
+                {{"phrase": "phrasal verb or idiom", "meaning": "short definition", "example": "relevant example sentence"}}
+            ]
+        }}
+        """
+        try:
+            toolkit_res = client.chat.completions.create(
+                model=MODEL_CHOICE,
+                messages=[{"role": "user", "content": toolkit_prompt}],
+                temperature=0.3,
+                response_format={"type": "json_object"} if "llama-3" in MODEL_CHOICE.lower() else None
+            )
+            res_content = toolkit_res.choices[0].message.content.strip()
+            if res_content.startswith("```json"):
+                res_content = res_content.replace("```json", "").replace("```", "").strip()
+            
+            parsed_toolkit = json.loads(res_content)
+            
+            st.session_state["target_framework"] = parsed_toolkit.get("framework", {})
+            st.session_state["target_vocab"] = parsed_toolkit.get("vocabulary", [])[:4]
+            
+        except Exception:
+            # Resilient Fallbacks
+            st.session_state["target_framework"] = {
+                "name": f"{selected_framework} Playbook",
+                "core_principle": "State your conclusion first, ground arguments in evidence, and invite collaborative alignment.",
+                "execution_steps": [
+                    "1. Frame the Core Problem: Lead with the primary outcome or blocker.",
+                    "2. Present Quantitative Evidence: Back up claims with clear numbers or facts.",
+                    "3. Propose Two Concrete Options: Offer actionable pathways forward."
+                ],
+                "pro_tip": "Acknowledge counterpart pushback without becoming defensive before restating boundaries."
+            }
+            st.session_state["target_vocab"] = [
+                {"phrase": "push back on", "meaning": "Firmly oppose or negotiate a constraint.", "example": "I need to push back on the timeline."},
+                {"phrase": "walk through", "meaning": "Explain step-by-step.", "example": "Let me walk you through the options."},
+                {"phrase": "iron out", "meaning": "Resolve details or conflicts.", "example": "We should iron out these risks early."},
+                {"phrase": "touch base", "meaning": "Briefly connect for an update.", "example": "Let's touch base tomorrow morning."}
+            ]
+            
     st.rerun()
 
 if st.session_state.get("roleplay_active"):
@@ -201,7 +273,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🎭 Active Simulation", 
     "📜 Retrospectives & Logs", 
     "📚 Vocabulary Builder",
-    "💡 Domain Frameworks"
+    "💡 Domain Framework Reference"
 ])
 
 # ==========================================
@@ -278,11 +350,13 @@ with tab1:
                         Analyze this spoken turn:
                         User Transcript: "{user_transcript}"
                         Domain: {selected_domain}
-                        Target Evaluation Metrics: {domain_info['eval_focus']}
+                        Target Framework Principles: {st.session_state['target_framework'].get('name', selected_framework)}
+                        Target Vocab Checklist: {[v.get('phrase') for v in st.session_state['target_vocab']]}
                         
                         Provide concise coaching:
-                        1. 💬 **Phrasal Verb / Idiom Swap:** 1 native expression alternative to elevate naturalness or impact.
-                        2. 🛠️ **Tone & Structure Audit:** Evaluate against standard: ({domain_info['eval_focus']}).
+                        1. 🎯 **Framework & Vocab Usage:** Did the response align with the framework steps or deploy target phrases?
+                        2. 💬 **Phrasal Verb / Idiom Swap:** 1 native expression alternative to elevate naturalness.
+                        3. 🛠️ **Tone & Execution Audit:** Evaluate against target metrics ({domain_info['eval_focus']}).
                         """
                         eval_response = client.chat.completions.create(
                             model=MODEL_CHOICE,
@@ -297,9 +371,52 @@ with tab1:
                         st.rerun()
 
         with col_coach:
+            # --- 1. DYNAMICALLY GENERATED FRAMEWORK PLAYBOOK ---
+            fw_data = st.session_state.get("target_framework", {})
+            fw_name = fw_data.get("name", selected_framework)
+            
+            with st.expander(f"🛠️ Dynamic Playbook: {fw_name}", expanded=True):
+                if fw_data.get("core_principle"):
+                    st.markdown(f"**Core Mindset:** *\"{fw_data['core_principle']}\"*")
+                    st.markdown("---")
+                
+                st.markdown("**Execution Steps:**")
+                for step in fw_data.get("execution_steps", []):
+                    st.markdown(f"• {step}")
+                
+                if fw_data.get("pro_tip"):
+                    st.info(f"💡 **Pro-Tip:** {fw_data['pro_tip']}")
+
+            # --- 2. DYNAMIC TARGET VOCABULARY PANEL ---
+            with st.expander("💡 Recommended Target Vocabulary", expanded=False):
+                for idx, item in enumerate(st.session_state.get("target_vocab", [])):
+                    phrase = item.get("phrase", "")
+                    meaning = item.get("meaning", "")
+                    example = item.get("example", "")
+                    
+                    st.markdown(f"**`{phrase}`** — {meaning}")
+                    st.caption(f"💬 *\"{example}\"*")
+                    
+                    btn_key = f"add_dyn_vocab_{idx}"
+                    if st.button(f"➕ Add to Vocab List", key=btn_key):
+                        exists = any(v['word'].lower() == phrase.lower() for v in data['vocabulary'])
+                        if not exists:
+                            data['vocabulary'].insert(0, {
+                                "word": phrase,
+                                "meaning": meaning,
+                                "example": example,
+                                "date": datetime.now().strftime("%Y-%m-%d")
+                            })
+                            save_data(data)
+                            st.toast(f"Saved '{phrase}'!", icon="✅")
+                        else:
+                            st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
+                    st.divider()
+
+            # --- 3. REAL-TIME COACHING AUDIT LOG ---
             st.subheader("📊 Real-Time Coaching Notes")
             if not st.session_state["evaluations"]:
-                st.caption(f"Target metrics: **{domain_info['eval_focus']}**.\n\nFeedback will render here after your first response.")
+                st.caption(f"Target metrics: **{domain_info['eval_focus']}**.\n\nFeedback will render here after your first spoken response.")
             else:
                 for eval_item in reversed(st.session_state["evaluations"]):
                     with st.expander(f"Turn {eval_item['turn']} Audit", expanded=True):
@@ -374,10 +491,10 @@ with tab3:
             st.divider()
 
 # ==========================================
-# TAB 4: DOMAIN FRAMEWORKS & EXAMPLES
+# TAB 4: GENERAL FRAMEWORK REFERENCE
 # ==========================================
 with tab4:
-    st.title("💡 Dynamic Communication Frameworks")
+    st.title("💡 General Communication Framework Reference")
     
     t_lead, t_exec, t_social = st.tabs(["👥 People Leadership", "👔 Executive Presence", "🗣️ Everyday Workplace"])
     
@@ -388,7 +505,6 @@ with tab4:
         * **Behavior:** Describe observable actions without judgment (*"...you interrupted the junior engineer three times..."*).
         * **Impact:** State the result (*"...which caused the team to stop raising critical security questions."*).
         """)
-        st.markdown("**Native Phrasal Verbs for Leadership:** `smooth over`, `step back`, `walk through`, `iron out`, `bring out`")
 
     with t_exec:
         st.markdown("### Executive Communication (BLUF & Minto Pyramid)")
@@ -396,11 +512,9 @@ with tab4:
         * **BLUF:** Answer first, context second. Lead with decision outcomes, dates, or financial impact.
         * **Rule of 3:** Group risks or trade-offs into maximum 3 structured buckets.
         """)
-        st.markdown("**Native Phrasal Verbs for Executives:** `boil down to`, `bottom line`, `phase out`, `scale back`, `drive forward`")
 
     with t_social:
         st.markdown("### Professional Small Talk & Rapport")
         st.markdown("""
         * **ARE Method:** Anchor, Reveal, Encourage. Comment on the setting, share a brief personal note, ask open questions.
         """)
-        st.markdown("**Native Phrasal Verbs for Social & Networking:** `catch up`, `run into`, `touch base`, `strike up`, `chime in`")
