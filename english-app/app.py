@@ -1,21 +1,10 @@
+import io
 import json
 import os
 from datetime import datetime
+from gtts import gTTS
 import streamlit as st
 from groq import Groq
-import io
-from gtts import gTTS
-
-@st.cache_data(show_spinner=False)
-def get_pronunciation_audio(text: str, accent: str = "com") -> bytes:
-    """
-    Generates MP3 audio bytes for a given text.
-    accent options: 'com' (US), 'co.uk' (UK), 'com.au' (AU)
-    """
-    fp = io.BytesIO()
-    tts = gTTS(text=text, lang="en", tld=accent, slow=False)
-    tts.write_to_fp(fp)
-    return fp.getvalue()
 
 # Page Configuration
 st.set_page_config(page_title="Dynamic Leadership & Communication Coach", page_icon="🎭", layout="wide")
@@ -37,6 +26,15 @@ def save_data(data):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 data = load_data()
+
+# --- TTS HELPER FUNCTION ---
+@st.cache_data(show_spinner=False)
+def get_pronunciation_audio(text: str, accent: str = "com") -> bytes:
+    """Generates MP3 audio bytes for vocabulary pronunciation."""
+    fp = io.BytesIO()
+    tts = gTTS(text=text, lang="en", tld=accent, slow=False)
+    tts.write_to_fp(fp)
+    return fp.getvalue()
 
 # --- SIDEBAR CONFIGURATION ---
 st.sidebar.title("⚙️ Simulation Engine")
@@ -117,7 +115,6 @@ SCENARIO_DOMAINS = {
 }
 
 selected_domain = st.sidebar.selectbox("Communication Domain", list(SCENARIO_DOMAINS.keys()))
-
 domain_info = SCENARIO_DOMAINS[selected_domain]
 selected_framework = st.sidebar.selectbox("Scenario Focus", domain_info["frameworks"])
 selected_persona = st.sidebar.selectbox("Counterpart Persona", domain_info["personas"])
@@ -173,7 +170,7 @@ if st.sidebar.button("🎬 Start New Simulation", type="primary", use_container_
         )
         st.session_state["chat_history"].append({"role": "assistant", "content": opening.choices[0].message.content})
         
-        # 2. Dynamically Generate Framework Guide AND Target Vocab specifically for this scenario
+        # 2. Dynamically Generate Framework Guide AND Target Vocab
         setup_prompt = f"""
         Generate tailored tactical coaching material for a simulation:
         - Domain: {selected_domain}
@@ -206,11 +203,9 @@ if st.sidebar.button("🎬 Start New Simulation", type="primary", use_container_
                 res_content = res_content.replace("```json", "").replace("```", "").strip()
             
             parsed_setup = json.loads(res_content)
-            
             st.session_state["target_framework"] = parsed_setup.get("framework_guide", {})
             st.session_state["target_vocab"] = parsed_setup.get("target_vocab", [])[:4]
         except Exception:
-            # Fallback default framework and vocabulary if parsing encounters an issue
             st.session_state["target_framework"] = {
                 "title": f"{selected_framework} Guidance",
                 "overview": "Focus on clear, direct, and structured executive communication.",
@@ -243,7 +238,6 @@ if st.session_state.get("roleplay_active"):
         conversation_text = "\n".join(full_transcript)
         fw_title = st.session_state.get("target_framework", {}).get("title", selected_framework)
         
-        # --- ENHANCED RETROSPECTIVE PROMPT WITH GRAMMAR & VOCAB AUDIT ---
         RETRO_PROMPT = f"""
         You are an expert executive leadership and native English communication coach. Review this simulation transcript:
         Domain: {selected_domain}
@@ -318,6 +312,7 @@ with tab1:
     else:
         col_chat, col_coach = st.columns([3, 2])
         
+        # LEFT COLUMN: CONVERSATION & AUDIO RECORDING
         with col_chat:
             st.subheader(f"💬 Live Interaction ({selected_persona})")
             st.caption(f"**Focus:** {selected_framework}")
@@ -356,7 +351,7 @@ with tab1:
                         ai_reply = ai_response.choices[0].message.content
                         st.session_state["chat_history"].append({"role": "assistant", "content": ai_reply})
                         
-                        # --- ENHANCED REAL-TIME TURN COACHING PROMPT ---
+                        # 3. REAL-TIME PER-TURN COACHING EVALUATION
                         fw_info = st.session_state.get("target_framework", {})
                         eval_prompt = f"""
                         Analyze this spoken turn from the user:
@@ -388,8 +383,9 @@ with tab1:
                         })
                         st.rerun()
 
+        # RIGHT COLUMN: REAL-TIME COACHING & REFERENCE PANELS
         with col_coach:
-            # --- DYNAMIC FRAMEWORK & STRATEGY CARD ---
+            # 1. Dynamic Framework & Strategy Card
             fw_data = st.session_state.get("target_framework", {})
             with st.expander("🎯 Tactical Framework & Strategy Guide", expanded=True):
                 if fw_data:
@@ -403,58 +399,66 @@ with tab1:
                 else:
                     st.caption("Framework guidance will load when starting a simulation.")
 
-            # --- DYNAMIC TARGET VOCABULARY PANEL ---
-            # --- DYNAMIC TARGET VOCABULARY PANEL WITH TTS PREVIEW ---
-with st.expander("💡 Scenario Target Vocabulary", expanded=True):
-    st.caption("Incorporate these expressions into your turns:")
-    
-    # Accent selector for pronunciation style
-    accent_choice = st.radio(
-        "Pronunciation Accent:",
-        options=["🇺🇸 US", "🇬🇧 UK", "🇦🇺 AU"],
-        horizontal=True,
-        key="vocab_accent_selector"
-    )
-    tld_map = {"🇺🇸 US": "com", "🇬🇧 UK": "co.uk", "🇦🇺 AU": "com.au"}
-    selected_tld = tld_map[accent_choice]
-
-    st.divider()
-
-    for idx, item in enumerate(st.session_state.get("target_vocab", [])):
-        phrase = item.get("phrase", "")
-        meaning = item.get("meaning", "")
-        example = item.get("example", "")
-        
-        st.markdown(f"**`{phrase}`** — {meaning}")
-        st.caption(f"💬 *\"{example}\"*")
-        
-        col_audio, col_add = st.columns([2, 2])
-        
-        with col_audio:
-            # Generate and render audio player button
-            try:
-                audio_bytes = get_pronunciation_audio(phrase, accent=selected_tld)
-                st.audio(audio_bytes, format="audio/mp3")
-            except Exception:
-                st.caption("⚠️ Audio preview unavailable")
+            # 2. Dynamic Target Vocabulary Panel with TTS Audio Preview
+            with st.expander("💡 Scenario Target Vocabulary", expanded=True):
+                st.caption("Incorporate these expressions into your turns:")
                 
-        with col_add:
-            btn_key = f"add_dyn_vocab_{idx}"
-            if st.button(f"➕ Add to Vocab", key=btn_key, use_container_width=True):
-                exists = any(v['word'].lower() == phrase.lower() for v in data['vocabulary'])
-                if not exists:
-                    data['vocabulary'].insert(0, {
-                        "word": phrase,
-                        "meaning": meaning,
-                        "example": example,
-                        "date": datetime.now().strftime("%Y-%m-%d")
-                    })
-                    save_data(data)
-                    st.toast(f"Saved '{phrase}'!", icon="✅")
-                else:
-                    st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
+                accent_choice = st.radio(
+                    "Pronunciation Accent:",
+                    options=["🇺🇸 US", "🇬🇧 UK", "🇦🇺 AU"],
+                    horizontal=True,
+                    key="vocab_accent_selector"
+                )
+                tld_map = {"🇺🇸 US": "com", "🇬🇧 UK": "co.uk", "🇦🇺 AU": "com.au"}
+                selected_tld = tld_map[accent_choice]
+
+                st.divider()
+
+                for idx, item in enumerate(st.session_state.get("target_vocab", [])):
+                    phrase = item.get("phrase", "")
+                    meaning = item.get("meaning", "")
+                    example = item.get("example", "")
                     
-        st.divider()
+                    st.markdown(f"**`{phrase}`** — {meaning}")
+                    st.caption(f"💬 *\"{example}\"*")
+                    
+                    col_audio, col_add = st.columns([2, 2])
+                    
+                    with col_audio:
+                        try:
+                            audio_bytes = get_pronunciation_audio(phrase, accent=selected_tld)
+                            st.audio(audio_bytes, format="audio/mp3")
+                        except Exception:
+                            st.caption("⚠️ Audio preview unavailable")
+                            
+                    with col_add:
+                        btn_key = f"add_dyn_vocab_{idx}"
+                        if st.button(f"➕ Add to Vocab", key=btn_key, use_container_width=True):
+                            exists = any(v['word'].lower() == phrase.lower() for v in data['vocabulary'])
+                            if not exists:
+                                data['vocabulary'].insert(0, {
+                                    "word": phrase,
+                                    "meaning": meaning,
+                                    "example": example,
+                                    "date": datetime.now().strftime("%Y-%m-%d")
+                                })
+                                save_data(data)
+                                st.toast(f"Saved '{phrase}'!", icon="✅")
+                            else:
+                                st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
+                                
+                    st.divider()
+
+            # 3. REAL-TIME PER-TURN COACHING NOTES
+            st.subheader("📊 Real-Time Coaching Notes")
+            if not st.session_state["evaluations"]:
+                st.caption(f"Target metrics: **{domain_info['eval_focus']}**.\n\nGrammar, vocabulary, framework, and tone audits will render here after your first spoken response.")
+            else:
+                for eval_item in reversed(st.session_state["evaluations"]):
+                    with st.expander(f"Turn {eval_item['turn']} Audit", expanded=True):
+                        st.caption(f"**You said:** \"{eval_item['transcript']}\"")
+                        st.markdown(eval_item["feedback"])
+
 # ==========================================
 # TAB 2: AUDIT LOG & RETROSPECTIVES
 # ==========================================
