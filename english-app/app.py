@@ -7,7 +7,54 @@ import streamlit as st
 from groq import Groq
 
 # Page Configuration
-st.set_page_config(page_title="Dynamic Leadership & Communication Coach", page_icon="🎭", layout="wide")
+st.set_page_config(page_title="Dynamic Leadership & Communication Coach", page_icon="🎭", layout="wide", initial_sidebar_state="expanded")
+
+# Mobile/Chrome responsive tweaks: bigger tap targets, no horizontal overflow, scrollable tabs
+st.markdown("""
+<style>
+/* Prevent long words/URLs from forcing horizontal scroll on any viewport */
+.stMarkdown p, .stMarkdown li, .stCaption, code, pre {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.stButton > button, .stFormSubmitButton > button {
+    border-radius: 8px;
+}
+@media (max-width: 640px) {
+    .block-container {
+        padding-top: 1rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-bottom: 2rem;
+    }
+    /* Bigger tap targets (min 44px per WCAG/Chrome touch guidance) */
+    .stButton > button, .stFormSubmitButton > button {
+        min-height: 44px;
+        font-size: 0.95rem;
+        width: 100%;
+    }
+    /* Scroll instead of squeeze when tabs don't fit the screen width */
+    [data-testid="stTabs"] [data-baseweb="tab-list"] {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+    [data-testid="stTabs"] button[role="tab"] {
+        white-space: nowrap;
+        font-size: 0.82rem;
+        padding: 0.4rem 0.6rem;
+    }
+    [data-testid="stChatMessageContent"] p {
+        font-size: 0.95rem;
+    }
+    [data-testid="stAudioInput"] {
+        width: 100% !important;
+    }
+    [data-testid="stExpander"] summary {
+        font-size: 0.9rem;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Local Storage Persistence Setup
 DATA_FILE = "practice_data.json"
@@ -63,6 +110,8 @@ except Exception:
     text_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
 MODEL_CHOICE = st.sidebar.selectbox("Active Groq LLM", text_models)
+
+st.sidebar.caption("📱 On mobile, tap **☰** (top-left) anytime to reopen these settings.")
 
 # --- DYNAMIC DOMAIN & PERSONA CONFIGURATION ---
 SCENARIO_DOMAINS = {
@@ -275,11 +324,12 @@ if st.session_state.get("roleplay_active"):
         st.rerun()
 
 # --- MAIN TAB NAVIGATION ---
+# Short labels keep the tab bar usable (scrollable, not cramped) on narrow mobile screens
 tab1, tab2, tab3, tab4 = st.tabs([
-    "🎭 Active Simulation", 
-    "📜 Retrospectives & Logs", 
-    "📚 Vocabulary Builder",
-    "💡 Reference Library"
+    "🎭 Simulation", 
+    "📜 Logs", 
+    "📚 Vocabulary",
+    "💡 Library"
 ])
 
 # ==========================================
