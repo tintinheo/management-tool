@@ -6,16 +6,16 @@ from datetime import datetime
 conn = sqlite3.connect('journal.db', check_same_thread=False)
 c = conn.cursor()
 
-c.execute(CREATE TABLE IF NOT EXISTS journal (
+c.execute('''CREATE TABLE IF NOT EXISTS journal (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 created_at TEXT,
 entry_type TEXT,
 content TEXT,
 emotion TEXT,
 intensity INTEGER
-))
+)''')
 
-c.execute(CREATE TABLE IF NOT EXISTS meditation (
+c.execute('''CREATE TABLE IF NOT EXISTS meditation (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 created_at TEXT,
 duration INTEGER,
@@ -24,7 +24,7 @@ mood_after INTEGER,
 dominant_emotion TEXT,
 recurring_thought TEXT,
 insight TEXT
-))
+)''')
 conn.commit()
 
 st.set_page_config(page_title='Mind Journal', page_icon='🧠')
