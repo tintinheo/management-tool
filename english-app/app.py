@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import re
 from datetime import datetime
 from gtts import gTTS
 import streamlit as st
@@ -119,6 +120,74 @@ def sm2_update(item: dict, quality: int) -> None:
         item["ease"] = max(1.3, item["ease"] + {1: -0.1, 2: 0.0, 3: 0.15}[quality])
     item["due"] = (datetime.now() + timedelta(days=item["interval"])).strftime("%Y-%m-%d")
 
+# --- LIVE REACTION & STREAMING HELPERS ---
+REACTION_TAG_RE = re.compile(r"^\s*\[([^\]]{1,4})\]\s*(.*)", re.DOTALL)
+
+def call_reaction_reply(messages: list, model: str, temperature: float, default_avatar: str) -> tuple:
+    """Non-streaming reply generation that extracts a leading [emoji] reaction tag."""
+    res = client.chat.completions.create(model=model, messages=messages, temperature=temperature)
+    raw = res.choices[0].message.content or ""
+    match = REACTION_TAG_RE.match(raw)
+    if match:
+        return match.group(2).strip(), match.group(1).strip()
+    return raw.strip(), default_avatar
+
+def stream_reply_with_reaction(messages: list, model: str, temperature: float, default_avatar: str) -> tuple:
+    """Streams a chat reply token-by-token into a live st.chat_message bubble, extracting a leading [emoji] reaction tag."""
+    stream = client.chat.completions.create(model=model, messages=messages, temperature=temperature, stream=True)
+    raw, emoji, placeholder = "", None, None
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content or ""
+        if not delta:
+            continue
+        raw += delta
+        if placeholder is None:
+            match = REACTION_TAG_RE.match(raw)
+            if match:
+                emoji = match.group(1).strip()
+                placeholder = st.chat_message("assistant", avatar=emoji).empty()
+                placeholder.markdown(match.group(2) + "▌")
+            continue
+        visible = REACTION_TAG_RE.sub(r"\2", raw, count=1)
+        placeholder.markdown(visible + "▌")
+    if placeholder is None:
+        emoji = default_avatar
+        visible = raw.strip()
+        placeholder = st.chat_message("assistant", avatar=emoji).empty()
+    else:
+        visible = REACTION_TAG_RE.sub(r"\2", raw, count=1)
+    placeholder.markdown(visible)
+    return visible.strip(), emoji
+
+# --- GAMIFICATION (XP / STREAKS) HELPER ---
+def apply_gamification(prefix: str, feedback_text: str) -> dict:
+    """Awards XP/streaks based on whether a turn's grammar was accurate, with toast/balloon reactions."""
+    for suffix, default_val in (("xp", 0), ("streak", 0), ("best_streak", 0), ("turns", 0)):
+        st.session_state.setdefault(f"{prefix}_{suffix}", default_val)
+
+    quality_good = "grammar was accurate" in feedback_text.lower()
+    st.session_state[f"{prefix}_turns"] += 1
+    if quality_good:
+        st.session_state[f"{prefix}_streak"] += 1
+        gained = 15
+        st.toast(f"✅ Grammar accurate! +{gained} XP", icon="✨")
+    else:
+        st.session_state[f"{prefix}_streak"] = 0
+        gained = 5
+        st.toast(f"📝 Feedback ready · +{gained} XP", icon="💬")
+    st.session_state[f"{prefix}_xp"] += gained
+    st.session_state[f"{prefix}_best_streak"] = max(st.session_state[f"{prefix}_best_streak"], st.session_state[f"{prefix}_streak"])
+
+    if st.session_state[f"{prefix}_streak"] in (3, 5, 10, 15, 20):
+        st.balloons()
+
+    return {
+        "xp": st.session_state[f"{prefix}_xp"],
+        "streak": st.session_state[f"{prefix}_streak"],
+        "best_streak": st.session_state[f"{prefix}_best_streak"],
+        "turns": st.session_state[f"{prefix}_turns"],
+    }
+
 # --- STATIC GRAMMAR LESSON LIBRARY ---
 GRAMMAR_TOPICS = {
     "Present Simple vs Present Perfect": {
@@ -167,7 +236,7 @@ def render_english_tutor():
     """General English tutor mode: conversation practice, writing correction, grammar lessons, SRS flashcards, pronunciation drills."""
     for state_key, default_val in (
         ("tutor_chat_history", []), ("tutor_active", False), ("tutor_topic", ""),
-        ("tutor_processed_audio_id", None), ("tutor_evaluations", []),
+        ("tutor_processed_audio_id", None), ("tutor_evaluations", []), ("tutor_reactions", []),
         ("flash_queue", []), ("flash_pos", 0), ("flash_show_answer", False), ("pron_processed_audio_id", None)
     ):
         if state_key not in st.session_state:
@@ -205,40 +274,61 @@ Rules:
 - Speak naturally, using authentic Australian expressions and idioms where it fits.
 - Keep replies short (2-4 sentences) and ask an engaging follow-up question.
 - Stay encouraging and conversational, not formal.
+- Begin every reply with exactly one emoji in square brackets showing your current reaction (e.g. [😄], [🙂], [🤔], [😲]), then a space, then your message.
 """
         if st.button("🎬 Start New Conversation", type="primary", use_container_width=True):
             st.session_state["tutor_chat_history"] = [{"role": "system", "content": TUTOR_SYSTEM_PROMPT}]
             st.session_state["tutor_evaluations"] = []
+            st.session_state["tutor_reactions"] = []
             st.session_state["tutor_processed_audio_id"] = None
             st.session_state["tutor_active"] = True
+            for suffix in ("xp", "streak", "best_streak", "turns"):
+                st.session_state[f"tutor_{suffix}"] = 0
             with st.spinner("Starting conversation..."):
-                opener = client.chat.completions.create(
-                    model=MODEL_CHOICE,
-                    messages=st.session_state["tutor_chat_history"] + [
+                reply, emoji = call_reaction_reply(
+                    st.session_state["tutor_chat_history"] + [
                         {"role": "user", "content": "Start the conversation with a friendly opening line or question."}
                     ],
-                    temperature=0.7
+                    MODEL_CHOICE, 0.7, "🇦🇺"
                 )
-                st.session_state["tutor_chat_history"].append({"role": "assistant", "content": opener.choices[0].message.content})
+                st.session_state["tutor_chat_history"].append({"role": "assistant", "content": reply})
+                st.session_state["tutor_reactions"].append(emoji)
             st.rerun()
 
         if st.session_state["tutor_active"]:
             col_chat, col_audit = st.columns([3, 2])
             with col_chat:
+                xp = st.session_state.get("tutor_xp", 0)
+                streak = st.session_state.get("tutor_streak", 0)
+                m1, m2, m3 = st.columns(3)
+                m1.metric("✨ XP", xp)
+                m2.metric("🔥 Streak", streak)
+                m3.metric("🏆 Best", st.session_state.get("tutor_best_streak", 0))
+                st.progress(min(1.0, st.session_state.get("tutor_turns", 0) / 10), text="Session progress toward 10 turns")
+
+                reaction_idx = 0
                 for msg in st.session_state["tutor_chat_history"]:
-                    if msg["role"] != "system":
-                        with st.chat_message(msg["role"]):
+                    if msg["role"] == "system":
+                        continue
+                    if msg["role"] == "assistant":
+                        avatar = st.session_state["tutor_reactions"][reaction_idx] if reaction_idx < len(st.session_state["tutor_reactions"]) else "🇦🇺"
+                        reaction_idx += 1
+                        with st.chat_message("assistant", avatar=avatar):
+                            st.write(msg["content"])
+                    else:
+                        with st.chat_message("user"):
                             st.write(msg["content"])
 
                 st.markdown("---")
 
                 def process_tutor_turn(user_text: str):
                     st.session_state["tutor_chat_history"].append({"role": "user", "content": user_text})
-                    ai_res = client.chat.completions.create(
-                        model=MODEL_CHOICE, messages=st.session_state["tutor_chat_history"], temperature=0.7
-                    )
-                    ai_reply = ai_res.choices[0].message.content
-                    st.session_state["tutor_chat_history"].append({"role": "assistant", "content": ai_reply})
+                    with st.chat_message("user"):
+                        st.write(user_text)
+
+                    reply, emoji = stream_reply_with_reaction(st.session_state["tutor_chat_history"], MODEL_CHOICE, 0.7, "🇦🇺")
+                    st.session_state["tutor_chat_history"].append({"role": "assistant", "content": reply})
+                    st.session_state["tutor_reactions"].append(emoji)
 
                     audit_prompt = f"""
 Analyze this English learner's turn: "{user_text}"
@@ -247,14 +337,17 @@ Give concise coaching in 3 short points:
 2. 🇦🇺 **Native AU Upgrade:** Suggest one more natural, native Australian-English way to phrase the same idea (word, idiom, or phrasal verb).
 3. 💬 **Fluency Tip:** One short, encouraging tip to sound more natural next time.
 """
-                    audit_res = client.chat.completions.create(
-                        model=MODEL_CHOICE, messages=[{"role": "user", "content": audit_prompt}], temperature=0.2
-                    )
+                    with st.spinner("Coaching..."):
+                        audit_res = client.chat.completions.create(
+                            model=MODEL_CHOICE, messages=[{"role": "user", "content": audit_prompt}], temperature=0.2
+                        )
+                    feedback = audit_res.choices[0].message.content
                     st.session_state["tutor_evaluations"].append({
                         "turn": len(st.session_state["tutor_evaluations"]) + 1,
                         "transcript": user_text,
-                        "feedback": audit_res.choices[0].message.content
+                        "feedback": feedback
                     })
+                    apply_gamification("tutor", feedback)
 
                 audio_file = st.audio_input("Record your response", key="tutor_audio_input_widget")
                 if audio_file:
@@ -262,17 +355,16 @@ Give concise coaching in 3 short points:
                     audio_id = hash(audio_bytes)
                     if st.session_state["tutor_processed_audio_id"] != audio_id:
                         st.session_state["tutor_processed_audio_id"] = audio_id
-                        with st.spinner("Transcribing & coaching..."):
+                        with st.spinner("Transcribing..."):
                             transcript = client.audio.transcriptions.create(
                                 file=("turn.wav", audio_bytes), model="whisper-large-v3-turbo", response_format="text"
                             ).strip()
-                            process_tutor_turn(transcript)
+                        process_tutor_turn(transcript)
                         st.rerun()
 
                 text_turn = st.chat_input("...or type your response")
                 if text_turn:
-                    with st.spinner("Coaching..."):
-                        process_tutor_turn(text_turn)
+                    process_tutor_turn(text_turn)
                     st.rerun()
 
             with col_audit:
@@ -292,6 +384,18 @@ Give concise coaching in 3 short points:
         st.subheader("✍️ Writing Correction & Coaching")
         st.caption("Paste an email, message, or essay to get a corrected version with native Australian-English suggestions.")
         draft = st.text_area("Your text", height=200, key="writing_draft_input")
+
+        if draft.strip():
+            sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", draft.strip()) if s.strip()]
+            words = draft.split()
+            long_sentences = [s for s in sentences if len(s.split()) > 30]
+            repeats = re.findall(r"\b(\w+)\s+\1\b", draft, flags=re.IGNORECASE)
+            signal_bits = [f"📝 {len(words)} words · {len(sentences)} sentence(s)"]
+            if long_sentences:
+                signal_bits.append(f"⚠️ {len(long_sentences)} sentence(s) over 30 words — consider splitting them")
+            if repeats:
+                signal_bits.append(f"⚠️ Repeated word(s): {', '.join(sorted(set(w.lower() for w in repeats)))}")
+            st.caption(" · ".join(signal_bits))
 
         if st.button("🔍 Correct & Coach My Writing", type="primary"):
             if draft.strip():
@@ -615,6 +719,10 @@ if "target_vocab" not in st.session_state:
     st.session_state["target_vocab"] = []
 if "target_framework" not in st.session_state:
     st.session_state["target_framework"] = {}
+if "reactions" not in st.session_state:
+    st.session_state["reactions"] = []
+for _suffix in ("xp", "streak", "best_streak", "turns"):
+    st.session_state.setdefault(f"ld_{_suffix}", 0)
 
 SYSTEM_ROLEPLAY_PROMPT = f"""
 You are participating in an interactive, turn-based real-world simulation.
@@ -627,6 +735,7 @@ Rules:
 - Keep responses concise (2-4 sentences max) to mirror natural executive conversation.
 - Push back, ask sharp questions, or display realistic emotional nuances based on what the user says.
 - Adapt tone dynamically: professional, direct, hesitant, or demanding depending on your persona.
+- Begin every reply with exactly one emoji in square brackets showing your current in-character reaction (e.g. [😠], [🙂], [😕], [😲]), then a space, then your message.
 """
 
 st.sidebar.markdown("---")
@@ -638,18 +747,21 @@ if st.sidebar.button("🎬 Start New Simulation", type="primary", use_container_
     st.session_state["processed_audio_id"] = None
     st.session_state["target_vocab"] = []
     st.session_state["target_framework"] = {}
+    st.session_state["reactions"] = []
     st.session_state["roleplay_active"] = True
+    for _suffix in ("xp", "streak", "best_streak", "turns"):
+        st.session_state[f"ld_{_suffix}"] = 0
     
     with st.spinner("Generating custom scenario, dynamic framework, & target vocabulary..."):
         # 1. Generate Opening Statement
-        opening = client.chat.completions.create(
-            model=MODEL_CHOICE,
-            messages=st.session_state["chat_history"] + [
+        opening_reply, opening_emoji = call_reaction_reply(
+            st.session_state["chat_history"] + [
                 {"role": "user", "content": "Start the scenario by making your initial statement or opening question."}
             ],
-            temperature=0.7
+            MODEL_CHOICE, 0.7, "🎭"
         )
-        st.session_state["chat_history"].append({"role": "assistant", "content": opening.choices[0].message.content})
+        st.session_state["chat_history"].append({"role": "assistant", "content": opening_reply})
+        st.session_state["reactions"].append(opening_emoji)
         
         # 2. Dynamically Generate Framework Guide AND Target Vocab
         setup_prompt = f"""
@@ -798,10 +910,24 @@ with tab1:
         with col_chat:
             st.subheader(f"💬 Live Interaction ({selected_persona})")
             st.caption(f"**Focus:** {selected_framework}")
-            
+
+            m1, m2, m3 = st.columns(3)
+            m1.metric("✨ XP", st.session_state.get("ld_xp", 0))
+            m2.metric("🔥 Streak", st.session_state.get("ld_streak", 0))
+            m3.metric("🏆 Best", st.session_state.get("ld_best_streak", 0))
+            st.progress(min(1.0, st.session_state.get("ld_turns", 0) / 10), text="Session progress toward 10 turns")
+
+            reaction_idx = 0
             for msg in st.session_state["chat_history"]:
-                if msg["role"] != "system":
-                    with st.chat_message(msg["role"]):
+                if msg["role"] == "system":
+                    continue
+                if msg["role"] == "assistant":
+                    avatar = st.session_state["reactions"][reaction_idx] if reaction_idx < len(st.session_state["reactions"]) else "🎭"
+                    reaction_idx += 1
+                    with st.chat_message("assistant", avatar=avatar):
+                        st.write(msg["content"])
+                else:
+                    with st.chat_message("user"):
                         st.write(msg["content"])
 
             st.markdown("---")
@@ -814,56 +940,57 @@ with tab1:
                 if st.session_state["processed_audio_id"] != audio_id:
                     st.session_state["processed_audio_id"] = audio_id
                     
-                    with st.spinner("Processing turn with Whisper & Groq..."):
+                    with st.spinner("Transcribing..."):
                         # 1. Transcribe Audio
                         user_transcript = client.audio.transcriptions.create(
                             file=("turn.wav", audio_bytes),
                             model="whisper-large-v3-turbo",
                             response_format="text"
                         ).strip()
-                        
-                        st.session_state["chat_history"].append({"role": "user", "content": user_transcript})
-                        
-                        # 2. AI Counterpart Response
-                        ai_response = client.chat.completions.create(
-                            model=MODEL_CHOICE,
-                            messages=st.session_state["chat_history"],
-                            temperature=0.7
-                        )
-                        ai_reply = ai_response.choices[0].message.content
-                        st.session_state["chat_history"].append({"role": "assistant", "content": ai_reply})
-                        
-                        # 3. REAL-TIME PER-TURN COACHING EVALUATION
-                        fw_info = st.session_state.get("target_framework", {})
-                        eval_prompt = f"""
-                        Analyze this spoken turn from the user:
-                        User Transcript: "{user_transcript}"
-                        Domain: {selected_domain}
-                        Target Framework: {fw_info.get('title', selected_framework)}
-                        Framework Steps: {fw_info.get('steps', [])}
-                        Target Vocab Checklist: {[v.get('phrase') for v in st.session_state['target_vocab']]}
-                        
-                        Provide concise coaching structured in these 4 distinct points:
-                        1. 🎯 **Framework Adherence:** Did the user apply steps for {fw_info.get('title', 'the framework')}?
-                        2. ✍️ **Grammar & Precision Check:** 
-                           - Point out any grammatical errors, incorrect prepositions, tense mismatches, or awkward structures.
-                           - Provide the **exact corrected sentence** (e.g. *Original:* "..." -> *Corrected:* "..."). If error-free, explicitly state "Grammar was accurate."
-                        3. 📚 **Vocabulary Audit & Upgrades:** 
-                           - Did they use target expressions? 
-                           - Offer 1 native/executive word or phrasal verb upgrade to make the statement sound more natural.
-                        4. 🛠️ **Tone & Executive Presence:** Evaluate against standard: ({domain_info['eval_focus']}).
-                        """
+
+                    st.session_state["chat_history"].append({"role": "user", "content": user_transcript})
+                    with st.chat_message("user"):
+                        st.write(user_transcript)
+
+                    # 2. AI Counterpart Response (live-streamed with in-character reaction)
+                    ai_reply, ai_emoji = stream_reply_with_reaction(st.session_state["chat_history"], MODEL_CHOICE, 0.7, "🎭")
+                    st.session_state["chat_history"].append({"role": "assistant", "content": ai_reply})
+                    st.session_state["reactions"].append(ai_emoji)
+
+                    # 3. REAL-TIME PER-TURN COACHING EVALUATION
+                    fw_info = st.session_state.get("target_framework", {})
+                    eval_prompt = f"""
+                    Analyze this spoken turn from the user:
+                    User Transcript: "{user_transcript}"
+                    Domain: {selected_domain}
+                    Target Framework: {fw_info.get('title', selected_framework)}
+                    Framework Steps: {fw_info.get('steps', [])}
+                    Target Vocab Checklist: {[v.get('phrase') for v in st.session_state['target_vocab']]}
+                    
+                    Provide concise coaching structured in these 4 distinct points:
+                    1. 🎯 **Framework Adherence:** Did the user apply steps for {fw_info.get('title', 'the framework')}?
+                    2. ✍️ **Grammar & Precision Check:** 
+                       - Point out any grammatical errors, incorrect prepositions, tense mismatches, or awkward structures.
+                       - Provide the **exact corrected sentence** (e.g. *Original:* "..." -> *Corrected:* "..."). If error-free, explicitly state "Grammar was accurate."
+                    3. 📚 **Vocabulary Audit & Upgrades:** 
+                       - Did they use target expressions? 
+                       - Offer 1 native/executive word or phrasal verb upgrade to make the statement sound more natural.
+                    4. 🛠️ **Tone & Executive Presence:** Evaluate against standard: ({domain_info['eval_focus']}).
+                    """
+                    with st.spinner("Coaching..."):
                         eval_response = client.chat.completions.create(
                             model=MODEL_CHOICE,
                             messages=[{"role": "user", "content": eval_prompt}],
                             temperature=0.2
                         )
-                        st.session_state["evaluations"].append({
-                            "turn": len(st.session_state["evaluations"]) + 1,
-                            "transcript": user_transcript,
-                            "feedback": eval_response.choices[0].message.content
-                        })
-                        st.rerun()
+                    feedback = eval_response.choices[0].message.content
+                    st.session_state["evaluations"].append({
+                        "turn": len(st.session_state["evaluations"]) + 1,
+                        "transcript": user_transcript,
+                        "feedback": feedback
+                    })
+                    apply_gamification("ld", feedback)
+                    st.rerun()
 
         # RIGHT COLUMN: REAL-TIME COACHING & REFERENCE PANELS
         with col_coach:
