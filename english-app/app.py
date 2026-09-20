@@ -59,14 +59,19 @@ st.markdown("""
 # Local Storage Persistence Setup
 DATA_FILE = "practice_data.json"
 
+DEFAULT_DATA = {"history": [], "vocabulary": [], "writing_history": [], "grammar_scores": []}
+
 def load_data():
     if not os.path.exists(DATA_FILE):
-        return {"history": [], "vocabulary": []}
+        return {**DEFAULT_DATA}
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            loaded = json.load(f)
     except Exception:
-        return {"history": [], "vocabulary": []}
+        return {**DEFAULT_DATA}
+    for key, default_val in DEFAULT_DATA.items():
+        loaded.setdefault(key, default_val)
+    return loaded
 
 def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
@@ -82,6 +87,423 @@ def get_pronunciation_audio(text: str, accent: str = "com") -> bytes:
     tts = gTTS(text=text, lang="en", tld=accent, slow=False)
     tts.write_to_fp(fp)
     return fp.getvalue()
+
+# --- SPACED REPETITION (SM-2 LITE) HELPERS ---
+def ensure_srs_fields(item: dict) -> bool:
+    """Backfills SRS bookkeeping fields on a vocabulary item. Returns True if it was modified."""
+    changed = False
+    for field, default_val in (("interval", 0), ("ease", 2.5), ("repetitions", 0), ("due", "")):
+        if field not in item:
+            item[field] = default_val
+            changed = True
+    if not item["due"]:
+        item["due"] = datetime.now().strftime("%Y-%m-%d")
+        changed = True
+    return changed
+
+def sm2_update(item: dict, quality: int) -> None:
+    """Applies a simplified SM-2 spaced-repetition update. quality: 0=Again,1=Hard,2=Good,3=Easy."""
+    from datetime import timedelta
+    if quality == 0:
+        item["repetitions"] = 0
+        item["interval"] = 1
+        item["ease"] = max(1.3, item["ease"] - 0.2)
+    else:
+        item["repetitions"] += 1
+        if item["repetitions"] == 1:
+            item["interval"] = 1
+        elif item["repetitions"] == 2:
+            item["interval"] = 3
+        else:
+            item["interval"] = round(item["interval"] * item["ease"])
+        item["ease"] = max(1.3, item["ease"] + {1: -0.1, 2: 0.0, 3: 0.15}[quality])
+    item["due"] = (datetime.now() + timedelta(days=item["interval"])).strftime("%Y-%m-%d")
+
+# --- STATIC GRAMMAR LESSON LIBRARY ---
+GRAMMAR_TOPICS = {
+    "Present Simple vs Present Perfect": {
+        "explanation": "Use **present simple** for habits, facts, and routines (*I work in Sydney*). Use **present perfect** for past actions with present relevance, or unfinished time periods (*I have worked in Sydney for two years*).",
+        "examples": ["She **visits** her parents every weekend.", "She **has visited** Melbourne three times this year."],
+        "quiz": [
+            {"question": "Choose the correct sentence:", "options": ["I have lived here since 2020.", "I live here since 2020."], "answer": 0, "explain": "'Since' marks a starting point for an unfinished period, which requires present perfect."},
+            {"question": "Choose the correct sentence:", "options": ["He has finished his homework, so he watches TV now.", "He finished his homework, so he is watching TV now."], "answer": 1, "explain": "A completed action followed by a specific current result is usually simple past + present continuous."}
+        ]
+    },
+    "Articles (a / an / the)": {
+        "explanation": "Use **a/an** for a non-specific, first mention (*I saw a dog*). Use **the** for something specific or already mentioned (*the dog barked*). No article for general plural/uncountable nouns (*Dogs are loyal*).",
+        "examples": ["I bought **an** umbrella yesterday.", "**The** umbrella I bought yesterday broke already."],
+        "quiz": [
+            {"question": "Fill the gap: 'She is ___ engineer.'", "options": ["a", "an", "the"], "answer": 1, "explain": "'Engineer' starts with a vowel sound, so use 'an'."},
+            {"question": "Fill the gap: 'I love ___ music.'", "options": ["a", "the", "(no article)"], "answer": 2, "explain": "General/uncountable nouns used generically take no article."}
+        ]
+    },
+    "Prepositions of Time & Place": {
+        "explanation": "Time: **in** (months/years), **on** (days/dates), **at** (clock times). Place: **in** (enclosed spaces), **on** (surfaces), **at** (points/addresses).",
+        "examples": ["The meeting is **at** 3pm **on** Friday **in** March.", "She's waiting **at** the station **on** the platform."],
+        "quiz": [
+            {"question": "Fill the gap: 'I'll see you ___ Monday.'", "options": ["in", "on", "at"], "answer": 1, "explain": "Days of the week take 'on'."},
+            {"question": "Fill the gap: 'The keys are ___ the table.'", "options": ["in", "on", "at"], "answer": 1, "explain": "A flat surface takes 'on'."}
+        ]
+    },
+    "Conditionals (Zero, First, Second)": {
+        "explanation": "**Zero**: facts (*If you heat water, it boils*). **First**: real future possibility (*If it rains, I'll take an umbrella*). **Second**: hypothetical/unlikely (*If I won the lottery, I would travel*).",
+        "examples": ["If I **have** time, I **will call** you.", "If I **were** you, I **would apologise**."],
+        "quiz": [
+            {"question": "Choose the correct sentence:", "options": ["If I was rich, I would travel the world.", "If I were rich, I would travel the world."], "answer": 1, "explain": "Second conditional traditionally uses 'were' for all subjects in formal register."},
+            {"question": "Choose the correct sentence:", "options": ["If you heat ice, it melts.", "If you heat ice, it will melt."], "answer": 0, "explain": "Zero conditional (general truths) uses present simple in both clauses."}
+        ]
+    },
+    "Subject-Verb Agreement": {
+        "explanation": "The verb must match its subject in number. Watch out for collective nouns, indefinite pronouns, and phrases between subject and verb.",
+        "examples": ["Each of the students **has** a laptop.", "The team **is** meeting tomorrow."],
+        "quiz": [
+            {"question": "Choose the correct sentence:", "options": ["Neither of them are ready.", "Neither of them is ready."], "answer": 1, "explain": "'Neither' is singular and takes a singular verb."},
+            {"question": "Choose the correct sentence:", "options": ["The list of items are on the desk.", "The list of items is on the desk."], "answer": 1, "explain": "The subject is 'list' (singular); 'items' is part of a modifying phrase."}
+        ]
+    }
+}
+
+def render_english_tutor():
+    """General English tutor mode: conversation practice, writing correction, grammar lessons, SRS flashcards, pronunciation drills."""
+    for state_key, default_val in (
+        ("tutor_chat_history", []), ("tutor_active", False), ("tutor_topic", ""),
+        ("tutor_processed_audio_id", None), ("tutor_evaluations", []),
+        ("flash_queue", []), ("flash_pos", 0), ("flash_show_answer", False), ("pron_processed_audio_id", None)
+    ):
+        if state_key not in st.session_state:
+            st.session_state[state_key] = default_val
+
+    st.sidebar.markdown("---")
+    st.sidebar.caption("🇦🇺 Tutor mode is tuned for natural, native Australian English.")
+
+    st.title("🇦🇺 General English Tutor")
+    t_conv, t_write, t_grammar, t_flash, t_pron = st.tabs([
+        "🗣️ Conversation", "✍️ Writing Correction", "📖 Grammar Lessons", "📚 Flashcards", "🎤 Pronunciation"
+    ])
+
+    # ---------------- TAB: CONVERSATION PRACTICE ----------------
+    with t_conv:
+        st.subheader("🗣️ Free Conversation Practice")
+        st.caption("Chat by voice or text. Every turn is audited for grammar, natural AU phrasing, and fluency.")
+
+        topics = [
+            "Everyday Life & Hobbies", "Travel & Culture", "Work & Career (casual)",
+            "Food & Health", "News & Opinions", "Free Topic (type your own)"
+        ]
+        col_t1, col_t2 = st.columns([2, 3])
+        with col_t1:
+            topic_choice = st.selectbox("Conversation Topic", topics)
+        with col_t2:
+            custom_topic = st.text_input("Custom topic (used if 'Free Topic' selected)", disabled=topic_choice != "Free Topic (type your own)")
+
+        active_topic = custom_topic.strip() if topic_choice == "Free Topic (type your own)" and custom_topic.strip() else topic_choice
+
+        TUTOR_SYSTEM_PROMPT = f"""
+You are a friendly, native Australian English speaking partner helping the user practice everyday spoken/written English.
+Topic: {active_topic}
+Rules:
+- Speak naturally, using authentic Australian expressions and idioms where it fits.
+- Keep replies short (2-4 sentences) and ask an engaging follow-up question.
+- Stay encouraging and conversational, not formal.
+"""
+        if st.button("🎬 Start New Conversation", type="primary", use_container_width=True):
+            st.session_state["tutor_chat_history"] = [{"role": "system", "content": TUTOR_SYSTEM_PROMPT}]
+            st.session_state["tutor_evaluations"] = []
+            st.session_state["tutor_processed_audio_id"] = None
+            st.session_state["tutor_active"] = True
+            with st.spinner("Starting conversation..."):
+                opener = client.chat.completions.create(
+                    model=MODEL_CHOICE,
+                    messages=st.session_state["tutor_chat_history"] + [
+                        {"role": "user", "content": "Start the conversation with a friendly opening line or question."}
+                    ],
+                    temperature=0.7
+                )
+                st.session_state["tutor_chat_history"].append({"role": "assistant", "content": opener.choices[0].message.content})
+            st.rerun()
+
+        if st.session_state["tutor_active"]:
+            col_chat, col_audit = st.columns([3, 2])
+            with col_chat:
+                for msg in st.session_state["tutor_chat_history"]:
+                    if msg["role"] != "system":
+                        with st.chat_message(msg["role"]):
+                            st.write(msg["content"])
+
+                st.markdown("---")
+
+                def process_tutor_turn(user_text: str):
+                    st.session_state["tutor_chat_history"].append({"role": "user", "content": user_text})
+                    ai_res = client.chat.completions.create(
+                        model=MODEL_CHOICE, messages=st.session_state["tutor_chat_history"], temperature=0.7
+                    )
+                    ai_reply = ai_res.choices[0].message.content
+                    st.session_state["tutor_chat_history"].append({"role": "assistant", "content": ai_reply})
+
+                    audit_prompt = f"""
+Analyze this English learner's turn: "{user_text}"
+Give concise coaching in 3 short points:
+1. ✍️ **Grammar & Accuracy:** Point out errors with *Original -> Corrected*. If error-free, say "Grammar was accurate."
+2. 🇦🇺 **Native AU Upgrade:** Suggest one more natural, native Australian-English way to phrase the same idea (word, idiom, or phrasal verb).
+3. 💬 **Fluency Tip:** One short, encouraging tip to sound more natural next time.
+"""
+                    audit_res = client.chat.completions.create(
+                        model=MODEL_CHOICE, messages=[{"role": "user", "content": audit_prompt}], temperature=0.2
+                    )
+                    st.session_state["tutor_evaluations"].append({
+                        "turn": len(st.session_state["tutor_evaluations"]) + 1,
+                        "transcript": user_text,
+                        "feedback": audit_res.choices[0].message.content
+                    })
+
+                audio_file = st.audio_input("Record your response", key="tutor_audio_input_widget")
+                if audio_file:
+                    audio_bytes = audio_file.getvalue()
+                    audio_id = hash(audio_bytes)
+                    if st.session_state["tutor_processed_audio_id"] != audio_id:
+                        st.session_state["tutor_processed_audio_id"] = audio_id
+                        with st.spinner("Transcribing & coaching..."):
+                            transcript = client.audio.transcriptions.create(
+                                file=("turn.wav", audio_bytes), model="whisper-large-v3-turbo", response_format="text"
+                            ).strip()
+                            process_tutor_turn(transcript)
+                        st.rerun()
+
+                text_turn = st.chat_input("...or type your response")
+                if text_turn:
+                    with st.spinner("Coaching..."):
+                        process_tutor_turn(text_turn)
+                    st.rerun()
+
+            with col_audit:
+                st.subheader("📊 Turn-by-Turn Coaching")
+                if not st.session_state["tutor_evaluations"]:
+                    st.caption("Grammar, AU-native phrasing, and fluency feedback will appear here after your first turn.")
+                else:
+                    for ev in reversed(st.session_state["tutor_evaluations"]):
+                        with st.expander(f"Turn {ev['turn']} Audit", expanded=True):
+                            st.caption(f"**You said:** \"{ev['transcript']}\"")
+                            st.markdown(ev["feedback"])
+        else:
+            st.info("Pick a topic and click **🎬 Start New Conversation** to begin.")
+
+    # ---------------- TAB: WRITING CORRECTION ----------------
+    with t_write:
+        st.subheader("✍️ Writing Correction & Coaching")
+        st.caption("Paste an email, message, or essay to get a corrected version with native Australian-English suggestions.")
+        draft = st.text_area("Your text", height=200, key="writing_draft_input")
+
+        if st.button("🔍 Correct & Coach My Writing", type="primary"):
+            if draft.strip():
+                with st.spinner("Reviewing your writing..."):
+                    write_prompt = f"""
+You are a native Australian English writing coach. Review this text:
+---
+{draft}
+---
+Respond with these sections:
+1. ✅ **Corrected Version:** The full corrected text.
+2. 🛠️ **Key Fixes:** Bullet list of *Original -> Corrected* for each notable grammar/spelling/word-choice error, with a one-line reason.
+3. 🇦🇺 **Native AU Phrasing Upgrades:** 2-3 suggestions to make the writing sound more natural/native (Australian English).
+"""
+                    res = client.chat.completions.create(
+                        model=MODEL_CHOICE, messages=[{"role": "user", "content": write_prompt}], temperature=0.2
+                    )
+                    st.session_state["writing_result"] = res.choices[0].message.content
+                    st.session_state["writing_last_draft"] = draft
+            else:
+                st.warning("Please enter some text first.")
+
+        if st.session_state.get("writing_result"):
+            st.markdown("---")
+            st.markdown(st.session_state["writing_result"])
+            if st.button("💾 Save to Writing History"):
+                data["writing_history"].insert(0, {
+                    "id": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "draft": st.session_state.get("writing_last_draft", ""),
+                    "result": st.session_state["writing_result"]
+                })
+                save_data(data)
+                st.success("Saved!")
+
+        if data["writing_history"]:
+            st.markdown("---")
+            st.subheader("📜 Writing History")
+            for w_idx, entry in enumerate(data["writing_history"]):
+                with st.expander(f"🗓️ {entry['id']}"):
+                    st.caption("**Original draft:**")
+                    st.write(entry["draft"])
+                    st.markdown(entry["result"])
+
+    # ---------------- TAB: GRAMMAR LESSONS ----------------
+    with t_grammar:
+        st.subheader("📖 Grammar Lessons & Quizzes")
+        topic_names = list(GRAMMAR_TOPICS.keys()) + ["Custom Topic (ask the tutor)"]
+        chosen_topic = st.selectbox("Choose a grammar topic", topic_names)
+
+        lesson = None
+        if chosen_topic == "Custom Topic (ask the tutor)":
+            custom_grammar_topic = st.text_input("What grammar topic would you like to learn? (e.g. 'reported speech')")
+            if st.button("📘 Generate Lesson") and custom_grammar_topic.strip():
+                with st.spinner("Preparing your lesson..."):
+                    gen_prompt = f"""
+Create a short English grammar lesson about: "{custom_grammar_topic}".
+Return ONLY a JSON object with keys:
+"explanation": "concise markdown explanation",
+"examples": ["example 1", "example 2"],
+"quiz": [{{"question": "...", "options": ["A", "B", "C"], "answer": 0, "explain": "..."}}, {{"question": "...", "options": ["A", "B", "C"], "answer": 0, "explain": "..."}}]
+"""
+                    try:
+                        res = client.chat.completions.create(
+                            model=MODEL_CHOICE, messages=[{"role": "user", "content": gen_prompt}], temperature=0.3,
+                            response_format={"type": "json_object"} if "llama-3" in MODEL_CHOICE.lower() else None
+                        )
+                        content = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+                        st.session_state["custom_grammar_lesson"] = json.loads(content)
+                    except Exception as e:
+                        st.error(f"Could not generate lesson: {e}")
+            lesson = st.session_state.get("custom_grammar_lesson")
+        else:
+            lesson = GRAMMAR_TOPICS[chosen_topic]
+
+        if lesson:
+            st.markdown(lesson["explanation"])
+            st.markdown("**Examples:**")
+            for ex in lesson.get("examples", []):
+                st.markdown(f"- {ex}")
+
+            st.markdown("---")
+            st.markdown("**Quick Quiz**")
+            with st.form(f"quiz_form_{chosen_topic}"):
+                user_answers = []
+                for q_idx, q in enumerate(lesson.get("quiz", [])):
+                    user_answers.append(st.radio(q["question"], q["options"], key=f"quiz_{chosen_topic}_{q_idx}", index=None))
+                submitted = st.form_submit_button("✅ Check Answers")
+
+            if submitted:
+                correct = 0
+                for q_idx, q in enumerate(lesson.get("quiz", [])):
+                    is_correct = user_answers[q_idx] == q["options"][q["answer"]]
+                    correct += is_correct
+                    icon = "✅" if is_correct else "❌"
+                    st.markdown(f"{icon} **Q{q_idx + 1}:** {q['explain']}")
+                score_pct = round(100 * correct / max(1, len(lesson.get("quiz", []))))
+                st.info(f"Score: {correct}/{len(lesson.get('quiz', []))} ({score_pct}%)")
+                data["grammar_scores"].insert(0, {
+                    "id": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "topic": chosen_topic, "score": f"{correct}/{len(lesson.get('quiz', []))}"
+                })
+                save_data(data)
+
+    # ---------------- TAB: VOCABULARY FLASHCARDS (SRS) ----------------
+    with t_flash:
+        st.subheader("📚 Vocabulary Flashcards (Spaced Repetition)")
+
+        with st.form("tutor_add_vocab_form", clear_on_submit=True):
+            c1, c2 = st.columns(2)
+            with c1:
+                new_word = st.text_input("Word / Phrase")
+            with c2:
+                new_meaning = st.text_input("Meaning")
+            new_example = st.text_area("Example Sentence")
+            if st.form_submit_button("➕ Add to Vocabulary") and new_word.strip():
+                entry = {
+                    "word": new_word.strip(), "meaning": new_meaning.strip(), "example": new_example.strip(),
+                    "date": datetime.now().strftime("%Y-%m-%d")
+                }
+                ensure_srs_fields(entry)
+                data["vocabulary"].insert(0, entry)
+                save_data(data)
+                st.success(f"Added '{new_word}'!")
+                st.rerun()
+
+        st.markdown("---")
+        modified = False
+        for item in data["vocabulary"]:
+            if ensure_srs_fields(item):
+                modified = True
+        if modified:
+            save_data(data)
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        due_cards = [it for it in data["vocabulary"] if it.get("due", today_str) <= today_str]
+
+        st.caption(f"**{len(due_cards)}** card(s) due for review out of {len(data['vocabulary'])} total.")
+
+        if st.button("🔁 Start Review Session", disabled=not due_cards):
+            st.session_state["flash_queue"] = due_cards.copy()
+            st.session_state["flash_pos"] = 0
+            st.session_state["flash_show_answer"] = False
+            st.rerun()
+
+        queue = st.session_state["flash_queue"]
+        pos = st.session_state["flash_pos"]
+        if queue and pos < len(queue):
+            card = queue[pos]
+            st.markdown("---")
+            st.markdown(f"### Card {pos + 1} of {len(queue)}")
+            st.markdown(f"## **{card['word']}**")
+            if not st.session_state["flash_show_answer"]:
+                if st.button("👁️ Show Meaning"):
+                    st.session_state["flash_show_answer"] = True
+                    st.rerun()
+            else:
+                st.markdown(f"**Meaning:** {card.get('meaning', '')}")
+                if card.get("example"):
+                    st.caption(f"💬 *\"{card['example']}\"*")
+                cols = st.columns(4)
+                labels = [("Again", 0), ("Hard", 1), ("Good", 2), ("Easy", 3)]
+                for col, (label, quality) in zip(cols, labels):
+                    if col.button(label, key=f"flash_{label}_{pos}"):
+                        sm2_update(card, quality)
+                        save_data(data)
+                        st.session_state["flash_pos"] += 1
+                        st.session_state["flash_show_answer"] = False
+                        st.rerun()
+        elif queue:
+            st.success("🎉 Review session complete!")
+
+    # ---------------- TAB: PRONUNCIATION DRILL ----------------
+    with t_pron:
+        st.subheader("🎤 Pronunciation Drill (Australian Accent)")
+        st.caption("Listen to the native AU pronunciation, record yourself, and get feedback.")
+
+        vocab_words = [v["word"] for v in data["vocabulary"]]
+        source = st.radio("Practice source", ["From my vocabulary list", "Type my own phrase"], horizontal=True)
+        if source == "From my vocabulary list" and vocab_words:
+            target_phrase = st.selectbox("Choose a word/phrase", vocab_words)
+        else:
+            target_phrase = st.text_input("Type a word or phrase to practice", key="pron_custom_phrase")
+
+        if target_phrase:
+            try:
+                st.audio(get_pronunciation_audio(target_phrase, accent="com.au"), format="audio/mp3")
+            except Exception:
+                st.caption("⚠️ Audio preview unavailable")
+
+            attempt = st.audio_input("Record yourself saying it", key="pron_audio_input_widget")
+            if attempt:
+                audio_bytes = attempt.getvalue()
+                audio_id = hash(audio_bytes)
+                if st.session_state["pron_processed_audio_id"] != audio_id:
+                    st.session_state["pron_processed_audio_id"] = audio_id
+                    with st.spinner("Analyzing pronunciation..."):
+                        heard = client.audio.transcriptions.create(
+                            file=("attempt.wav", audio_bytes), model="whisper-large-v3-turbo", response_format="text"
+                        ).strip()
+                        pron_prompt = f"""
+Target phrase: "{target_phrase}"
+What the speech-to-text engine heard: "{heard}"
+As a native Australian English pronunciation coach, briefly (3-4 lines):
+1. Say whether the attempt likely matched the target (based on the transcription).
+2. Flag specific sounds/words in "{target_phrase}" that Australian English speakers pronounce distinctly (e.g. vowel shifts, non-rhotic 'r', linking) and that the learner should focus on.
+3. Give one quick tip to sound more native.
+"""
+                        pron_res = client.chat.completions.create(
+                            model=MODEL_CHOICE, messages=[{"role": "user", "content": pron_prompt}], temperature=0.3
+                        )
+                        st.markdown(f"**Whisper heard:** \"{heard}\"")
+                        st.markdown(pron_res.choices[0].message.content)
 
 # --- SIDEBAR CONFIGURATION ---
 st.sidebar.title("⚙️ Simulation Engine")
@@ -112,6 +534,16 @@ except Exception:
 MODEL_CHOICE = st.sidebar.selectbox("Active Groq LLM", text_models)
 
 st.sidebar.caption("📱 On mobile, tap **☰** (top-left) anytime to reopen these settings.")
+
+st.sidebar.markdown("---")
+APP_MODE = st.sidebar.radio(
+    "Practice Mode",
+    ["🎭 Leadership & Communication Coach", "🇦🇺 General English Tutor"]
+)
+
+if APP_MODE == "🇦🇺 General English Tutor":
+    render_english_tutor()
+    st.stop()
 
 # --- DYNAMIC DOMAIN & PERSONA CONFIGURATION ---
 SCENARIO_DOMAINS = {
