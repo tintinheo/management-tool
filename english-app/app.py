@@ -89,6 +89,17 @@ def get_pronunciation_audio(text: str, accent: str = "com") -> bytes:
     tts.write_to_fp(fp)
     return fp.getvalue()
 
+def render_listen_button(text: str, accent: str, key: str):
+    """Toggleable 'Listen' control that speaks a chat message aloud via TTS for listening practice."""
+    show_key = f"show_audio_{key}"
+    if st.button("🔊 Listen", key=f"btn_{key}"):
+        st.session_state[show_key] = not st.session_state.get(show_key, False)
+    if st.session_state.get(show_key):
+        try:
+            st.audio(get_pronunciation_audio(text, accent=accent), format="audio/mp3")
+        except Exception:
+            st.caption("⚠️ Audio unavailable")
+
 # --- SPACED REPETITION (SM-2 LITE) HELPERS ---
 def ensure_srs_fields(item: dict) -> bool:
     """Backfills SRS bookkeeping fields on a vocabulary item. Returns True if it was modified."""
@@ -307,7 +318,7 @@ Rules:
                 st.progress(min(1.0, st.session_state.get("tutor_turns", 0) / 10), text="Session progress toward 10 turns")
 
                 reaction_idx = 0
-                for msg in st.session_state["tutor_chat_history"]:
+                for t_idx, msg in enumerate(st.session_state["tutor_chat_history"]):
                     if msg["role"] == "system":
                         continue
                     if msg["role"] == "assistant":
@@ -315,6 +326,7 @@ Rules:
                         reaction_idx += 1
                         with st.chat_message("assistant", avatar=avatar):
                             st.write(msg["content"])
+                            render_listen_button(msg["content"], "com.au", f"tutor_{t_idx}")
                     else:
                         with st.chat_message("user"):
                             st.write(msg["content"])
@@ -918,7 +930,7 @@ with tab1:
             st.progress(min(1.0, st.session_state.get("ld_turns", 0) / 10), text="Session progress toward 10 turns")
 
             reaction_idx = 0
-            for msg in st.session_state["chat_history"]:
+            for c_idx, msg in enumerate(st.session_state["chat_history"]):
                 if msg["role"] == "system":
                     continue
                 if msg["role"] == "assistant":
@@ -926,6 +938,7 @@ with tab1:
                     reaction_idx += 1
                     with st.chat_message("assistant", avatar=avatar):
                         st.write(msg["content"])
+                        render_listen_button(msg["content"], "com", f"ld_{c_idx}")
                 else:
                     with st.chat_message("user"):
                         st.write(msg["content"])
