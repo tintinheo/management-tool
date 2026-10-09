@@ -23,7 +23,26 @@
             "word": "iterate",
             "meaning": "to repeat a process, especially as part of a computer program",
             "example": "",
-            "added_on": "2026-08-26"
+            "added_on": "2026-08-26",
+            "interval": 0,
+            "ease": 2.5,
+            "repetitions": 0,
+            "due": "2026-10-09"
+        }
+    ],
+    "writing_history": [],
+    "grammar_scores": [],
+    "tutor_turn_history": [
+        {
+            "timestamp": "2026-10-09 20:58:21",
+            "topic": "Everyday Life & Hobbies",
+            "transcript": "I had a really good day today, thank you for asking!",
+            "tutor_reply": "That's great to hear! What did you get up to that made your day so good? And what hobbies do you like to do in your free time? 😊[😊]",
+            "grammar_accurate": true,
+            "grammar_feedback": "Grammar was accurate.",
+            "corrected_phrase": "I had a great day today!",
+            "au_upgrade": null,
+            "fluency_tip": "Vary the length of your sentences for improved fluency. For example, you could say 'I had a wonderful day' or 'My day was excellent.'"
         }
     ]
 }

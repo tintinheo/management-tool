@@ -369,6 +369,9 @@ Rules:
                 m3.metric("🏆 Best", st.session_state.get("tutor_best_streak", 0))
                 st.progress(min(1.0, st.session_state.get("tutor_turns", 0) / 10), text="Session progress toward 10 turns")
 
+                # Chat history scrolls within its own fixed-height box so the recorder/text input
+                # below always stay visible without needing to scroll past the whole conversation.
+                chat_box = st.container(height=420)
                 reaction_idx = 0
                 for t_idx, msg in enumerate(st.session_state["tutor_chat_history"]):
                     if msg["role"] == "system":
@@ -376,11 +379,11 @@ Rules:
                     if msg["role"] == "assistant":
                         avatar = st.session_state["tutor_reactions"][reaction_idx] if reaction_idx < len(st.session_state["tutor_reactions"]) else "🇦🇺"
                         reaction_idx += 1
-                        with st.chat_message("assistant", avatar=avatar):
+                        with chat_box, st.chat_message("assistant", avatar=avatar):
                             render_selectable_text(msg["content"], key=f"tutor_sel_{t_idx}", data=data)
                             render_listen_button(msg["content"], "com.au", f"tutor_{t_idx}")
                     else:
-                        with st.chat_message("user"):
+                        with chat_box, st.chat_message("user"):
                             render_selectable_text(msg["content"], key=f"tutor_sel_{t_idx}", data=data)
 
                 st.markdown("---")
