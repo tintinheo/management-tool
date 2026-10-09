@@ -60,7 +60,7 @@ st.markdown("""
 # Local Storage Persistence Setup
 DATA_FILE = "practice_data.json"
 
-DEFAULT_DATA = {"history": [], "vocabulary": [], "writing_history": [], "grammar_scores": []}
+DEFAULT_DATA = {"history": [], "vocabulary": [], "writing_history": [], "grammar_scores": [], "tutor_turn_history": []}
 
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -130,6 +130,22 @@ def sm2_update(item: dict, quality: int) -> None:
             item["interval"] = round(item["interval"] * item["ease"])
         item["ease"] = max(1.3, item["ease"] + {1: -0.1, 2: 0.0, 3: 0.15}[quality])
     item["due"] = (datetime.now() + timedelta(days=item["interval"])).strftime("%Y-%m-%d")
+
+def add_word_to_vocabulary(data: dict, word: str, meaning: str = "", example: str = "") -> bool:
+    """Adds a word/phrase picked from a coaching audit to the shared vocabulary bank. Returns True if newly added."""
+    word = (word or "").strip()
+    if not word:
+        return False
+    if any(v["word"].lower() == word.lower() for v in data["vocabulary"]):
+        return False
+    entry = {
+        "word": word, "meaning": (meaning or "").strip(), "example": (example or "").strip(),
+        "date": datetime.now().strftime("%Y-%m-%d")
+    }
+    ensure_srs_fields(entry)
+    data["vocabulary"].insert(0, entry)
+    save_data(data)
+    return True
 
 # --- LIVE REACTION & STREAMING HELPERS ---
 REACTION_TAG_RE = re.compile(r"^\s*\[([^\]]{1,4})\]\s*(.*)", re.DOTALL)
@@ -344,22 +360,49 @@ Rules:
 
                     audit_prompt = f"""
 Analyze this English learner's turn: "{user_text}"
-Give concise coaching in 3 short points:
-1. ✍️ **Grammar & Accuracy:** Point out errors with *Original -> Corrected*. If error-free, say "Grammar was accurate."
-2. 🇦🇺 **Native AU Upgrade:** Suggest one more natural, native Australian-English way to phrase the same idea (word, idiom, or phrasal verb).
-3. 💬 **Fluency Tip:** One short, encouraging tip to sound more natural next time.
+Return ONLY a JSON object (no markdown fences) with keys:
+"grammar_accurate": true or false,
+"grammar_feedback": "If grammar_accurate is false: '*Original* -> *Corrected*' plus a one-line reason. If true: 'Grammar was accurate.'",
+"corrected_phrase": "the short corrected phrase/sentence worth saving to a vocabulary list, or null if grammar_accurate is true",
+"au_upgrade": {{"phrase": "a more natural, native Australian-English word/idiom/phrasal verb for the same idea", "meaning": "short meaning", "example": "one example sentence using it"}},
+"fluency_tip": "one short, encouraging tip to sound more natural next time"
 """
                     with st.spinner("Coaching..."):
                         audit_res = client.chat.completions.create(
-                            model=MODEL_CHOICE, messages=[{"role": "user", "content": audit_prompt}], temperature=0.2
+                            model=MODEL_CHOICE, messages=[{"role": "user", "content": audit_prompt}], temperature=0.2,
+                            response_format={"type": "json_object"} if "llama-3" in MODEL_CHOICE.lower() else None
                         )
-                    feedback = audit_res.choices[0].message.content
-                    st.session_state["tutor_evaluations"].append({
+                    raw_audit = audit_res.choices[0].message.content or ""
+                    try:
+                        parsed_audit = json.loads(raw_audit.strip().replace("```json", "").replace("```", "").strip())
+                    except Exception:
+                        parsed_audit = {
+                            "grammar_accurate": None, "grammar_feedback": raw_audit.strip(),
+                            "corrected_phrase": None, "au_upgrade": None, "fluency_tip": ""
+                        }
+
+                    eval_entry = {
                         "turn": len(st.session_state["tutor_evaluations"]) + 1,
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "topic": active_topic,
                         "transcript": user_text,
-                        "feedback": feedback
-                    })
-                    apply_gamification("tutor", feedback)
+                        "grammar_accurate": parsed_audit.get("grammar_accurate"),
+                        "grammar_feedback": parsed_audit.get("grammar_feedback", ""),
+                        "corrected_phrase": parsed_audit.get("corrected_phrase"),
+                        "au_upgrade": parsed_audit.get("au_upgrade"),
+                        "fluency_tip": parsed_audit.get("fluency_tip", ""),
+                    }
+                    st.session_state["tutor_evaluations"].append(eval_entry)
+                    # Persist every turn's audit so progress is tracked across sessions, not just in memory.
+                    data["tutor_turn_history"].insert(0, eval_entry)
+                    save_data(data)
+
+                    gamify_text = eval_entry["grammar_feedback"] or ""
+                    if eval_entry["grammar_accurate"] is True:
+                        gamify_text = "Grammar was accurate."
+                    elif eval_entry["grammar_accurate"] is False and not gamify_text:
+                        gamify_text = "Needs improvement."
+                    apply_gamification("tutor", gamify_text)
 
                 audio_file = st.audio_input("Record your response", key="tutor_audio_input_widget")
                 if audio_file:
@@ -387,9 +430,55 @@ Give concise coaching in 3 short points:
                     for ev in reversed(st.session_state["tutor_evaluations"]):
                         with st.expander(f"Turn {ev['turn']} Audit", expanded=True):
                             st.caption(f"**You said:** \"{ev['transcript']}\"")
-                            st.markdown(ev["feedback"])
+                            # Fallback: if JSON parsing failed, just show the raw audit text.
+                            if ev.get("grammar_accurate") is None and not ev.get("au_upgrade") and not ev.get("fluency_tip"):
+                                st.markdown(ev.get("grammar_feedback", ""))
+                                continue
+
+                            st.markdown(f"**✍️ Grammar & Accuracy:** {ev.get('grammar_feedback', '')}")
+                            corrected = ev.get("corrected_phrase")
+                            if corrected:
+                                col_corr, col_corr_btn = st.columns([3, 1])
+                                col_corr.caption(f"Corrected phrase: _{corrected}_")
+                                if col_corr_btn.button("➕ Add to Vocab", key=f"tutor_add_corr_{ev['turn']}", use_container_width=True):
+                                    if add_word_to_vocabulary(data, corrected, "Corrected during turn-by-turn coaching", ev["transcript"]):
+                                        st.toast(f"Saved '{corrected}'!", icon="✅")
+                                    else:
+                                        st.toast(f"'{corrected}' is already in your list.", icon="ℹ️")
+
+                            upgrade = ev.get("au_upgrade") or {}
+                            phrase = upgrade.get("phrase") if isinstance(upgrade, dict) else None
+                            if phrase:
+                                st.markdown(f"**🇦🇺 Native AU Upgrade:** `{phrase}` — {upgrade.get('meaning', '')}")
+                                if upgrade.get("example"):
+                                    st.caption(f"💬 *\"{upgrade['example']}\"*")
+                                if st.button("➕ Add to Vocab", key=f"tutor_add_upgrade_{ev['turn']}", use_container_width=True):
+                                    if add_word_to_vocabulary(data, phrase, upgrade.get("meaning", ""), upgrade.get("example", "")):
+                                        st.toast(f"Saved '{phrase}'!", icon="✅")
+                                    else:
+                                        st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
+
+                            if ev.get("fluency_tip"):
+                                st.markdown(f"**💬 Fluency Tip:** {ev['fluency_tip']}")
         else:
             st.info("Pick a topic and click **🎬 Start New Conversation** to begin.")
+
+        # ---- PERSISTED PROGRESS TRACKING ACROSS ALL SESSIONS ----
+        turn_log = data.get("tutor_turn_history", [])
+        st.markdown("---")
+        with st.expander(f"📈 Coaching Progress History ({len(turn_log)} turn(s) tracked)"):
+            if not turn_log:
+                st.caption("No turns have been audited yet. Start a conversation above to begin tracking your progress.")
+            else:
+                graded = [t for t in turn_log if t.get("grammar_accurate") is not None]
+                accurate = sum(1 for t in graded if t.get("grammar_accurate") is True)
+                if graded:
+                    st.caption(f"✅ Grammar accurate on **{accurate}/{len(graded)}** tracked turns ({round(100 * accurate / len(graded))}%).")
+                for h in turn_log[:30]:
+                    st.markdown(f"**{h.get('timestamp', '')}** · _{h.get('topic', '')}_")
+                    st.caption(f"\"{h.get('transcript', '')}\"")
+                    st.caption(h.get("grammar_feedback", ""))
+                    st.divider()
 
     # ---------------- TAB: WRITING CORRECTION ----------------
     with t_write:
