@@ -6,6 +6,11 @@
   html, body {
     margin: 0;
     padding: 0;
+    /* Height must stay intrinsic to the content. If this is ever allowed to grow to the
+       iframe's current (parent-assigned) height, measuring scrollHeight below would read that
+       inflated size back and keep growing the iframe forever (a runaway resize feedback loop). */
+    height: auto;
+    overflow: hidden;
     font-family: "Source Sans Pro", sans-serif;
     background: transparent;
   }
@@ -48,9 +53,17 @@
   function notifyReady() {
     sendMessage("streamlit:componentReady", { apiVersion: 1 });
   }
+  var lastSentHeight = null;
   function setFrameHeight() {
-    var height = document.documentElement.scrollHeight || document.body.scrollHeight;
-    sendMessage("streamlit:setFrameHeight", { height: height + 12 });
+    // Measure document.body only. document.documentElement.scrollHeight equals
+    // max(body height, current viewport height), so once the iframe itself is resized
+    // taller, re-measuring documentElement would read that inflated viewport height back
+    // and grow further on every render -- a runaway feedback loop that looks like constant
+    // flicker/resizing ("jerking") as the conversation grows.
+    var height = document.body.scrollHeight + 12;
+    if (height === lastSentHeight) return;
+    lastSentHeight = height;
+    sendMessage("streamlit:setFrameHeight", { height: height });
   }
   function sendValue(value) {
     sendMessage("streamlit:setComponentValue", { value: value, dataType: "json" });
