@@ -1,3 +1,4 @@
+import html as html_lib
 import io
 import json
 import os
@@ -5,6 +6,7 @@ import re
 from datetime import datetime
 from gtts import gTTS
 import streamlit as st
+import streamlit.components.v1 as components
 from groq import Groq
 
 # Page Configuration
@@ -146,6 +148,40 @@ def add_word_to_vocabulary(data: dict, word: str, meaning: str = "", example: st
     data["vocabulary"].insert(0, entry)
     save_data(data)
     return True
+
+# --- SELECT-TO-ADD-VOCABULARY COMPONENT ---
+# Build-free custom component: double-click/select any word or phrase in a rendered
+# message to reveal a floating "Add to Vocabulary" button (see components/vocab_selector/index.html).
+_VOCAB_SELECTOR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "components", "vocab_selector")
+_vocab_selector_component = components.declare_component("vocab_selector", path=_VOCAB_SELECTOR_DIR)
+
+_MD_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+_MD_ITALIC_RE = re.compile(r"(?<!\*)\*([^*\n]+?)\*(?!\*)")
+_MD_CODE_RE = re.compile(r"`([^`]+?)`")
+
+def _light_markdown_to_html(text: str) -> str:
+    """Escapes text for safe HTML embedding, then re-applies a small subset of markdown (bold/italic/code)."""
+    escaped = html_lib.escape(text or "")
+    escaped = _MD_BOLD_RE.sub(r"<b>\1</b>", escaped)
+    escaped = _MD_ITALIC_RE.sub(r"<i>\1</i>", escaped)
+    escaped = _MD_CODE_RE.sub(r"<code>\1</code>", escaped)
+    return escaped.replace("\n", "<br>")
+
+def render_selectable_text(text: str, key: str, data: dict):
+    """Renders text via the vocab_selector component so the user can double-click/select a word or
+    phrase and click the floating 'Add to Vocabulary' button to save it into the vocabulary bank."""
+    result = _vocab_selector_component(html=_light_markdown_to_html(text), key=key, default=None)
+    nonce_state_key = f"_{key}_last_nonce"
+    if isinstance(result, dict):
+        nonce = result.get("nonce")
+        if nonce is not None and st.session_state.get(nonce_state_key) != nonce:
+            st.session_state[nonce_state_key] = nonce
+            selected = (result.get("text") or "").strip()
+            if selected:
+                if add_word_to_vocabulary(data, selected):
+                    st.toast(f"Saved '{selected}' to Vocabulary!", icon="✅")
+                else:
+                    st.toast(f"'{selected}' is already in your list.", icon="ℹ️")
 
 # --- LIVE REACTION & STREAMING HELPERS ---
 REACTION_TAG_RE = re.compile(r"^\s*\[([^\]]{1,4})\]\s*(.*)", re.DOTALL)
@@ -341,11 +377,11 @@ Rules:
                         avatar = st.session_state["tutor_reactions"][reaction_idx] if reaction_idx < len(st.session_state["tutor_reactions"]) else "🇦🇺"
                         reaction_idx += 1
                         with st.chat_message("assistant", avatar=avatar):
-                            st.write(msg["content"])
+                            render_selectable_text(msg["content"], key=f"tutor_sel_{t_idx}", data=data)
                             render_listen_button(msg["content"], "com.au", f"tutor_{t_idx}")
                     else:
                         with st.chat_message("user"):
-                            st.write(msg["content"])
+                            render_selectable_text(msg["content"], key=f"tutor_sel_{t_idx}", data=data)
 
                 st.markdown("---")
 
@@ -386,6 +422,7 @@ Return ONLY a JSON object (no markdown fences) with keys:
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "topic": active_topic,
                         "transcript": user_text,
+                        "tutor_reply": reply,
                         "grammar_accurate": parsed_audit.get("grammar_accurate"),
                         "grammar_feedback": parsed_audit.get("grammar_feedback", ""),
                         "corrected_phrase": parsed_audit.get("corrected_phrase"),
@@ -393,8 +430,18 @@ Return ONLY a JSON object (no markdown fences) with keys:
                         "fluency_tip": parsed_audit.get("fluency_tip", ""),
                     }
                     st.session_state["tutor_evaluations"].append(eval_entry)
-                    # Persist every turn's audit so progress is tracked across sessions, not just in memory.
-                    data["tutor_turn_history"].insert(0, eval_entry)
+                    # Audit history persists the tutor's own replies (not the user's transcript) so the
+                    # saved record is a log of what the tutor said, reviewable across sessions.
+                    data["tutor_turn_history"].insert(0, {
+                        "timestamp": eval_entry["timestamp"],
+                        "topic": eval_entry["topic"],
+                        "tutor_reply": eval_entry["tutor_reply"],
+                        "grammar_accurate": eval_entry["grammar_accurate"],
+                        "grammar_feedback": eval_entry["grammar_feedback"],
+                        "corrected_phrase": eval_entry["corrected_phrase"],
+                        "au_upgrade": eval_entry["au_upgrade"],
+                        "fluency_tip": eval_entry["fluency_tip"],
+                    })
                     save_data(data)
 
                     gamify_text = eval_entry["grammar_feedback"] or ""
@@ -430,12 +477,15 @@ Return ONLY a JSON object (no markdown fences) with keys:
                     for ev in reversed(st.session_state["tutor_evaluations"]):
                         with st.expander(f"Turn {ev['turn']} Audit", expanded=True):
                             st.caption(f"**You said:** \"{ev['transcript']}\"")
+                            st.caption("**Tutor's reply:**")
+                            render_selectable_text(ev.get("tutor_reply", ""), key=f"tutor_live_reply_{ev['turn']}", data=data)
                             # Fallback: if JSON parsing failed, just show the raw audit text.
                             if ev.get("grammar_accurate") is None and not ev.get("au_upgrade") and not ev.get("fluency_tip"):
-                                st.markdown(ev.get("grammar_feedback", ""))
+                                render_selectable_text(ev.get("grammar_feedback", ""), key=f"tutor_live_fallback_{ev['turn']}", data=data)
                                 continue
 
-                            st.markdown(f"**✍️ Grammar & Accuracy:** {ev.get('grammar_feedback', '')}")
+                            st.markdown("**✍️ Grammar & Accuracy:**")
+                            render_selectable_text(ev.get("grammar_feedback", ""), key=f"tutor_live_grammar_{ev['turn']}", data=data)
                             corrected = ev.get("corrected_phrase")
                             if corrected:
                                 col_corr, col_corr_btn = st.columns([3, 1])
@@ -459,11 +509,14 @@ Return ONLY a JSON object (no markdown fences) with keys:
                                         st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
 
                             if ev.get("fluency_tip"):
-                                st.markdown(f"**💬 Fluency Tip:** {ev['fluency_tip']}")
+                                st.markdown("**💬 Fluency Tip:**")
+                                render_selectable_text(ev["fluency_tip"], key=f"tutor_live_tip_{ev['turn']}", data=data)
         else:
             st.info("Pick a topic and click **🎬 Start New Conversation** to begin.")
 
         # ---- PERSISTED PROGRESS TRACKING ACROSS ALL SESSIONS ----
+        # Tracks the tutor's own replies (not the user's transcript) so the saved audit trail is a
+        # reviewable log of what the tutor said, across every past conversation session.
         turn_log = data.get("tutor_turn_history", [])
         st.markdown("---")
         with st.expander(f"📈 Coaching Progress History ({len(turn_log)} turn(s) tracked)"):
@@ -474,9 +527,9 @@ Return ONLY a JSON object (no markdown fences) with keys:
                 accurate = sum(1 for t in graded if t.get("grammar_accurate") is True)
                 if graded:
                     st.caption(f"✅ Grammar accurate on **{accurate}/{len(graded)}** tracked turns ({round(100 * accurate / len(graded))}%).")
-                for h in turn_log[:30]:
+                for h_idx, h in enumerate(turn_log[:30]):
                     st.markdown(f"**{h.get('timestamp', '')}** · _{h.get('topic', '')}_")
-                    st.caption(f"\"{h.get('transcript', '')}\"")
+                    render_selectable_text(h.get("tutor_reply", ""), key=f"tutor_hist_reply_{h_idx}", data=data)
                     st.caption(h.get("grammar_feedback", ""))
                     st.divider()
 
@@ -521,7 +574,7 @@ Respond with these sections:
 
         if st.session_state.get("writing_result"):
             st.markdown("---")
-            st.markdown(st.session_state["writing_result"])
+            render_selectable_text(st.session_state["writing_result"], key="writing_result_sel", data=data)
             if st.button("💾 Save to Writing History"):
                 data["writing_history"].insert(0, {
                     "id": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -538,7 +591,7 @@ Respond with these sections:
                 with st.expander(f"🗓️ {entry['id']}"):
                     st.caption("**Original draft:**")
                     st.write(entry["draft"])
-                    st.markdown(entry["result"])
+                    render_selectable_text(entry["result"], key=f"writing_hist_sel_{w_idx}", data=data)
 
     # ---------------- TAB: GRAMMAR LESSONS ----------------
     with t_grammar:

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Source Sans Pro", sans-serif;
+    background: transparent;
+  }
+  #container {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    padding: 2px 4px;
+    font-size: 0.95rem;
+    color: inherit;
+  }
+  #addBtn {
+    position: absolute;
+    display: none;
+    z-index: 999999;
+    background: #ff4b4b;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+  }
+  #addBtn:hover {
+    background: #e63946;
+  }
+</style>
+</head>
+<body>
+<div id="container"></div>
+<button id="addBtn" type="button">➕ Add to Vocabulary</button>
+<script>
+(function () {
+  function sendMessage(type, data) {
+    var payload = Object.assign({ isStreamlitMessage: true, type: type }, data);
+    window.parent.postMessage(payload, "*");
+  }
+  function notifyReady() {
+    sendMessage("streamlit:componentReady", { apiVersion: 1 });
+  }
+  function setFrameHeight() {
+    var height = document.documentElement.scrollHeight || document.body.scrollHeight;
+    sendMessage("streamlit:setFrameHeight", { height: height + 12 });
+  }
+  function sendValue(value) {
+    sendMessage("streamlit:setComponentValue", { value: value, dataType: "json" });
+  }
+
+  var container = document.getElementById("container");
+  var addBtn = document.getElementById("addBtn");
+  var pendingSelection = "";
+
+  function hideButton() {
+    addBtn.style.display = "none";
+    pendingSelection = "";
+  }
+
+  function showButtonForSelection() {
+    var sel = window.getSelection();
+    var text = sel && sel.toString ? sel.toString().trim() : "";
+    if (!text || !sel.rangeCount || !container.contains(sel.anchorNode)) {
+      hideButton();
+      return;
+    }
+    pendingSelection = text;
+    var range = sel.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+    var top = Math.max(0, rect.top - 34 + window.scrollY);
+    var left = Math.max(0, rect.left + window.scrollX);
+    addBtn.style.top = top + "px";
+    addBtn.style.left = left + "px";
+    addBtn.style.display = "block";
+  }
+
+  document.addEventListener("mouseup", function () {
+    setTimeout(showButtonForSelection, 0);
+  });
+  document.addEventListener("dblclick", function () {
+    setTimeout(showButtonForSelection, 0);
+  });
+  document.addEventListener("keyup", function (e) {
+    if (e.shiftKey) setTimeout(showButtonForSelection, 0);
+  });
+
+  // Keep the selection alive when the mouse goes down on the button itself.
+  addBtn.addEventListener("mousedown", function (e) {
+    e.preventDefault();
+  });
+
+  addBtn.addEventListener("click", function () {
+    if (pendingSelection) {
+      sendValue({ text: pendingSelection, nonce: Date.now() + Math.random() });
+      hideButton();
+      window.getSelection().removeAllRanges();
+    }
+  });
+
+  document.addEventListener("mousedown", function (e) {
+    if (e.target !== addBtn) {
+      hideButton();
+    }
+  });
+
+  var lastHtml = null;
+  window.addEventListener("message", function (event) {
+    var data = event.data;
+    if (!data || data.type !== "streamlit:render") return;
+    var args = (data.args || {});
+    var newHtml = args.html || "";
+    // Streamlit re-sends "streamlit:render" on every app rerun, even when our own args haven't
+    // changed. Only touch the DOM (and clear any in-progress selection) when the content actually changed.
+    if (newHtml !== lastHtml) {
+      lastHtml = newHtml;
+      container.innerHTML = newHtml;
+      hideButton();
+    }
+    setTimeout(setFrameHeight, 10);
+  });
+
+  notifyReady();
+  setTimeout(setFrameHeight, 50);
+})();
+</script>
+</body>
+</html>
