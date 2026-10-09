@@ -430,11 +430,12 @@ Return ONLY a JSON object (no markdown fences) with keys:
                         "fluency_tip": parsed_audit.get("fluency_tip", ""),
                     }
                     st.session_state["tutor_evaluations"].append(eval_entry)
-                    # Audit history persists the tutor's own replies (not the user's transcript) so the
-                    # saved record is a log of what the tutor said, reviewable across sessions.
+                    # Audit history persists both what you said and the tutor's reply, so the saved
+                    # record is reviewable across sessions.
                     data["tutor_turn_history"].insert(0, {
                         "timestamp": eval_entry["timestamp"],
                         "topic": eval_entry["topic"],
+                        "transcript": eval_entry["transcript"],
                         "tutor_reply": eval_entry["tutor_reply"],
                         "grammar_accurate": eval_entry["grammar_accurate"],
                         "grammar_feedback": eval_entry["grammar_feedback"],
@@ -515,8 +516,8 @@ Return ONLY a JSON object (no markdown fences) with keys:
             st.info("Pick a topic and click **🎬 Start New Conversation** to begin.")
 
         # ---- PERSISTED PROGRESS TRACKING ACROSS ALL SESSIONS ----
-        # Tracks the tutor's own replies (not the user's transcript) so the saved audit trail is a
-        # reviewable log of what the tutor said, across every past conversation session.
+        # Tracks both what you said and the tutor's reply so the saved audit trail is a reviewable
+        # log of the full exchange, across every past conversation session.
         turn_log = data.get("tutor_turn_history", [])
         st.markdown("---")
         with st.expander(f"📈 Coaching Progress History ({len(turn_log)} turn(s) tracked)"):
@@ -529,6 +530,8 @@ Return ONLY a JSON object (no markdown fences) with keys:
                     st.caption(f"✅ Grammar accurate on **{accurate}/{len(graded)}** tracked turns ({round(100 * accurate / len(graded))}%).")
                 for h_idx, h in enumerate(turn_log[:30]):
                     st.markdown(f"**{h.get('timestamp', '')}** · _{h.get('topic', '')}_")
+                    st.caption(f"**You said:** \"{h.get('transcript', '')}\"")
+                    st.caption("**Tutor's reply:**")
                     render_selectable_text(h.get("tutor_reply", ""), key=f"tutor_hist_reply_{h_idx}", data=data)
                     st.caption(h.get("grammar_feedback", ""))
                     st.divider()
