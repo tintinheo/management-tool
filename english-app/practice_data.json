@@ -20,6 +20,16 @@
     ],
     "vocabulary": [
         {
+            "word": "accurate",
+            "meaning": "",
+            "example": "",
+            "date": "2026-10-11",
+            "interval": 0,
+            "ease": 2.5,
+            "repetitions": 0,
+            "due": "2026-10-11"
+        },
+        {
             "word": "iterate",
             "meaning": "to repeat a process, especially as part of a computer program",
             "example": "",
@@ -33,6 +43,65 @@
     "writing_history": [],
     "grammar_scores": [],
     "tutor_turn_history": [
+        {
+            "timestamp": "2026-10-11 20:19:42",
+            "topic": "Everyday Life & Hobbies",
+            "transcript": "I just posted a podcast about love for the La La Land movie I feel empty in time now but had no body to share my feelings so I am feel lonely what to do",
+            "tutor_reply": "Congrats on getting that La La Land podcast out, mate—sounds like a ripper effort! If you're feeling lonely, try sharing the link in film forums or a Facebook group and strike up a chat with fellow fans; it can be a real mood‑booster. How's the response been so far, and what other movies spark your passion?",
+            "grammar_accurate": false,
+            "grammar_feedback": "I just posted a podcast about love for the La La Land movie I feel empty in time now but had no body to share my feelings so I am feel lonely what to do -> I just posted a podcast about love for the movie La La Land. I feel empty now, but I have no one to share my feelings with, so I feel lonely. What should I do? | The original is a run‑on sentence with missing articles, incorrect verb forms, and spacing errors.",
+            "corrected_phrase": "I feel lonely because I have no one to share my feelings with.",
+            "au_upgrade": {
+                "phrase": "feeling a bit down",
+                "meaning": "slightly sad or low‑spirited",
+                "example": "After missing the train, I was feeling a bit down."
+            },
+            "fluency_tip": "Break long thoughts into shorter sentences and use commas to separate ideas."
+        },
+        {
+            "timestamp": "2026-10-11 20:18:34",
+            "topic": "Everyday Life & Hobbies",
+            "transcript": "I think you should suggest me some idea of vocabulary that I can express to answer your question.",
+            "tutor_reply": "Absolutely! I'm here to help you expand your vocabulary and engage in conversation. Let's start with some casual Australian phrases and idioms. Here's one to get started:\n\n[😊] \"G'day mate! If you're feeling unsure, how about we toss up some Aussie expressions? It'll make our chat a bit more colourful, eh?\" \n\nFeel free to ask me for more phrases or continue our conversation with the vocabulary you've learned! 🌅",
+            "grammar_accurate": true,
+            "grammar_feedback": "Grammar was accurate.",
+            "corrected_phrase": "Here's a shorter and more natural way to express your idea: 'I'd like some vocabulary suggestions to effectively answer your question.'",
+            "au_upgrade": null,
+            "fluency_tip": "To sound more fluent, try using shorter words and phrases when possible."
+        },
+        {
+            "timestamp": "2026-10-11 20:17:19",
+            "topic": "Everyday Life & Hobbies",
+            "transcript": "I don't know.",
+            "tutor_reply": "No worries! Have you tried doing something fun to change the mood? ?? I'm sure it'll help improve your day! What do you like to do for fun?  [❓]",
+            "grammar_accurate": true,
+            "grammar_feedback": "Grammar was accurate.",
+            "corrected_phrase": "I'm unsure",
+            "au_upgrade": null,
+            "fluency_tip": "Provide more information or think before answering to sound more confident in English."
+        },
+        {
+            "timestamp": "2026-10-11 20:15:02",
+            "topic": "Everyday Life & Hobbies",
+            "transcript": "dont know what to said",
+            "tutor_reply": "No worries, mate! It's normal to feel a bit unsure sometimes. If you need some advice or someone to chat with, just reach out. Do you enjoy any particular hobbies or activities in your spare time? And hey, remember, \"Aussies love their sports, don't they?\" 🏀🏒",
+            "grammar_accurate": false,
+            "grammar_feedback": "Original -> I don't know what to say. The corrected phrase has proper grammar.\nGrammar was accurate. ",
+            "corrected_phrase": "I don't know what to say.",
+            "au_upgrade": null,
+            "fluency_tip": "Practice expressing your thoughts using different words to improve fluency."
+        },
+        {
+            "timestamp": "2026-10-11 20:14:43",
+            "topic": "Everyday Life & Hobbies",
+            "transcript": "pk",
+            "tutor_reply": "Hey there! What's something interesting you've been up to today? And hey, you know what they say, \"Aussies love a good barbie, right?\" 😄",
+            "grammar_accurate": false,
+            "grammar_feedback": "Original -> PK is not a complete sentence. It should be 'PK, please...' or 'What is PK?' to make sense in context.\nGrammar was accurate. ",
+            "corrected_phrase": "PK, please provide information or What is PK? ",
+            "au_upgrade": null,
+            "fluency_tip": "Start sentences with subject and action to improve fluency and clarity."
+        },
         {
             "timestamp": "2026-10-09 20:58:21",
             "topic": "Everyday Life & Hobbies",
