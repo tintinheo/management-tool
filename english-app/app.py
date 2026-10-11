@@ -478,8 +478,13 @@ Return ONLY a JSON object (no markdown fences) with keys:
                 if not st.session_state["tutor_evaluations"]:
                     st.caption("Grammar, AU-native phrasing, and fluency feedback will appear here after your first turn.")
                 else:
-                    for ev in reversed(st.session_state["tutor_evaluations"]):
-                        with st.expander(f"Turn {ev['turn']} Audit", expanded=True):
+                    # Scrolls within its own fixed-height box (matching the chat column) so a long
+                    # conversation doesn't keep growing the whole page taller with every turn -- that
+                    # unbounded growth was what pushed "Record your response"/chat controls far down
+                    # the page and made the page keep auto-scrolling further away from them.
+                    audit_box = st.container(height=420)
+                    for audit_idx, ev in enumerate(reversed(st.session_state["tutor_evaluations"])):
+                        with audit_box, st.expander(f"Turn {ev['turn']} Audit", expanded=(audit_idx == 0)):
                             st.caption(f"**You said:** \"{ev['transcript']}\"")
                             st.caption("**Tutor's reply:**")
                             render_selectable_text(ev.get("tutor_reply", ""), key=f"tutor_live_reply_{ev['turn']}", data=data)
