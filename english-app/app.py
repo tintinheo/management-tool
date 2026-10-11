@@ -133,15 +133,19 @@ def sm2_update(item: dict, quality: int) -> None:
         item["ease"] = max(1.3, item["ease"] + {1: -0.1, 2: 0.0, 3: 0.15}[quality])
     item["due"] = (datetime.now() + timedelta(days=item["interval"])).strftime("%Y-%m-%d")
 
-def add_word_to_vocabulary(data: dict, word: str, meaning: str = "", example: str = "") -> bool:
+def add_word_to_vocabulary(data: dict, word: str, meaning: str = "", example: str = "", usage_tip: str = "") -> bool:
     """Adds a word/phrase picked from a coaching audit to the shared vocabulary bank. Returns True if newly added."""
     word = (word or "").strip()
     if not word:
         return False
     if any(v["word"].lower() == word.lower() for v in data["vocabulary"]):
         return False
+    full_meaning = (meaning or "").strip()
+    usage_tip = (usage_tip or "").strip()
+    if usage_tip:
+        full_meaning = f"{full_meaning} (Use when: {usage_tip})" if full_meaning else f"Use when: {usage_tip}"
     entry = {
-        "word": word, "meaning": (meaning or "").strip(), "example": (example or "").strip(),
+        "word": word, "meaning": full_meaning, "example": (example or "").strip(),
         "date": datetime.now().strftime("%Y-%m-%d")
     }
     ensure_srs_fields(entry)
@@ -399,11 +403,18 @@ Rules:
 
                     audit_prompt = f"""
 Analyze this English learner's turn: "{user_text}"
+Conversation topic: "{active_topic}"
 Return ONLY a JSON object (no markdown fences) with keys:
 "grammar_accurate": true or false,
 "grammar_feedback": "If grammar_accurate is false: '*Original* -> *Corrected*' plus a one-line reason. If true: 'Grammar was accurate.'",
 "corrected_phrase": "the short corrected phrase/sentence worth saving to a vocabulary list, or null if grammar_accurate is true",
-"au_upgrade": {{"phrase": "a more natural, native Australian-English word/idiom/phrasal verb for the same idea", "meaning": "short meaning", "example": "one example sentence using it"}},
+"corrected_phrase_usage": "one short tip on when/how to naturally use this corrected phrase in conversation, or null if corrected_phrase is null",
+"au_upgrade": {{"phrase": "a more natural, native Australian-English word/idiom/phrasal verb for the same idea", "meaning": "short meaning", "example": "one example sentence using it", "usage_tip": "one short tip on when/how to use this naturally"}},
+"topic_vocabulary": [
+    {{"word": "a useful word/phrase related to the topic '{active_topic}' that the learner could use next", "meaning": "short, clear meaning", "example": "one example sentence using it in the context of this topic", "usage_tip": "one short tip on when/how to use it"}},
+    {{"word": "...", "meaning": "...", "example": "...", "usage_tip": "..."}},
+    {{"word": "...", "meaning": "...", "example": "...", "usage_tip": "..."}}
+],
 "fluency_tip": "one short, encouraging tip to sound more natural next time"
 """
                     with st.spinner("Coaching..."):
@@ -417,7 +428,8 @@ Return ONLY a JSON object (no markdown fences) with keys:
                     except Exception:
                         parsed_audit = {
                             "grammar_accurate": None, "grammar_feedback": raw_audit.strip(),
-                            "corrected_phrase": None, "au_upgrade": None, "fluency_tip": ""
+                            "corrected_phrase": None, "corrected_phrase_usage": None,
+                            "au_upgrade": None, "topic_vocabulary": [], "fluency_tip": ""
                         }
 
                     eval_entry = {
@@ -429,7 +441,9 @@ Return ONLY a JSON object (no markdown fences) with keys:
                         "grammar_accurate": parsed_audit.get("grammar_accurate"),
                         "grammar_feedback": parsed_audit.get("grammar_feedback", ""),
                         "corrected_phrase": parsed_audit.get("corrected_phrase"),
+                        "corrected_phrase_usage": parsed_audit.get("corrected_phrase_usage"),
                         "au_upgrade": parsed_audit.get("au_upgrade"),
+                        "topic_vocabulary": parsed_audit.get("topic_vocabulary") or [],
                         "fluency_tip": parsed_audit.get("fluency_tip", ""),
                     }
                     st.session_state["tutor_evaluations"].append(eval_entry)
@@ -443,7 +457,9 @@ Return ONLY a JSON object (no markdown fences) with keys:
                         "grammar_accurate": eval_entry["grammar_accurate"],
                         "grammar_feedback": eval_entry["grammar_feedback"],
                         "corrected_phrase": eval_entry["corrected_phrase"],
+                        "corrected_phrase_usage": eval_entry["corrected_phrase_usage"],
                         "au_upgrade": eval_entry["au_upgrade"],
+                        "topic_vocabulary": eval_entry["topic_vocabulary"],
                         "fluency_tip": eval_entry["fluency_tip"],
                     })
                     save_data(data)
@@ -485,41 +501,77 @@ Return ONLY a JSON object (no markdown fences) with keys:
                     audit_box = st.container(height=420)
                     for audit_idx, ev in enumerate(reversed(st.session_state["tutor_evaluations"])):
                         with audit_box, st.expander(f"Turn {ev['turn']} Audit", expanded=(audit_idx == 0)):
-                            st.caption(f"**You said:** \"{ev['transcript']}\"")
-                            st.caption("**Tutor's reply:**")
-                            render_selectable_text(ev.get("tutor_reply", ""), key=f"tutor_live_reply_{ev['turn']}", data=data)
+                            # "You said" gets its own chat bubble so it's visually obvious this is
+                            # your own text, distinct from the tutor's reply and coaching suggestions below.
+                            with st.chat_message("user"):
+                                st.caption("You said")
+                                st.write(ev["transcript"])
+
+                            with st.chat_message("assistant", avatar="🇦🇺"):
+                                st.caption("Tutor's reply")
+                                render_selectable_text(ev.get("tutor_reply", ""), key=f"tutor_live_reply_{ev['turn']}", data=data)
+
                             # Fallback: if JSON parsing failed, just show the raw audit text.
-                            if ev.get("grammar_accurate") is None and not ev.get("au_upgrade") and not ev.get("fluency_tip"):
+                            if ev.get("grammar_accurate") is None and not ev.get("au_upgrade") and not ev.get("fluency_tip") and not ev.get("topic_vocabulary"):
                                 render_selectable_text(ev.get("grammar_feedback", ""), key=f"tutor_live_fallback_{ev['turn']}", data=data)
                                 continue
 
-                            st.markdown("**✍️ Grammar & Accuracy:**")
-                            render_selectable_text(ev.get("grammar_feedback", ""), key=f"tutor_live_grammar_{ev['turn']}", data=data)
-                            corrected = ev.get("corrected_phrase")
-                            if corrected:
-                                col_corr, col_corr_btn = st.columns([3, 1])
-                                col_corr.caption(f"Corrected phrase: _{corrected}_")
-                                if col_corr_btn.button("➕ Add to Vocab", key=f"tutor_add_corr_{ev['turn']}", use_container_width=True):
-                                    if add_word_to_vocabulary(data, corrected, "Corrected during turn-by-turn coaching", ev["transcript"]):
-                                        st.toast(f"Saved '{corrected}'!", icon="✅")
-                                    else:
-                                        st.toast(f"'{corrected}' is already in your list.", icon="ℹ️")
+                            # Coaching suggestions are grouped in their own bordered box, set apart
+                            # from "You said" and the tutor's conversational reply above.
+                            with st.container(border=True):
+                                st.markdown("#### 💡 Suggestions")
 
-                            upgrade = ev.get("au_upgrade") or {}
-                            phrase = upgrade.get("phrase") if isinstance(upgrade, dict) else None
-                            if phrase:
-                                st.markdown(f"**🇦🇺 Native AU Upgrade:** `{phrase}` — {upgrade.get('meaning', '')}")
-                                if upgrade.get("example"):
-                                    st.caption(f"💬 *\"{upgrade['example']}\"*")
-                                if st.button("➕ Add to Vocab", key=f"tutor_add_upgrade_{ev['turn']}", use_container_width=True):
-                                    if add_word_to_vocabulary(data, phrase, upgrade.get("meaning", ""), upgrade.get("example", "")):
-                                        st.toast(f"Saved '{phrase}'!", icon="✅")
-                                    else:
-                                        st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
+                                st.markdown("**✍️ Grammar & Accuracy:**")
+                                render_selectable_text(ev.get("grammar_feedback", ""), key=f"tutor_live_grammar_{ev['turn']}", data=data)
+                                corrected = ev.get("corrected_phrase")
+                                if corrected:
+                                    st.caption(f"Corrected phrase: _{corrected}_")
+                                    usage = ev.get("corrected_phrase_usage")
+                                    if usage:
+                                        st.caption(f"📌 How to use it: {usage}")
+                                    if st.button("➕ Add to Vocab", key=f"tutor_add_corr_{ev['turn']}", use_container_width=True):
+                                        if add_word_to_vocabulary(data, corrected, "Corrected during turn-by-turn coaching", ev["transcript"], usage or ""):
+                                            st.toast(f"Saved '{corrected}'!", icon="✅")
+                                        else:
+                                            st.toast(f"'{corrected}' is already in your list.", icon="ℹ️")
 
-                            if ev.get("fluency_tip"):
-                                st.markdown("**💬 Fluency Tip:**")
-                                render_selectable_text(ev["fluency_tip"], key=f"tutor_live_tip_{ev['turn']}", data=data)
+                                upgrade = ev.get("au_upgrade") or {}
+                                phrase = upgrade.get("phrase") if isinstance(upgrade, dict) else None
+                                if phrase:
+                                    st.divider()
+                                    st.markdown(f"**🇦🇺 Native AU Upgrade:** `{phrase}` — {upgrade.get('meaning', '')}")
+                                    if upgrade.get("example"):
+                                        st.caption(f"💬 Sample: *\"{upgrade['example']}\"*")
+                                    if upgrade.get("usage_tip"):
+                                        st.caption(f"📌 How to use it: {upgrade['usage_tip']}")
+                                    if st.button("➕ Add to Vocab", key=f"tutor_add_upgrade_{ev['turn']}", use_container_width=True):
+                                        if add_word_to_vocabulary(data, phrase, upgrade.get("meaning", ""), upgrade.get("example", ""), upgrade.get("usage_tip", "")):
+                                            st.toast(f"Saved '{phrase}'!", icon="✅")
+                                        else:
+                                            st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
+
+                                topic_vocab = ev.get("topic_vocabulary") or []
+                                if topic_vocab:
+                                    st.divider()
+                                    st.markdown(f"**📚 Vocabulary Ideas for \"{ev.get('topic', '')}\":**")
+                                    for tv_idx, tv in enumerate(topic_vocab):
+                                        if not isinstance(tv, dict) or not tv.get("word"):
+                                            continue
+                                        st.markdown(f"**`{tv['word']}`** — {tv.get('meaning', '')}")
+                                        if tv.get("example"):
+                                            st.caption(f"💬 Sample: *\"{tv['example']}\"*")
+                                        if tv.get("usage_tip"):
+                                            st.caption(f"📌 How to use it: {tv['usage_tip']}")
+                                        if st.button("➕ Add to Vocab", key=f"tutor_add_topicvocab_{ev['turn']}_{tv_idx}", use_container_width=True):
+                                            if add_word_to_vocabulary(data, tv["word"], tv.get("meaning", ""), tv.get("example", ""), tv.get("usage_tip", "")):
+                                                st.toast(f"Saved '{tv['word']}'!", icon="✅")
+                                            else:
+                                                st.toast(f"'{tv['word']}' is already in your list.", icon="ℹ️")
+
+                                if ev.get("fluency_tip"):
+                                    st.divider()
+                                    st.markdown("**💬 Fluency Tip:**")
+                                    render_selectable_text(ev["fluency_tip"], key=f"tutor_live_tip_{ev['turn']}", data=data)
         else:
             st.info("Pick a topic and click **🎬 Start New Conversation** to begin.")
 
