@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- The Windows 10 SDK TFM gives us direct access to WinRT APIs (UserNotificationListener). -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>NotifyHub</RootNamespace>
+    <AssemblyName>NotifyHub</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Loose-layout package files, copied next to NotifyHub.exe so the output folder can be registered. -->
+  <ItemGroup>
+    <None Include="Package\AppxManifest.xml" Link="AppxManifest.xml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Package\Assets\*.png" Link="Assets\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+
+</Project>
