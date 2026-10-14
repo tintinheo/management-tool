@@ -15,7 +15,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path $PSScriptRoot -Parent
+# Works whether this script sits in the project folder or in its scripts\ subfolder.
+$root = @($PSScriptRoot, (Split-Path $PSScriptRoot -Parent)) |
+    Where-Object { Test-Path (Join-Path $_ 'NotifyHub.csproj') } |
+    Select-Object -First 1
+if (-not $root) { throw "NotifyHub.csproj not found in $PSScriptRoot or its parent folder." }
 $project = Join-Path $root 'NotifyHub.csproj'
 $packageName = 'NotifyHub.Local'
 

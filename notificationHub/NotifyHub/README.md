@@ -81,6 +81,11 @@ references `NotifyHub`, add `<uap3:Capability Name="userNotificationListener" />
 - Filter by app with the dropdown, or search across titles, messages and app names.
 - Selecting a notification marks it read; **Mark all read** clears the unread dots.
 - Right-click a notification to copy its text or delete it.
+- The taskbar button shows a red badge with the unread total (99+ above 99), and the window
+  title shows it too, e.g. `NotifyHub (5)`.
+- When a new notification arrives while NotifyHub isn't the active window, its taskbar button
+  is highlighted until you switch to it.
+- On Windows 10, taskbar badges only appear when "Use small taskbar buttons" is off.
 
 ## What it can and can't capture
 
@@ -96,7 +101,7 @@ references `NotifyHub`, add `<uap3:Capability Name="userNotificationListener" />
 
 ## Ideas for next steps
 
-- Tray icon with an unread badge, and minimize-to-tray on close (`H.NotifyIcon.Wpf`)
+- Tray icon and minimize-to-tray on close (`H.NotifyIcon.Wpf`)
 - App logos via `AppInfo.DisplayInfo.GetLogo(...)`
 - Start with Windows (`StartupTask` in the package manifest)
 - Retention setting, e.g. delete notifications older than 30 days

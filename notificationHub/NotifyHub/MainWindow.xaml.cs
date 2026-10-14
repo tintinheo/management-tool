@@ -71,6 +71,7 @@ public partial class MainWindow : Window
         {
             Add(n, atTop: true);
             UpdateStatus();
+            TaskbarAttention.Flash(this);
         });
     }
 
@@ -101,6 +102,10 @@ public partial class MainWindow : Window
         var unread = _items.Count(i => !i.IsRead);
         StatusText.Text = $"{_items.Count} notifications, {unread} unread";
         EmptyText.Visibility = _items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // Unread total on the taskbar button and in the window title (shown in Alt+Tab and taskbar previews).
+        TaskbarAttention.SetUnreadBadge(this, unread);
+        Title = unread > 0 ? $"NotifyHub ({unread})" : "NotifyHub";
     }
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => _view?.Refresh();
