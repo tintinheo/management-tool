@@ -39,6 +39,14 @@
   #addBtn:hover {
     background: #e63946;
   }
+  /* Touch screens: a finger-sized button (the 12px desktop button is too small to hit reliably). */
+  @media (pointer: coarse) {
+    #addBtn {
+      padding: 9px 14px;
+      font-size: 14px;
+      border-radius: 8px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -88,12 +96,22 @@
     pendingSelection = text;
     var range = sel.getRangeAt(0);
     var rect = range.getBoundingClientRect();
-    var top = Math.max(0, rect.top - 34 + window.scrollY);
-    var left = Math.max(0, rect.left + window.scrollX);
+    addBtn.style.display = "block";
+    var btnHeight = addBtn.offsetHeight || 32;
+    var top;
+    if (isTouch && rect.bottom + 8 + btnHeight <= document.body.scrollHeight) {
+      // Android/iOS show their own Copy/Share bar above a selection, so put ours below it when it fits.
+      top = rect.bottom + 8 + window.scrollY;
+    } else {
+      top = Math.max(0, rect.top - btnHeight - 4 + window.scrollY);
+    }
+    var maxLeft = Math.max(0, document.body.clientWidth - addBtn.offsetWidth - 4);
+    var left = Math.min(Math.max(0, rect.left + window.scrollX), maxLeft);
     addBtn.style.top = top + "px";
     addBtn.style.left = left + "px";
-    addBtn.style.display = "block";
   }
+
+  var isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
 
   document.addEventListener("mouseup", function () {
     setTimeout(showButtonForSelection, 0);
@@ -104,19 +122,31 @@
   document.addEventListener("keyup", function (e) {
     if (e.shiftKey) setTimeout(showButtonForSelection, 0);
   });
-
-  // Keep the selection alive when the mouse goes down on the button itself.
-  addBtn.addEventListener("mousedown", function (e) {
-    e.preventDefault();
+  // Touch: long-press selection (and dragging the selection handles) fires selectionchange, not mouseup.
+  var selectionTimer = null;
+  document.addEventListener("selectionchange", function () {
+    clearTimeout(selectionTimer);
+    selectionTimer = setTimeout(showButtonForSelection, 250);
   });
 
-  addBtn.addEventListener("click", function () {
+  function commitSelection() {
     if (pendingSelection) {
       sendValue({ text: pendingSelection, nonce: Date.now() + Math.random() });
       hideButton();
       window.getSelection().removeAllRanges();
     }
+  }
+
+  // Keep the selection alive when the pointer goes down on the button itself. On touch screens the tap
+  // would otherwise collapse the selection before "click" fires, so commit straight away on pointerdown.
+  addBtn.addEventListener("mousedown", function (e) {
+    e.preventDefault();
   });
+  addBtn.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    if (e.pointerType === "touch" || e.pointerType === "pen") commitSelection();
+  });
+  addBtn.addEventListener("click", commitSelection);
 
   document.addEventListener("mousedown", function (e) {
     if (e.target !== addBtn) {

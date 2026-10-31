@@ -1,0 +1,3 @@
+[client]
+# Hide the developer toolbar ("Deploy" etc.); it only takes header space on a phone.
+toolbarMode = "minimal"

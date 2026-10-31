@@ -9,15 +9,17 @@ import random
 import re
 from collections import Counter
 from datetime import date, datetime, timedelta
+from urllib.parse import urlparse
 from gtts import gTTS
 import streamlit as st
 import streamlit.components.v1 as components
 from groq import Groq
 
 # Page Configuration
-st.set_page_config(page_title="Dynamic Leadership & Communication Coach", page_icon="🎭", layout="wide", initial_sidebar_state="expanded")
+# "auto" keeps the sidebar open on desktop but collapsed on phones, where it would otherwise cover the whole screen.
+st.set_page_config(page_title="Dynamic Leadership & Communication Coach", page_icon="🎭", layout="wide", initial_sidebar_state="auto")
 
-# Mobile/Chrome responsive tweaks: bigger tap targets, no horizontal overflow, scrollable tabs
+# Mobile/Chrome responsive tweaks: bigger tap targets, no horizontal overflow, compact type on phones
 st.markdown("""
 <style>
 /* Prevent long words/URLs from forcing horizontal scroll on any viewport */
@@ -30,26 +32,27 @@ st.markdown("""
 }
 @media (max-width: 640px) {
     .block-container {
-        padding-top: 1rem;
+        padding-top: 3.25rem;
         padding-left: 0.75rem;
         padding-right: 0.75rem;
-        padding-bottom: 2rem;
+        padding-bottom: 4rem;
     }
+    /* Headings sized for a ~400px-wide screen instead of a desktop page */
+    h1 { font-size: 1.5rem !important; padding-bottom: 0.25rem !important; }
+    h2 { font-size: 1.25rem !important; }
+    h3 { font-size: 1.1rem !important; }
+    h4 { font-size: 1rem !important; }
     /* Bigger tap targets (min 44px per WCAG/Chrome touch guidance) */
     .stButton > button, .stFormSubmitButton > button {
         min-height: 44px;
         font-size: 0.95rem;
         width: 100%;
     }
-    /* Scroll instead of squeeze when tabs don't fit the screen width */
-    [data-testid="stTabs"] [data-baseweb="tab-list"] {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-    }
-    [data-testid="stTabs"] button[role="tab"] {
-        white-space: nowrap;
-        font-size: 0.82rem;
-        padding: 0.4rem 0.6rem;
+    [data-testid="stMetricValue"] { font-size: 1.3rem; }
+    [data-testid="stMetricLabel"] p { font-size: 0.8rem; }
+    [data-testid="stChatMessage"] {
+        padding: 0.5rem 0.25rem;
+        gap: 0.5rem;
     }
     [data-testid="stChatMessageContent"] p {
         font-size: 0.95rem;
@@ -60,9 +63,29 @@ st.markdown("""
     [data-testid="stExpander"] summary {
         font-size: 0.9rem;
     }
+    /* Message tools (Listen / Slow / Explain) shouldn't dominate each chat bubble */
+    [data-testid="stButtonGroup"] button {
+        min-height: 34px;
+        padding: 0.15rem 0.6rem;
+        font-size: 0.82rem;
+    }
+    /* Section navigation chips: all sections visible at once, no hidden scrolling tabs */
+    .st-key-tutor_nav [data-testid="stButtonGroup"] button,
+    .st-key-ld_nav [data-testid="stButtonGroup"] button {
+        font-size: 0.85rem;
+        min-height: 38px;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
+
+def detected_phone() -> bool:
+    ua = (st.context.headers.get("User-Agent") or "").lower()
+    return any(tag in ua for tag in ("android", "iphone", "mobile"))
+
+def phone_layout() -> bool:
+    """Single-column, phone-first layout (auto-detected; can be switched in the sidebar)."""
+    return st.session_state.get("phone_layout", detected_phone())
 
 # --- TOAST QUEUE ---
 # st.rerun() discards toasts/balloons raised earlier in the same run, so anything immediately
@@ -74,8 +97,10 @@ def queue_balloons():
     st.session_state["_pending_balloons"] = True
 
 def flush_toasts():
-    for message, icon in st.session_state.pop("_pending_toasts", []):
-        st.toast(message, icon=icon)
+    # Several toasts in a row stack up over the top of a phone screen, so merge them into one.
+    pending = st.session_state.pop("_pending_toasts", [])
+    if pending:
+        st.toast("  \n".join(message for message, _ in pending), icon=pending[-1][1])
     if st.session_state.pop("_pending_balloons", False):
         st.balloons()
 
@@ -102,7 +127,7 @@ DEFAULT_PROFILE = {
 
 DEFAULT_DATA = {
     "history": [], "vocabulary": [], "writing_history": [], "grammar_scores": [], "tutor_turn_history": [],
-    "error_log": [], "task_history": [], "listening_scores": [], "profile": DEFAULT_PROFILE,
+    "error_log": [], "task_history": [], "listening_scores": [], "profile": DEFAULT_PROFILE, "resume": {},
 }
 
 def load_data():
@@ -792,12 +817,12 @@ def render_retry_gate(ns: str, data: dict, accent: str, evaluations_key: str = N
         return False
     rid = retry["id"]
     with st.container(border=True):
-        st.markdown("#### 🔁 Say it again — the corrected way")
-        st.caption("Producing the correct form yourself is what makes it stick. Say (or type) the corrected version before you carry on.")
-        st.markdown(f"❌ You said: *{retry['original']}*")
+        st.markdown("**🔁 Say it again — the corrected way**")
+        st.caption("Saying the correct form yourself is what makes it stick.")
+        st.markdown(f"❌ *{retry['original']}*")
         hidden = st.toggle("🙈 Hide the correction (try from memory)", key=f"{ns}_retry_hide_{rid}")
         if not hidden:
-            st.markdown(f"✅ Corrected: **{retry['target']}**")
+            st.markdown(f"✅ **{retry['target']}**")
             render_message_tools(retry["target"], accent, f"{ns}_retry_{rid}", explain=False)
 
         attempt = None
@@ -808,12 +833,16 @@ def render_retry_gate(ns: str, data: dict, accent: str, evaluations_key: str = N
                 retry["processed_audio_id"] = audio_id
                 with st.spinner("Checking..."):
                     attempt = transcribe_audio(spoken.getvalue(), "retry.wav")["text"]
-        typed = st.text_input("...or type it", key=f"{ns}_retry_text_{rid}")
-        c1, c2 = st.columns(2)
-        if c1.button("✅ Check", key=f"{ns}_retry_check_{rid}", width="stretch") and typed.strip():
+        typed = st.text_input("...or type it", key=f"{ns}_retry_text_{rid}", placeholder="Type the corrected sentence")
+        # Horizontal container (not st.columns) so the two buttons stay side by side on a phone.
+        with st.container(horizontal=True):
+            check_clicked = st.button("✅ Check", key=f"{ns}_retry_check_{rid}", width="stretch")
+            skip_clicked = st.button("⏭️ Skip", key=f"{ns}_retry_skip_{rid}", width="stretch")
+        if check_clicked and typed.strip():
             attempt = typed
-        if c2.button("⏭️ Skip for now", key=f"{ns}_retry_skip_{rid}", width="stretch"):
+        if skip_clicked:
             st.session_state[f"{ns}_retry"] = None
+            save_resume_point(data, ns)
             queue_toast("Skipped — it's in your Mistakes notebook to practise later.", "⏭️")
             st.rerun()
 
@@ -826,6 +855,7 @@ def render_retry_gate(ns: str, data: dict, accent: str, evaluations_key: str = N
                         ev["retry_passed"] = True
                 st.session_state[f"{ns}_retry"] = None
                 record_practice(data, 10)
+                save_resume_point(data, ns)
                 queue_toast("🔁 Nailed it! +10 XP", "🎉")
                 st.rerun()
             retry["feedback"] = {"attempt": attempt, **diff}
@@ -844,6 +874,50 @@ TURN_HISTORY_FIELDS = (
     "corrected_sentence", "corrected_phrase", "corrected_phrase_usage", "au_upgrade", "topic_vocabulary",
     "fluency_tip", "fluency", "used_words",
 )
+
+# --- RESUME AFTER A RELOAD ---
+# Phone browsers (Android battery savers especially) often reload a tab that was in the background, which
+# starts a brand-new Streamlit session and would lose the conversation. Active chats are snapshotted to the
+# practice file after every turn and restored into a fresh session.
+_CHAT_RESUME_SUFFIXES = (
+    "chat_history", "active", "evaluations", "reactions", "retry", "target_words", "used_words", "revealed",
+    "xp", "streak", "best_streak", "turns",
+)
+RESUME_KEYS = {
+    "tutor": [f"tutor_{s}" for s in _CHAT_RESUME_SUFFIXES] + ["tutor_topic"],
+    "task": [f"task_{s}" for s in _CHAT_RESUME_SUFFIXES] + ["task_current"],
+    "ld": [
+        "chat_history", "evaluations", "reactions", "roleplay_active", "retro_summary", "target_vocab", "target_framework",
+        "ld_retry", "ld_xp", "ld_streak", "ld_best_streak", "ld_turns", "ld_domain", "ld_framework", "ld_persona",
+    ],
+}
+RESUME_MAX_AGE = timedelta(hours=24)
+
+def save_resume_point(data: dict, name: str) -> None:
+    data["resume"][name] = {
+        "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "state": {k: st.session_state[k] for k in RESUME_KEYS[name] if k in st.session_state},
+    }
+    save_data(data)
+
+def restore_resume_point(data: dict, name: str) -> None:
+    """Restores a recent snapshot into a new browser session (checked once per session)."""
+    checked_flag = f"_resume_checked_{name}"
+    if st.session_state.get(checked_flag):
+        return
+    st.session_state[checked_flag] = True
+    point = data["resume"].get(name)
+    if not point:
+        return
+    try:
+        if datetime.now() - datetime.fromisoformat(point["saved_at"]) > RESUME_MAX_AGE:
+            return
+    except (KeyError, TypeError, ValueError):
+        return
+    for key, value in (point.get("state") or {}).items():
+        st.session_state.setdefault(key, value)
+    if any(point["state"].get(k) for k in (f"{name}_active", "roleplay_active")):
+        st.toast("Picked up where you left off.", icon="↩️")
 
 def init_chat_state(ns: str):
     for suffix, factory in (
@@ -923,6 +997,7 @@ def process_chat_turn(ns: str, user_text: str, topic: str, default_avatar: str, 
     if data["profile"].get("retry_enabled", True):
         st.session_state[f"{ns}_retry"] = build_retry(audit, user_text, turn_no)
     apply_gamification(ns, audit["grammar_accurate"], data, bonus_xp=10 * len(used))
+    save_resume_point(data, ns)
 
 def render_vocab_suggestion(label: str, item: dict, key: str, data: dict):
     """One suggested word/phrase with sample, usage tip and an Add-to-Vocab button."""
@@ -937,13 +1012,83 @@ def render_vocab_suggestion(label: str, item: dict, key: str, data: dict):
         else:
             st.toast(f"'{item['phrase']}' is already in your list.", icon="ℹ️")
 
+def render_session_stats(prefix: str):
+    """One compact line of session XP/streak/turns (st.metric columns stack into ~200px on a phone)."""
+    turns = st.session_state.get(f"{prefix}_turns", 0)
+    st.caption(
+        f"✨ **{st.session_state.get(f'{prefix}_xp', 0)}** XP · 🔥 streak **{st.session_state.get(f'{prefix}_streak', 0)}**"
+        f" · 🏆 best **{st.session_state.get(f'{prefix}_best_streak', 0)}** · 💬 turn **{turns}**/10"
+    )
+    st.progress(min(1.0, turns / 10))
+
+def _audit_failed(ev: dict) -> bool:
+    return ev.get("grammar_accurate") is None and not ev.get("au_upgrade") and not ev.get("fluency_tip") and not ev.get("topic_vocabulary")
+
+def render_turn_suggestions(ns: str, ev: dict, data: dict, compact: bool = False):
+    """Coaching for one turn. compact (phone): the essentials, with phrases & vocabulary folded into an expander."""
+    turn = ev["turn"]
+    # Fallback: if the audit failed, just show the raw message.
+    if _audit_failed(ev):
+        render_selectable_text(ev.get("grammar_feedback", ""), key=f"{ns}_live_fallback_{turn}", data=data)
+        return
+
+    if ev.get("used_words"):
+        st.success(f"🎯 You used your saved vocabulary: {', '.join(ev['used_words'])}")
+
+    st.markdown("**✍️ Grammar & Accuracy:**")
+    render_selectable_text(ev.get("grammar_feedback", ""), key=f"{ns}_live_grammar_{turn}", data=data)
+    if ev.get("corrected_sentence"):
+        st.caption(f"✅ Whole turn, corrected: _{ev['corrected_sentence']}_")
+    if ev.get("retry_passed"):
+        st.caption("🔁 You said it again correctly — nice work!")
+    if compact and ev.get("fluency"):
+        st.caption(format_fluency(ev["fluency"]))
+    fixable = [e for e in ev.get("errors") or [] if e["error_type"] != TYPO_TYPE]
+    if fixable and not data["profile"].get("auto_fixit", True):
+        if st.button("🛠️ Save as Fix-it card(s)", key=f"{ns}_fixit_{turn}", width="stretch"):
+            saved = sum(add_fixit_card(data, e["original"], e["corrected"], e["explanation"]) for e in fixable)
+            st.toast(f"Saved {saved} Fix-it card(s)!" if saved else "Already saved.", icon="🛠️")
+
+    corrected = ev.get("corrected_phrase")
+    upgrade = ev.get("au_upgrade") or {}
+    topic_vocab = [tv for tv in ev.get("topic_vocabulary") or [] if isinstance(tv, dict) and tv.get("word")]
+    if not (corrected or upgrade.get("phrase") or topic_vocab or ev.get("fluency_tip")):
+        return
+    extras = st.expander("💡 Phrases, vocabulary & fluency tip") if compact else st.container()
+    with extras:
+        if corrected:
+            st.caption(f"Corrected phrase: _{corrected}_")
+            usage = ev.get("corrected_phrase_usage")
+            if usage:
+                st.caption(f"📌 How to use it: {usage}")
+            if st.button("➕ Add to Vocab", key=f"{ns}_add_corr_{turn}", width="stretch"):
+                if add_word_to_vocabulary(data, corrected, "Corrected during turn-by-turn coaching", ev["transcript"], usage or "", enrich=False):
+                    st.toast(f"Saved '{corrected}'!", icon="✅")
+                else:
+                    st.toast(f"'{corrected}' is already in your list.", icon="ℹ️")
+
+        if isinstance(upgrade, dict) and upgrade.get("phrase"):
+            st.divider()
+            render_vocab_suggestion("🇦🇺 Native AU Upgrade:", upgrade, f"{ns}_add_upgrade_{turn}", data)
+
+        if topic_vocab:
+            st.divider()
+            st.markdown(f"**📚 Vocabulary Ideas for \"{ev.get('topic', '')}\":**")
+            for tv_idx, tv in enumerate(topic_vocab):
+                render_vocab_suggestion("", {**tv, "phrase": tv["word"]}, f"{ns}_add_topicvocab_{turn}_{tv_idx}", data)
+
+        if ev.get("fluency_tip"):
+            st.divider()
+            st.markdown("**💬 Fluency Tip:**")
+            render_selectable_text(ev["fluency_tip"], key=f"{ns}_live_tip_{turn}", data=data)
+
 def render_turn_audits(ns: str, default_avatar: str, data: dict):
+    """Desktop coaching column: every turn's audit in its own expander."""
     st.subheader("📊 Turn-by-Turn Coaching")
     evaluations = st.session_state[f"{ns}_evaluations"]
     if not evaluations:
         st.caption("Grammar, AU-native phrasing, and fluency feedback will appear here after your first turn.")
         return
-    auto_fixit = data["profile"].get("auto_fixit", True)
     # Scrolls within its own fixed-height box (matching the chat column) so a long
     # conversation doesn't keep growing the whole page taller with every turn -- that
     # unbounded growth was what pushed "Record your response"/chat controls far down
@@ -964,129 +1109,114 @@ def render_turn_audits(ns: str, default_avatar: str, data: dict):
                 st.caption("Reply")
                 render_selectable_text(ev.get("tutor_reply", ""), key=f"{ns}_live_reply_{turn}", data=data)
 
-            # Fallback: if the audit failed, just show the raw message.
-            if ev.get("grammar_accurate") is None and not ev.get("au_upgrade") and not ev.get("fluency_tip") and not ev.get("topic_vocabulary"):
-                render_selectable_text(ev.get("grammar_feedback", ""), key=f"{ns}_live_fallback_{turn}", data=data)
+            if _audit_failed(ev):
+                render_turn_suggestions(ns, ev, data)
                 continue
-
             # Coaching suggestions are grouped in their own bordered box, set apart
             # from "You said" and the conversational reply above.
             with st.container(border=True):
                 st.markdown("#### 💡 Suggestions")
+                render_turn_suggestions(ns, ev, data)
 
-                if ev.get("used_words"):
-                    st.success(f"🎯 You used your saved vocabulary: {', '.join(ev['used_words'])}")
+def render_latest_coaching(ns: str, data: dict):
+    """Phone layout: the latest turn's coaching as a card right under the chat, before the input."""
+    evaluations = st.session_state[f"{ns}_evaluations"]
+    if not evaluations:
+        return
+    latest = evaluations[-1]
+    with st.container(border=True):
+        st.markdown(f"**📊 Coaching · turn {latest['turn']}**")
+        render_turn_suggestions(ns, latest, data, compact=True)
 
-                st.markdown("**✍️ Grammar & Accuracy:**")
-                render_selectable_text(ev.get("grammar_feedback", ""), key=f"{ns}_live_grammar_{turn}", data=data)
-                if ev.get("corrected_sentence"):
-                    st.caption(f"✅ Whole turn, corrected: _{ev['corrected_sentence']}_")
-                if ev.get("retry_passed"):
-                    st.caption("🔁 You said it again correctly — nice work!")
-                fixable = [e for e in ev.get("errors") or [] if e["error_type"] != TYPO_TYPE]
-                if fixable and not auto_fixit:
-                    if st.button("🛠️ Save as Fix-it card(s)", key=f"{ns}_fixit_{turn}", width="stretch"):
-                        saved = sum(add_fixit_card(data, e["original"], e["corrected"], e["explanation"]) for e in fixable)
-                        st.toast(f"Saved {saved} Fix-it card(s)!" if saved else "Already saved.", icon="🛠️")
-
-                corrected = ev.get("corrected_phrase")
-                if corrected:
-                    st.caption(f"Corrected phrase: _{corrected}_")
-                    usage = ev.get("corrected_phrase_usage")
-                    if usage:
-                        st.caption(f"📌 How to use it: {usage}")
-                    if st.button("➕ Add to Vocab", key=f"{ns}_add_corr_{turn}", width="stretch"):
-                        if add_word_to_vocabulary(data, corrected, "Corrected during turn-by-turn coaching", ev["transcript"], usage or "", enrich=False):
-                            st.toast(f"Saved '{corrected}'!", icon="✅")
-                        else:
-                            st.toast(f"'{corrected}' is already in your list.", icon="ℹ️")
-
-                upgrade = ev.get("au_upgrade") or {}
-                if isinstance(upgrade, dict) and upgrade.get("phrase"):
-                    st.divider()
-                    render_vocab_suggestion("🇦🇺 Native AU Upgrade:", upgrade, f"{ns}_add_upgrade_{turn}", data)
-
-                topic_vocab = [tv for tv in ev.get("topic_vocabulary") or [] if isinstance(tv, dict) and tv.get("word")]
-                if topic_vocab:
-                    st.divider()
-                    st.markdown(f"**📚 Vocabulary Ideas for \"{ev.get('topic', '')}\":**")
-                    for tv_idx, tv in enumerate(topic_vocab):
-                        render_vocab_suggestion("", {**tv, "phrase": tv["word"]}, f"{ns}_add_topicvocab_{turn}_{tv_idx}", data)
-
-                if ev.get("fluency_tip"):
-                    st.divider()
-                    st.markdown("**💬 Fluency Tip:**")
-                    render_selectable_text(ev["fluency_tip"], key=f"{ns}_live_tip_{turn}", data=data)
+def render_earlier_coaching(ns: str):
+    """Phone layout: earlier turns' corrections as plain text in one expander (no iframes, so it stays light)."""
+    earlier = st.session_state[f"{ns}_evaluations"][:-1]
+    if not earlier:
+        return
+    with st.expander(f"🗂️ Coaching for earlier turns ({len(earlier)})"):
+        for ev in reversed(earlier):
+            st.markdown(f"**Turn {ev['turn']}** — *{ev['transcript']}*")
+            st.markdown(ev.get("grammar_feedback", ""))
+            if ev.get("corrected_sentence"):
+                st.caption(f"✅ {ev['corrected_sentence']}")
+            st.divider()
 
 def render_chat_session(ns: str, topic: str, default_avatar: str, data: dict, source: str):
-    """Chat column (history, retry step, voice/text input) + turn-by-turn coaching column for a chat namespace."""
+    """Chat (history, coaching, retry step, voice/text input) for a chat namespace: two columns on desktop,
+    one column on a phone with the latest coaching between the chat and the input."""
+    if phone_layout():
+        render_chat_column(ns, topic, default_avatar, data, source, phone=True)
+        return
     col_chat, col_audit = st.columns([3, 2])
     with col_chat:
-        m1, m2, m3 = st.columns(3)
-        m1.metric("✨ XP", st.session_state.get(f"{ns}_xp", 0))
-        m2.metric("🔥 Streak", st.session_state.get(f"{ns}_streak", 0))
-        m3.metric("🏆 Best", st.session_state.get(f"{ns}_best_streak", 0))
-        st.progress(min(1.0, st.session_state.get(f"{ns}_turns", 0) / 10), text="Session progress toward 10 turns")
-
-        targets = st.session_state[f"{ns}_target_words"]
-        if targets:
-            used_now = {w.lower() for w in st.session_state[f"{ns}_used_words"]}
-            chips = " · ".join(f"✅ ~~{w}~~" if w.lower() in used_now else f"`{w}`" for w in targets)
-            st.caption(f"🎯 Try to use these saved words in this chat: {chips}")
-
-        # Chat history scrolls within its own fixed-height box so the recorder/text input
-        # below always stay visible without needing to scroll past the whole conversation.
-        chat_box = st.container(height=420)
-        listen_first = st.session_state.get("listen_first", False)
-        revealed = st.session_state[f"{ns}_revealed"]
-        reaction_idx = 0
-        for t_idx, msg in enumerate(st.session_state[f"{ns}_chat_history"]):
-            if msg["role"] == "system":
-                continue
-            if msg["role"] == "assistant":
-                reactions = st.session_state[f"{ns}_reactions"]
-                avatar = reactions[reaction_idx] if reaction_idx < len(reactions) else default_avatar
-                reaction_idx += 1
-                with chat_box, st.chat_message("assistant", avatar=avatar):
-                    if listen_first and t_idx not in revealed:
-                        st.caption("🎧 Listen first, then reveal the text.")
-                        try:
-                            st.audio(get_pronunciation_audio(msg["content"], "com.au"), format="audio/mp3")
-                        except Exception:
-                            st.caption("⚠️ Audio unavailable")
-                        if st.button("👁️ Show text", key=f"{ns}_reveal_{t_idx}"):
-                            revealed.append(t_idx)
-                            st.rerun()
-                    else:
-                        render_selectable_text(msg["content"], key=f"{ns}_sel_{t_idx}", data=data)
-                        render_message_tools(msg["content"], "com.au", f"{ns}_{t_idx}")
-            else:
-                with chat_box, st.chat_message("user"):
-                    render_selectable_text(msg["content"], key=f"{ns}_sel_{t_idx}", data=data)
-
-        st.markdown("---")
-        if not render_retry_gate(ns, data, "com.au"):
-            audio_file = st.audio_input("Record your response", key=f"{ns}_audio_input_widget")
-            if audio_file:
-                audio_bytes = audio_file.getvalue()
-                audio_id = hash(audio_bytes)
-                if st.session_state[f"{ns}_processed_audio_id"] != audio_id:
-                    st.session_state[f"{ns}_processed_audio_id"] = audio_id
-                    with st.spinner("Transcribing..."):
-                        transcription = transcribe_audio(audio_bytes, keep_fillers=True)
-                    if transcription["text"]:
-                        process_chat_turn(ns, transcription["text"], topic, default_avatar, data, source, transcription)
-                        st.rerun()
-                    else:
-                        st.warning("I couldn't hear anything in that recording — please try again.")
-
-            text_turn = st.chat_input("...or type your response", key=f"{ns}_chat_input")
-            if text_turn:
-                process_chat_turn(ns, text_turn, topic, default_avatar, data, source)
-                st.rerun()
-
+        render_chat_column(ns, topic, default_avatar, data, source, phone=False)
     with col_audit:
         render_turn_audits(ns, default_avatar, data)
+
+def render_chat_column(ns: str, topic: str, default_avatar: str, data: dict, source: str, phone: bool):
+    render_session_stats(ns)
+
+    targets = st.session_state[f"{ns}_target_words"]
+    if targets:
+        used_now = {w.lower() for w in st.session_state[f"{ns}_used_words"]}
+        chips = " · ".join(f"✅ ~~{w}~~" if w.lower() in used_now else f"`{w}`" for w in targets)
+        st.caption(f"🎯 Try to use: {chips}")
+
+    # Chat history scrolls within its own fixed-height box so the recorder/text input
+    # below always stay visible without needing to scroll past the whole conversation.
+    chat_box = st.container(height=340 if phone else 420)
+    listen_first = st.session_state.get("listen_first", False)
+    revealed = st.session_state[f"{ns}_revealed"]
+    reaction_idx = 0
+    for t_idx, msg in enumerate(st.session_state[f"{ns}_chat_history"]):
+        if msg["role"] == "system":
+            continue
+        if msg["role"] == "assistant":
+            reactions = st.session_state[f"{ns}_reactions"]
+            avatar = reactions[reaction_idx] if reaction_idx < len(reactions) else default_avatar
+            reaction_idx += 1
+            with chat_box, st.chat_message("assistant", avatar=avatar):
+                if listen_first and t_idx not in revealed:
+                    st.caption("🎧 Listen first, then reveal the text.")
+                    try:
+                        st.audio(get_pronunciation_audio(msg["content"], "com.au"), format="audio/mp3")
+                    except Exception:
+                        st.caption("⚠️ Audio unavailable")
+                    if st.button("👁️ Show text", key=f"{ns}_reveal_{t_idx}"):
+                        revealed.append(t_idx)
+                        st.rerun()
+                else:
+                    render_selectable_text(msg["content"], key=f"{ns}_sel_{t_idx}", data=data)
+                    render_message_tools(msg["content"], "com.au", f"{ns}_{t_idx}")
+        else:
+            with chat_box, st.chat_message("user"):
+                render_selectable_text(msg["content"], key=f"{ns}_sel_{t_idx}", data=data)
+
+    if phone:
+        render_latest_coaching(ns, data)
+    else:
+        st.markdown("---")
+    if not render_retry_gate(ns, data, "com.au"):
+        audio_file = st.audio_input("Record your response", key=f"{ns}_audio_input_widget")
+        if audio_file:
+            audio_bytes = audio_file.getvalue()
+            audio_id = hash(audio_bytes)
+            if st.session_state[f"{ns}_processed_audio_id"] != audio_id:
+                st.session_state[f"{ns}_processed_audio_id"] = audio_id
+                with st.spinner("Transcribing..."):
+                    transcription = transcribe_audio(audio_bytes, keep_fillers=True)
+                if transcription["text"]:
+                    process_chat_turn(ns, transcription["text"], topic, default_avatar, data, source, transcription)
+                    st.rerun()
+                else:
+                    st.warning("I couldn't hear anything in that recording — please try again.")
+
+        text_turn = st.chat_input("...or type your response", key=f"{ns}_chat_input")
+        if text_turn:
+            process_chat_turn(ns, text_turn, topic, default_avatar, data, source)
+            st.rerun()
+    if phone:
+        render_earlier_coaching(ns)
 
 # --- REAL-LIFE TASKS ---
 REAL_LIFE_TASKS = {
@@ -1318,10 +1448,12 @@ def render_flashcard_review(data: dict, ns: str):
                     attempt = transcribe_audio(spoken.getvalue(), "card.wav")["text"]
                 if not attempt:
                     st.warning("I couldn't hear anything — please try again.")
-            b1, b2 = st.columns(2)
-            if b1.button("✅ Check", key=f"{card_key}_check", width="stretch") and typed.strip():
+            with st.container(horizontal=True):
+                check_clicked = st.button("✅ Check", key=f"{card_key}_check", width="stretch")
+                giveup_clicked = st.button("🤷 Show answer", key=f"{card_key}_giveup", width="stretch")
+            if check_clicked and typed.strip():
                 attempt = typed
-            if b2.button("🤷 Show answer", key=f"{card_key}_giveup", width="stretch"):
+            if giveup_clicked:
                 st.session_state[f"{ns}_flash_result"] = {"attempt": "", "correct": False, "close": False, "feedback": ""}
                 st.rerun()
             if attempt:
@@ -1363,15 +1495,19 @@ def render_flashcard_review(data: dict, ns: str):
             suggested = 2 if result["correct"] else (1 if result["close"] else 0)
 
     if ready_to_rate:
-        cols = st.columns(4)
-        for col, (label, quality) in zip(cols, [("Again", 0), ("Hard", 1), ("Good", 2), ("Easy", 3)]):
-            if col.button(label, key=f"{card_key}_{label}", type="primary" if quality == suggested else "secondary", width="stretch"):
-                sm2_update(card, quality)
-                record_practice(data, 2)
-                st.session_state[f"{ns}_flash_pos"] += 1
-                st.session_state[f"{ns}_flash_show_answer"] = False
-                st.session_state[f"{ns}_flash_result"] = None
-                st.rerun()
+        # One row of four rating buttons, also on a phone (st.columns would stack them into four rows).
+        rating = None
+        with st.container(horizontal=True, gap="small"):
+            for label, quality in [("Again", 0), ("Hard", 1), ("Good", 2), ("Easy", 3)]:
+                if st.button(label, key=f"{card_key}_{label}", type="primary" if quality == suggested else "secondary", width="stretch"):
+                    rating = quality
+        if rating is not None:
+            sm2_update(card, rating)
+            record_practice(data, 2)
+            st.session_state[f"{ns}_flash_pos"] += 1
+            st.session_state[f"{ns}_flash_show_answer"] = False
+            st.session_state[f"{ns}_flash_result"] = None
+            st.rerun()
 
 def render_vocabulary_manager(data: dict, ns: str):
     st.subheader("📒 My Vocabulary")
@@ -1414,23 +1550,24 @@ def render_vocabulary_manager(data: dict, ns: str):
             if search and search not in f"{item['word']} {item.get('original', '')} {item.get('meaning', '')}".lower():
                 continue
             shown += 1
-            col_v1, col_v2 = st.columns([4, 1])
-            with col_v1:
-                if is_fixit:
-                    st.markdown(f"🛠️ ❌ ~~{item.get('original', '')}~~ → ✅ **{item['word']}**")
-                else:
-                    st.markdown(f"**{item['word']}**")
-                if item.get("meaning"):
-                    st.caption(f"**Meaning:** {item['meaning']}")
-                if item.get("example"):
-                    st.caption(f"💬 *\"{item['example']}\"*")
-                used = f" · used by you {item['used_count']}×" if item.get("used_count") else ""
-                st.caption(f"Next review: {item.get('due', 'today')}{used}")
-            with col_v2:
-                if st.button("🗑️ Delete", key=f"{ns}_del_vocab_{v_idx}"):
+            # Horizontal row so the delete icon stays beside the entry on a phone instead of a full-width button below it.
+            with st.container(horizontal=True, vertical_alignment="top"):
+                with st.container():
+                    if is_fixit:
+                        st.markdown(f"🛠️ ❌ ~~{item.get('original', '')}~~ → ✅ **{item['word']}**")
+                    else:
+                        st.markdown(f"**{item['word']}**")
+                    if item.get("meaning"):
+                        st.caption(f"**Meaning:** {item['meaning']}")
+                    if item.get("example"):
+                        st.caption(f"💬 *\"{item['example']}\"*")
+                    used = f" · used by you {item['used_count']}×" if item.get("used_count") else ""
+                    st.caption(f"Next review: {short_date(item.get('due', ''))}{used}")
+                if st.button("🗑️", key=f"{ns}_del_vocab_{v_idx}", help="Delete", width="content"):
                     data["vocabulary"].pop(v_idx)
                     save_data(data)
                     st.rerun()
+            st.divider()
         if not shown:
             st.caption("Nothing to show.")
 
@@ -1469,6 +1606,13 @@ Return ONLY a JSON object {{"sentence": "..."}}
             return ""
     pool = [_speakable(p) for p in pool if _speakable(p)]
     return random.choice(pool) if pool else ""
+
+def short_date(timestamp: str) -> str:
+    """'2026-10-31 18:39:53' -> '31 Oct' (full timestamps crowd a phone screen)."""
+    try:
+        return datetime.strptime((timestamp or "")[:10], "%Y-%m-%d").strftime("%d %b").lstrip("0")
+    except ValueError:
+        return timestamp or ""
 
 def accuracy_by_week(turns: list) -> tuple:
     """Grammar-accuracy % for the last 7 days and the 7 days before that (None where there's no data)."""
@@ -1525,43 +1669,54 @@ GRAMMAR_TOPICS = {
     }
 }
 
+# --- SECTION NAVIGATION ---
+# Chips instead of st.tabs: every section is visible at once on a narrow screen (no hidden, side-scrolling
+# tabs), and only the selected section is rendered, so each tap reruns far less (fewer audio players and
+# vocab-selector iframes), which keeps the app responsive on a phone.
+TUTOR_SECTIONS = ["🗣️ Chat", "🎯 Tasks", "📚 Cards", "🧠 Mistakes", "🎧 Listen", "🎤 Speak", "✍️ Write", "📖 Grammar", "📈 Progress"]
+LEADERSHIP_SECTIONS = ["🎭 Simulation", "📜 Logs", "📚 Cards", "💡 Library"]
+
+def render_section_nav(key: str, options: list) -> str:
+    last_key = f"{key}_last"
+
+    def keep_a_section_selected():
+        # Tapping the active chip would deselect it; keep that section open instead.
+        if st.session_state.get(key) is None:
+            st.session_state[key] = st.session_state.get(last_key, options[0])
+        st.session_state[last_key] = st.session_state[key]
+
+    choice = st.pills("Section", options, default=options[0], key=key, on_change=keep_a_section_selected, label_visibility="collapsed")
+    return choice or st.session_state.get(last_key, options[0])
+
 def render_english_tutor():
     """General English tutor mode: conversation practice, real-life tasks, writing correction, grammar lessons,
     mistakes notebook, SRS flashcards, listening, pronunciation drills and progress tracking."""
+    restore_resume_point(data, "tutor")
+    restore_resume_point(data, "task")
     init_chat_state("tutor")
     init_chat_state("task")
     for state_key, default_val in (("tutor_topic", ""), ("pron_processed_audio_id", None), ("task_current", None), ("task_review", None)):
         if state_key not in st.session_state:
             st.session_state[state_key] = default_val
 
-    st.sidebar.markdown("---")
-    st.sidebar.caption("🇦🇺 Tutor mode is tuned for natural, native Australian English.")
-    st.sidebar.toggle(
-        "🎧 Listen-first mode", key="listen_first",
-        help="Hide the partner's text until you've listened to it, to train real listening comprehension."
-    )
-
-    st.title("🇦🇺 General English Tutor")
-    t_conv, t_task, t_write, t_grammar, t_mistakes, t_flash, t_listen, t_pron, t_progress = st.tabs([
-        "🗣️ Conversation", "🎯 Real-life Tasks", "✍️ Writing", "📖 Grammar", "🧠 My Mistakes",
-        "📚 Flashcards", "🎧 Listening", "🎤 Pronunciation", "📈 Progress"
-    ])
+    st.title("🇦🇺 English Tutor")
+    section = render_section_nav("tutor_nav", TUTOR_SECTIONS)
     level = learner_level()
 
-    # ---------------- TAB: CONVERSATION PRACTICE ----------------
-    with t_conv:
-        st.subheader("🗣️ Free Conversation Practice")
-        st.caption("Chat by voice or text. Every turn is audited for grammar, natural AU phrasing, and fluency.")
-
+    # ---------------- SECTION: CONVERSATION PRACTICE ----------------
+    if section == "🗣️ Chat":
         topics = [
             "Everyday Life & Hobbies", "Travel & Culture", "Work & Career (casual)",
             "Food & Health", "News & Opinions", "Free Topic (type your own)"
         ]
-        col_t1, col_t2 = st.columns([2, 3])
-        with col_t1:
+        # Setup folds away once a conversation is running so the chat sits near the top of a phone screen.
+        setup = st.expander("🎬 New conversation", expanded=not st.session_state["tutor_active"])
+        with setup:
+            st.caption("Chat by voice or text. Every turn is audited for grammar, natural AU phrasing, and fluency.")
             topic_choice = st.selectbox("Conversation Topic", topics)
-        with col_t2:
-            custom_topic = st.text_input("Custom topic (used if 'Free Topic' selected)", disabled=topic_choice != "Free Topic (type your own)")
+            custom_topic = ""
+            if topic_choice == "Free Topic (type your own)":
+                custom_topic = st.text_input("Your topic")
 
         active_topic = custom_topic.strip() if topic_choice == "Free Topic (type your own)" and custom_topic.strip() else topic_choice
 
@@ -1575,75 +1730,61 @@ Rules:
 - Stay encouraging and conversational, not formal. Don't correct the learner's grammar yourself; a separate coach does that.
 - Begin every reply with exactly one emoji in square brackets showing your current reaction (e.g. [😄], [🙂], [🤔], [😲]), then a space, then your message.
 """
-        if st.button("🎬 Start New Conversation", type="primary", width="stretch"):
-            with st.spinner("Starting conversation..."):
-                start_chat_session("tutor", TUTOR_SYSTEM_PROMPT, "🇦🇺", data, "Start the conversation with a friendly opening line or question.")
-            st.session_state["tutor_topic"] = active_topic
-            st.rerun()
+        with setup:
+            if st.button("🎬 Start New Conversation", type="primary", width="stretch"):
+                with st.spinner("Starting conversation..."):
+                    start_chat_session("tutor", TUTOR_SYSTEM_PROMPT, "🇦🇺", data, "Start the conversation with a friendly opening line or question.")
+                st.session_state["tutor_topic"] = active_topic
+                save_resume_point(data, "tutor")
+                st.rerun()
 
         if st.session_state["tutor_active"]:
+            st.caption(f"💬 Topic: **{st.session_state['tutor_topic'] or active_topic}**")
             render_chat_session("tutor", st.session_state["tutor_topic"] or active_topic, "🇦🇺", data, source="tutor")
         else:
-            st.info("Pick a topic and click **🎬 Start New Conversation** to begin.")
+            st.info("Pick a topic and tap **🎬 Start New Conversation** to begin.")
 
-        # ---- PERSISTED PROGRESS TRACKING ACROSS ALL SESSIONS ----
-        # Tracks both what you said and the partner's reply so the saved audit trail is a reviewable
-        # log of the full exchange, across every past conversation session.
-        turn_log = data.get("tutor_turn_history", [])
-        st.markdown("---")
-        with st.expander(f"📈 Coaching Progress History ({len(turn_log)} turn(s) tracked)"):
-            if not turn_log:
-                st.caption("No turns have been audited yet. Start a conversation above to begin tracking your progress.")
+    # ---------------- SECTION: REAL-LIFE TASKS ----------------
+    if section == "🎯 Tasks":
+        task_running = bool(st.session_state["task_active"] and st.session_state["task_current"])
+        with st.expander("🎯 Choose a real-life task", expanded=not task_running):
+            st.caption("Practise the conversations you actually have in Australia. The tutor plays the other person — you complete the goals.")
+            task_choice = st.selectbox("Choose a task", list(REAL_LIFE_TASKS) + [CUSTOM_TASK], key="task_choice")
+            if task_choice == CUSTOM_TASK:
+                situation = st.text_area("Situation (what's happening, from your side)", key="custom_task_situation")
+                role = st.text_input("Who should the tutor play?", key="custom_task_role")
+                goals_text = st.text_area("Your goals (one per line)", key="custom_task_goals")
+                task = {"situation": situation.strip(), "role": role.strip(), "goals": [g.strip() for g in goals_text.splitlines() if g.strip()]}
+                task_name = f"Custom: {situation.strip()[:50]}"
             else:
-                graded = [t for t in turn_log if t.get("grammar_accurate") is not None]
-                accurate = sum(1 for t in graded if t.get("grammar_accurate") is True)
-                if graded:
-                    st.caption(f"✅ Grammar accurate on **{accurate}/{len(graded)}** tracked turns ({round(100 * accurate / len(graded))}%).")
-                for h_idx, h in enumerate(turn_log[:30]):
-                    st.markdown(f"**{h.get('timestamp', '')}** · _{h.get('topic', '')}_")
-                    st.caption(f"**You said:** \"{h.get('transcript', '')}\"")
-                    st.caption("**Reply:**")
-                    render_selectable_text(h.get("tutor_reply", ""), key=f"tutor_hist_reply_{h_idx}", data=data)
-                    st.caption(h.get("grammar_feedback", ""))
-                    st.divider()
+                task, task_name = REAL_LIFE_TASKS[task_choice], task_choice
 
-    # ---------------- TAB: REAL-LIFE TASKS ----------------
-    with t_task:
-        st.subheader("🎯 Real-life Tasks")
-        st.caption("Practise the conversations you actually have in Australia. The tutor plays the other person — you complete the goals.")
-        task_choice = st.selectbox("Choose a task", list(REAL_LIFE_TASKS) + [CUSTOM_TASK], key="task_choice")
-        if task_choice == CUSTOM_TASK:
-            situation = st.text_area("Situation (what's happening, from your side)", key="custom_task_situation")
-            role = st.text_input("Who should the tutor play?", key="custom_task_role")
-            goals_text = st.text_area("Your goals (one per line)", key="custom_task_goals")
-            task = {"situation": situation.strip(), "role": role.strip(), "goals": [g.strip() for g in goals_text.splitlines() if g.strip()]}
-            task_name = f"Custom: {situation.strip()[:50]}"
-        else:
-            task, task_name = REAL_LIFE_TASKS[task_choice], task_choice
+            with st.container(border=True):
+                st.markdown(f"**📍 Situation:** {task['situation'] or '_describe it above_'}")
+                st.markdown(f"**🎭 The tutor plays:** {task['role'] or '_describe it above_'}")
+                st.markdown("**✅ Your goals:**")
+                for goal in task["goals"]:
+                    st.markdown(f"- {goal}")
 
-        with st.container(border=True):
-            st.markdown(f"**📍 Situation:** {task['situation'] or '_describe it above_'}")
-            st.markdown(f"**🎭 The tutor plays:** {task['role'] or '_describe it above_'}")
-            st.markdown("**✅ Your goals:**")
-            for goal in task["goals"]:
-                st.markdown(f"- {goal}")
+            task_ready = bool(task["situation"] and task["role"] and task["goals"])
+            if st.button("🎬 Start Task", type="primary", width="stretch", disabled=not task_ready, key="task_start"):
+                with st.spinner("Setting the scene..."):
+                    start_chat_session(
+                        "task", build_task_prompt(task), "🎭", data,
+                        "Start the scenario with your natural opening line for this situation (for example, answering the phone or greeting the customer)."
+                    )
+                st.session_state["task_current"] = {"name": task_name, **task}
+                st.session_state["task_review"] = None
+                save_resume_point(data, "task")
+                st.rerun()
 
-        task_ready = bool(task["situation"] and task["role"] and task["goals"])
-        if st.button("🎬 Start Task", type="primary", width="stretch", disabled=not task_ready, key="task_start"):
-            with st.spinner("Setting the scene..."):
-                start_chat_session(
-                    "task", build_task_prompt(task), "🎭", data,
-                    "Start the scenario with your natural opening line for this situation (for example, answering the phone or greeting the customer)."
-                )
-            st.session_state["task_current"] = {"name": task_name, **task}
-            st.session_state["task_review"] = None
-            st.rerun()
-
-        if st.session_state["task_active"] and st.session_state["task_current"]:
+        if task_running:
             current = st.session_state["task_current"]
-            c_info, c_finish = st.columns([3, 1])
-            c_info.info(f"In progress: **{current['name']}**")
-            if c_finish.button("🏁 Finish & Review", width="stretch", key="task_finish"):
+            st.caption(f"In progress: **{current['name']}**")
+            with st.expander("✅ Your goals"):
+                for goal in current["goals"]:
+                    st.markdown(f"- {goal}")
+            if st.button("🏁 Finish & Review", width="stretch", key="task_finish"):
                 with st.spinner("Reviewing how you did..."):
                     try:
                         review = review_task(current, st.session_state["task_chat_history"])
@@ -1661,13 +1802,14 @@ Rules:
                         "turns": len(st.session_state["task_evaluations"]),
                     })
                     record_practice(data, 20 if review.get("completed") else 10)
+                save_resume_point(data, "task")
                 st.rerun()
             render_chat_session("task", current["name"], "🎭", data, source="task")
         elif st.session_state.get("task_review"):
             render_task_review(st.session_state["task_review"], data)
 
-    # ---------------- TAB: WRITING CORRECTION ----------------
-    with t_write:
+    # ---------------- SECTION: WRITING CORRECTION ----------------
+    if section == "✍️ Write":
         st.subheader("✍️ Writing Correction & Coaching")
         st.caption("Paste an email, message, or essay to get a corrected version with native Australian-English suggestions.")
         draft = st.text_area("Your text", height=200, key="writing_draft_input")
@@ -1723,8 +1865,8 @@ Respond with these sections:
                     st.write(entry["draft"])
                     render_selectable_text(entry["result"], key=f"writing_hist_sel_{w_idx}", data=data)
 
-    # ---------------- TAB: GRAMMAR LESSONS ----------------
-    with t_grammar:
+    # ---------------- SECTION: GRAMMAR LESSONS ----------------
+    if section == "📖 Grammar":
         st.subheader("📖 Grammar Lessons & Quizzes")
         topic_names = list(GRAMMAR_TOPICS.keys()) + ["Custom Topic (ask the tutor)"]
         chosen_topic = st.selectbox("Choose a grammar topic", topic_names)
@@ -1780,13 +1922,12 @@ Return ONLY a JSON object with keys:
 
         if data["grammar_scores"]:
             with st.expander(f"🗂️ Quiz & drill history ({len(data['grammar_scores'])})"):
-                st.dataframe(
-                    [{"Date": s.get("id", ""), "Topic": s.get("topic", ""), "Score": s.get("score", "")} for s in data["grammar_scores"][:30]],
-                    hide_index=True, width="stretch"
-                )
+                st.markdown("  \n".join(
+                    f"**{s.get('score', '')}** {s.get('topic', '')} · {short_date(s.get('id', ''))}" for s in data["grammar_scores"][:30]
+                ))
 
-    # ---------------- TAB: MISTAKES NOTEBOOK ----------------
-    with t_mistakes:
+    # ---------------- SECTION: MISTAKES NOTEBOOK ----------------
+    if section == "🧠 Mistakes":
         st.subheader("🧠 My Mistakes Notebook")
         st.caption("Every mistake found in your conversations, tasks and leadership simulations, grouped by type so you can drill the ones that keep coming back.")
         error_log = data["error_log"]
@@ -1807,18 +1948,16 @@ Return ONLY a JSON object with keys:
 
             week_top = top_error_types(data, days=7)
             all_time = top_error_types(data)
-            st.markdown("#### 🔥 Top recurring mistakes this week")
-            if week_top:
-                for col, (etype, count) in zip(st.columns(3), week_top[:3]):
-                    col.metric(etype, f"{count}×")
-            else:
+            st.markdown("#### 🔥 Top recurring mistakes")
+            if all_time:
+                # A short list rather than metric columns/tables: mistake-type names are long for a phone-width metric.
+                week_map = dict(week_top)
+                st.markdown("  \n".join(
+                    f"{'🔥' if week_map.get(t) else '▫️'} **{t}** — {week_map.get(t, 0)} this week · {c} total" for t, c in all_time
+                ))
+            if not week_top:
                 st.caption("No mistakes logged in the last 7 days 🎉")
             if all_time:
-                week_map = dict(week_top)
-                st.dataframe(
-                    [{"Mistake type": t, "Last 7 days": week_map.get(t, 0), "All time": c} for t, c in all_time],
-                    hide_index=True, width="stretch"
-                )
 
                 st.markdown("#### 🏋️ Personal drill")
                 st.caption("Questions are built from your own sentences, then similar new ones. Type each sentence correctly.")
@@ -1872,22 +2011,23 @@ Return ONLY a JSON object with keys:
                 entries = [(i, e) for i, e in enumerate(error_log) if e.get("error_type") == etype]
                 with st.expander(f"{etype} ({len(entries)})"):
                     for log_idx, e in entries[:30]:
-                        c_e1, c_e2 = st.columns([5, 1])
-                        c_e1.markdown(f"❌ *{e.get('original', '')}* → ✅ **{e.get('corrected', '')}**")
-                        c_e1.caption(f"{e.get('timestamp', '')} · {e.get('source', '')} · {e.get('explanation', '')}")
-                        if c_e2.button("🗑️", key=f"err_del_{log_idx}", help="Remove from notebook"):
-                            error_log.pop(log_idx)
-                            save_data(data)
-                            st.rerun()
+                        with st.container(horizontal=True, vertical_alignment="top"):
+                            with st.container():
+                                st.markdown(f"❌ *{e.get('original', '')}* → ✅ **{e.get('corrected', '')}**")
+                                st.caption(f"{short_date(e.get('timestamp', ''))} · {e.get('source', '')} · {e.get('explanation', '')}")
+                            if st.button("🗑️", key=f"err_del_{log_idx}", help="Remove from notebook", width="content"):
+                                error_log.pop(log_idx)
+                                save_data(data)
+                                st.rerun()
 
-    # ---------------- TAB: VOCABULARY FLASHCARDS (SRS) ----------------
-    with t_flash:
+    # ---------------- SECTION: VOCABULARY FLASHCARDS (SRS) ----------------
+    if section == "📚 Cards":
         render_flashcard_review(data, "tutor")
         st.markdown("---")
         render_vocabulary_manager(data, "tutor")
 
-    # ---------------- TAB: LISTENING PRACTICE ----------------
-    with t_listen:
+    # ---------------- SECTION: LISTENING PRACTICE ----------------
+    if section == "🎧 Listen":
         st.subheader("🎧 Listening Practice")
         st.caption("Dictation trains you to catch every word at natural speed; shadowing trains your mouth to copy native rhythm.")
         listen_mode = st.radio("Exercise", ["✍️ Dictation — type what you hear", "🗣️ Shadowing — repeat what you hear"], horizontal=True, key="listen_mode")
@@ -1949,8 +2089,8 @@ Return ONLY a JSON object with keys:
                 st.markdown(item["sentence"])
                 render_message_tools(item["sentence"], "com.au", f"listen_reveal_{item['id']}", explain=True)
 
-    # ---------------- TAB: PRONUNCIATION DRILL ----------------
-    with t_pron:
+    # ---------------- SECTION: PRONUNCIATION DRILL ----------------
+    if section == "🎤 Speak":
         st.subheader("🎤 Pronunciation Drill (Australian Accent)")
         st.caption("Listen to the native AU pronunciation, record yourself, and get feedback on the words the speech recogniser struggled with.")
 
@@ -1998,76 +2138,96 @@ In 3-5 short lines:
 
             pron = st.session_state.get("pron_result")
             if pron and pron["target"] == target_phrase:
-                p1, p2 = st.columns(2)
-                p1.metric("Word match", f"{round(pron['score'] * 100)}%")
-                p2.metric("Clarity", f"{pron['clarity']}%" if pron["clarity"] is not None else "—",
-                          help="How confident the speech recogniser was. Treat it as a rough signal, not a precise score.")
+                with st.container(horizontal=True):
+                    st.metric("Word match", f"{round(pron['score'] * 100)}%", border=True)
+                    st.metric("Clarity", f"{pron['clarity']}%" if pron["clarity"] is not None else "—", border=True,
+                              help="How confident the speech recogniser was. Treat it as a rough signal, not a precise score.")
                 st.markdown(f"**Whisper heard:** \"{pron['heard']}\"")
                 st.markdown(pron["markdown"])
                 st.caption(DIFF_LEGEND)
                 st.markdown(pron["tips"])
 
-    # ---------------- TAB: PROGRESS ----------------
-    with t_progress:
-        st.subheader("📈 My Progress")
+    # ---------------- SECTION: PROGRESS ----------------
+    if section == "📈 Progress":
         profile = data["profile"]
         word_items = [v for v in data["vocabulary"] if v.get("card_type", "vocab") != "fixit"]
         active_vocab = sum(1 for v in word_items if v.get("used_count", 0) > 0)
         last_30 = (date.today() - timedelta(days=29)).isoformat()
-        p1, p2, p3, p4 = st.columns(4)
-        p1.metric("🔥 Day streak", daily_streak(profile["practice_days"]))
-        p2.metric("✨ Total XP", profile.get("total_xp", 0))
-        p3.metric("📅 Days practised (30d)", sum(1 for d in profile["practice_days"] if d >= last_30))
-        p4.metric("🎯 Active vocabulary", f"{active_vocab}/{len(word_items)}",
-                  help="Saved words/phrases you've actually used yourself in a conversation — the real test of learning a word.")
+        # Horizontal containers (not st.columns) so metrics sit side by side on a phone instead of one per row.
+        with st.container(horizontal=True):
+            st.metric("🔥 Streak", f"{daily_streak(profile['practice_days'])}d", border=True)
+            st.metric("✨ XP", profile.get("total_xp", 0), border=True)
+        with st.container(horizontal=True):
+            st.metric("📅 Days (30d)", sum(1 for d in profile["practice_days"] if d >= last_30), border=True)
+            st.metric("🎯 Words used", f"{active_vocab}/{len(word_items)}", border=True,
+                      help="Saved words/phrases you've actually used yourself in a conversation — the real test of learning a word.")
 
         st.markdown("#### ✍️ Grammar accuracy")
         this_week, last_week = accuracy_by_week(data["tutor_turn_history"])
-        a1, a2 = st.columns(2)
-        a1.metric(
-            "Last 7 days", f"{this_week}%" if this_week is not None else "—",
-            delta=f"{this_week - last_week:+d} pts" if this_week is not None and last_week is not None else None
-        )
-        a2.metric("Previous 7 days", f"{last_week}%" if last_week is not None else "—")
+        with st.container(horizontal=True):
+            st.metric(
+                "Last 7 days", f"{this_week}%" if this_week is not None else "—", border=True,
+                delta=f"{this_week - last_week:+d} pts" if this_week is not None and last_week is not None else None
+            )
+            st.metric("Previous 7 days", f"{last_week}%" if last_week is not None else "—", border=True)
 
-        st.markdown("#### 🗣️ Speaking fluency (last 20 voice turns)")
+        st.markdown("#### 🗣️ Speaking fluency")
         recent_fluency = [t["fluency"] for t in data["tutor_turn_history"] if t.get("fluency")][:20]
         if recent_fluency:
             n = len(recent_fluency)
-            f1, f2, f3 = st.columns(3)
-            f1.metric("Avg. speed", f"{round(sum(f['wpm'] for f in recent_fluency) / n)} wpm")
-            f2.metric("Fillers per turn", f"{sum(f['fillers'] for f in recent_fluency) / n:.1f}")
-            f3.metric("Long pauses per turn", f"{sum(f['long_pauses'] for f in recent_fluency) / n:.1f}")
-            st.caption("Relaxed native conversation is roughly 120–160 words per minute. Fewer fillers and long pauses = smoother speech.")
+            with st.container(horizontal=True):
+                st.metric("Speed", f"{round(sum(f['wpm'] for f in recent_fluency) / n)} wpm", border=True)
+                st.metric("Fillers", f"{sum(f['fillers'] for f in recent_fluency) / n:.1f}", border=True, help="Average per voice turn")
+                st.metric("Pauses", f"{sum(f['long_pauses'] for f in recent_fluency) / n:.1f}", border=True, help="Long pauses per voice turn")
+            st.caption(f"Last {n} voice turns. Relaxed native conversation is roughly 120–160 words per minute; fewer fillers and long pauses = smoother speech.")
         else:
-            st.caption("Record some voice turns in Conversation or Real-life Tasks to see fluency stats.")
+            st.caption("Record some voice turns in Chat or Tasks to see fluency stats.")
 
         st.markdown("#### 🧠 Top mistakes this week")
         week_top = top_error_types(data, days=7)
         if week_top:
             st.markdown("  \n".join(f"**{t}** — {c}×" for t, c in week_top[:3]))
-            st.caption("Drill them in the 🧠 My Mistakes tab.")
+            st.caption("Drill them in 🧠 Mistakes.")
         else:
             st.caption("No mistakes logged in the last 7 days.")
 
+        # Short one-line lists rather than wide tables, which need sideways scrolling on a phone.
         if data["task_history"]:
             st.markdown("#### 🎯 Real-life tasks")
-            st.dataframe(
-                [{"Date": t["id"], "Task": t["task"], "Completed": "✅" if t["completed"] else "⏳", "Goals": t["goals"]} for t in data["task_history"][:10]],
-                hide_index=True, width="stretch"
-            )
+            st.markdown("  \n".join(
+                f"{'✅' if t['completed'] else '⏳'} {t['task']} · goals {t['goals']} · {short_date(t['id'])}" for t in data["task_history"][:10]
+            ))
         if data["listening_scores"]:
             st.markdown("#### 🎧 Listening & pronunciation")
-            st.dataframe(
-                [{"Date": s["id"], "Exercise": s["mode"], "Score": f"{s['score']}%", "Sentence": s["sentence"]} for s in data["listening_scores"][:10]],
-                hide_index=True, width="stretch"
-            )
+            st.markdown("  \n".join(
+                f"**{s['score']}%** {s['mode']} · {short_date(s['id'])} — _{s['sentence']}_" for s in data["listening_scores"][:10]
+            ))
         if data["grammar_scores"]:
             st.markdown("#### 📖 Quizzes & drills")
-            st.dataframe(
-                [{"Date": s.get("id", ""), "Topic": s.get("topic", ""), "Score": s.get("score", "")} for s in data["grammar_scores"][:10]],
-                hide_index=True, width="stretch"
-            )
+            st.markdown("  \n".join(
+                f"**{s.get('score', '')}** {s.get('topic', '')} · {short_date(s.get('id', ''))}" for s in data["grammar_scores"][:10]
+            ))
+
+        # ---- PERSISTED PROGRESS TRACKING ACROSS ALL SESSIONS ----
+        # Tracks both what you said and the partner's reply so the saved audit trail is a reviewable
+        # log of the full exchange, across every past conversation session.
+        turn_log = data.get("tutor_turn_history", [])
+        st.markdown("---")
+        with st.expander(f"📜 Coaching history ({len(turn_log)} turn(s) tracked)"):
+            if not turn_log:
+                st.caption("No turns have been audited yet. Start a conversation to begin tracking your progress.")
+            else:
+                graded = [t for t in turn_log if t.get("grammar_accurate") is not None]
+                accurate = sum(1 for t in graded if t.get("grammar_accurate") is True)
+                if graded:
+                    st.caption(f"✅ Grammar accurate on **{accurate}/{len(graded)}** tracked turns ({round(100 * accurate / len(graded))}%).")
+                for h_idx, h in enumerate(turn_log[:30]):
+                    st.markdown(f"**{short_date(h.get('timestamp', ''))}** · _{h.get('topic', '')}_")
+                    st.caption(f"**You said:** \"{h.get('transcript', '')}\"")
+                    st.caption("**Reply:**")
+                    render_selectable_text(h.get("tutor_reply", ""), key=f"tutor_hist_reply_{h_idx}", data=data)
+                    st.caption(h.get("grammar_feedback", ""))
+                    st.divider()
 
 # --- SIDEBAR CONFIGURATION ---
 def configured_api_key() -> str:
@@ -2077,6 +2237,35 @@ def configured_api_key() -> str:
     except Exception:  # no secrets file
         key = ""
     return key or os.environ.get("GROQ_API_KEY", "")
+
+def render_mic_https_hint():
+    """Browsers only allow the microphone on https:// or localhost, so opening the app from a phone at
+    http://<PC-IP>:8501 silently breaks every recorder. Explain the fix instead of leaving the user guessing."""
+    url = st.context.url or ""
+    parsed = urlparse(url)
+    if parsed.scheme != "http" or (parsed.hostname or "") in ("localhost", "127.0.0.1", "::1") or st.session_state.get("mic_hint_dismissed"):
+        return
+    origin = f"http://{parsed.netloc}"
+    with st.container(border=True):
+        st.markdown("🎤 **The microphone is blocked on this connection.** Phone browsers only allow recording on **https://** "
+                    "(or on the computer itself via localhost). Typing still works.")
+        with st.expander("How to turn the microphone on"):
+            st.markdown(f"""
+**Quickest — Chrome on your phone (one-time setup):**
+1. Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
+2. Type `{origin}` in the box and set the flag to **Enabled**
+3. Tap **Relaunch**
+
+**Or run the app over HTTPS** (works in any browser) — on the computer, in the app folder:
+```
+openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 365 -subj "/CN=english-app"
+streamlit run app.py --server.sslCertFile cert.pem --server.sslKeyFile key.pem
+```
+then open `https://{parsed.netloc}` on the phone and accept the certificate warning once.
+""")
+        if st.button("Got it", key="mic_hint_ok"):
+            st.session_state["mic_hint_dismissed"] = True
+            st.rerun()
 
 # Large models first: grammar judgement from small (8B) models is unreliable.
 PREFERRED_MODELS = [
@@ -2098,54 +2287,75 @@ def list_text_models(key: str) -> list:
     text_models.sort(key=lambda m: (PREFERRED_MODELS.index(m) if m in PREFERRED_MODELS else len(PREFERRED_MODELS), m))
     return text_models or FALLBACK_MODELS
 
-st.sidebar.title("⚙️ Simulation Engine")
+PRACTICE_MODES = ["🎭 Leadership & Communication Coach", "🇦🇺 General English Tutor"]
+_profile = data["profile"]
+
+# Sidebar sections are laid out up front (practice mode first, settings last) and filled in below in the
+# order the code needs them. On a phone the sidebar is a slide-over, so the most-used controls go at the top.
+sb_mode, sb_learning, sb_settings = st.sidebar.container(), st.sidebar.container(), st.sidebar.container()
+
+with sb_mode:
+    st.markdown("### 🎓 Practice")
+    APP_MODE = st.radio(
+        "Practice Mode", PRACTICE_MODES, label_visibility="collapsed",
+        index=PRACTICE_MODES.index(_profile["app_mode"]) if _profile.get("app_mode") in PRACTICE_MODES else 0
+    )
+
+# --- LEARNER PROFILE ---
+with sb_learning:
+    st.markdown("---")
+    st.markdown("**🧑‍🎓 My Learning**")
+    st.caption(f"🔥 {daily_streak(_profile['practice_days'])}-day streak · ✨ {_profile.get('total_xp', 0)} XP")
+    _level_options = list(LEVEL_GUIDES)
+    _chosen_level = st.selectbox(
+        "My English level", _level_options, index=_level_options.index(learner_level()),
+        help="Controls how simple the partner's language is and how feedback is explained."
+    )
+    _retry_enabled = st.toggle("🔁 Say it again after a mistake", value=_profile.get("retry_enabled", True))
+    _auto_fixit = st.toggle("🛠️ Save my mistakes as Fix-it cards", value=_profile.get("auto_fixit", True))
+    if APP_MODE == "🇦🇺 General English Tutor":
+        st.toggle(
+            "🎧 Listen-first mode", key="listen_first",
+            help="Hide the partner's text until you've listened to it, to train real listening comprehension."
+        )
+_new_profile = {"level": _chosen_level, "retry_enabled": _retry_enabled, "auto_fixit": _auto_fixit, "app_mode": APP_MODE}
+if any(_profile.get(k) != v for k, v in _new_profile.items()):
+    _profile.update(_new_profile)
+    save_data(data)
+
 saved_key = configured_api_key()
-typed_key = st.sidebar.text_input(
-    "Groq API Key", type="password",
-    help="Tip: put GROQ_API_KEY in .streamlit/secrets.toml (or set it as an environment variable) to skip this step."
-)
-api_key = typed_key or saved_key
-if saved_key and not typed_key:
-    st.sidebar.caption("🔐 Using the saved key from secrets/environment.")
+with sb_settings:
+    st.markdown("---")
+    with st.expander("⚙️ Settings", expanded=not saved_key):
+        typed_key = st.text_input(
+            "Groq API Key", type="password",
+            help="Tip: put GROQ_API_KEY in .streamlit/secrets.toml (or set it as an environment variable) to skip this step."
+        )
+        api_key = typed_key or saved_key
+        if saved_key and not typed_key:
+            st.caption("🔐 Using the saved key from secrets/environment.")
+        if api_key:
+            text_models = list_text_models(api_key)
+            MODEL_CHOICE = st.selectbox("Conversation model", text_models, help="Plays the conversation partner / role-play counterpart.")
+            FEEDBACK_MODEL = st.selectbox(
+                "Feedback model", text_models,
+                help="Checks grammar, grades answers and writes lessons. A large model gives much more reliable corrections."
+            )
+        st.toggle(
+            "📱 Phone layout", value=detected_phone(), key="phone_layout",
+            help="Single-column layout for small screens: coaching appears right under the chat. Switched on automatically on phones."
+        )
 
 if not api_key:
-    st.info("Please enter your Groq API Key in the sidebar to launch the app.", icon="🔑")
+    st.info(
+        "Add your Groq API key to start: tap **»** at the top-left to open the menu, then **⚙️ Settings**. "
+        "Tip: set `GROQ_API_KEY` in `.streamlit/secrets.toml` to skip this step.", icon="🔑"
+    )
     st.stop()
 
 client = Groq(api_key=api_key)
 
-text_models = list_text_models(api_key)
-MODEL_CHOICE = st.sidebar.selectbox("Conversation model", text_models, help="Plays the conversation partner / role-play counterpart.")
-FEEDBACK_MODEL = st.sidebar.selectbox(
-    "Feedback model", text_models,
-    help="Checks grammar, grades answers and writes lessons. A large model gives much more reliable corrections."
-)
-
-st.sidebar.caption("📱 On mobile, tap **☰** (top-left) anytime to reopen these settings.")
-
-# --- LEARNER PROFILE ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("🧑‍🎓 My Learning")
-_profile = data["profile"]
-s1, s2 = st.sidebar.columns(2)
-s1.metric("🔥 Day streak", daily_streak(_profile["practice_days"]))
-s2.metric("✨ Total XP", _profile.get("total_xp", 0))
-_level_options = list(LEVEL_GUIDES)
-_chosen_level = st.sidebar.selectbox(
-    "My English level", _level_options, index=_level_options.index(learner_level()),
-    help="Controls how simple the partner's language is and how feedback is explained."
-)
-_retry_enabled = st.sidebar.toggle("🔁 Say it again after a mistake", value=_profile.get("retry_enabled", True))
-_auto_fixit = st.sidebar.toggle("🛠️ Save my mistakes as Fix-it cards", value=_profile.get("auto_fixit", True))
-if (_chosen_level, _retry_enabled, _auto_fixit) != (_profile.get("level"), _profile.get("retry_enabled"), _profile.get("auto_fixit")):
-    _profile.update({"level": _chosen_level, "retry_enabled": _retry_enabled, "auto_fixit": _auto_fixit})
-    save_data(data)
-
-st.sidebar.markdown("---")
-APP_MODE = st.sidebar.radio(
-    "Practice Mode",
-    ["🎭 Leadership & Communication Coach", "🇦🇺 General English Tutor"]
-)
+render_mic_https_hint()
 
 if APP_MODE == "🇦🇺 General English Tutor":
     render_english_tutor()
@@ -2201,10 +2411,14 @@ SCENARIO_DOMAINS = {
     }
 }
 
-selected_domain = st.sidebar.selectbox("Communication Domain", list(SCENARIO_DOMAINS.keys()))
+# Scenario choices live in plain session keys (set from the setup panel in the Simulation section) rather than
+# sidebar widgets, so they survive switching sections and are part of the resume snapshot.
+restore_resume_point(data, "ld")
+_domains = list(SCENARIO_DOMAINS)
+selected_domain = st.session_state.get("ld_domain") if st.session_state.get("ld_domain") in SCENARIO_DOMAINS else _domains[0]
 domain_info = SCENARIO_DOMAINS[selected_domain]
-selected_framework = st.sidebar.selectbox("Scenario Focus", domain_info["frameworks"])
-selected_persona = st.sidebar.selectbox("Counterpart Persona", domain_info["personas"])
+selected_framework = st.session_state.get("ld_framework") if st.session_state.get("ld_framework") in domain_info["frameworks"] else domain_info["frameworks"][0]
+selected_persona = st.session_state.get("ld_persona") if st.session_state.get("ld_persona") in domain_info["personas"] else domain_info["personas"][0]
 
 # Session State Initializations
 if "chat_history" not in st.session_state:
@@ -2303,9 +2517,7 @@ def render_leadership_feedback(ev: dict, data: dict):
     if ev.get("fluency"):
         st.caption(format_fluency(ev["fluency"]))
 
-st.sidebar.markdown("---")
-# Control Buttons
-if st.sidebar.button("🎬 Start New Simulation", type="primary", width="stretch"):
+def start_simulation():
     st.session_state["chat_history"] = [{"role": "system", "content": SYSTEM_ROLEPLAY_PROMPT}]
     st.session_state["evaluations"] = []
     st.session_state["retro_summary"] = None
@@ -2372,79 +2584,243 @@ if st.sidebar.button("🎬 Start New Simulation", type="primary", width="stretch
                 {"phrase": "touch base", "meaning": "Briefly connect for an update.", "example": "Let's touch base tomorrow morning."}
             ]
 
+    save_resume_point(data, "ld")
     st.rerun()
 
-if st.session_state.get("roleplay_active"):
-    if st.sidebar.button("🛑 End & Generate Retrospective", type="secondary", width="stretch"):
-        st.session_state["roleplay_active"] = False
-        st.session_state["ld_retry"] = None
+def end_simulation():
+    st.session_state["roleplay_active"] = False
+    st.session_state["ld_retry"] = None
 
-        full_transcript = []
-        for msg in st.session_state["chat_history"]:
-            if msg["role"] != "system":
-                speaker = "Counterpart" if msg["role"] == "assistant" else "User"
-                full_transcript.append(f"{speaker}: {msg['content']}")
+    full_transcript = []
+    for msg in st.session_state["chat_history"]:
+        if msg["role"] != "system":
+            speaker = "Counterpart" if msg["role"] == "assistant" else "User"
+            full_transcript.append(f"{speaker}: {msg['content']}")
 
-        conversation_text = "\n".join(full_transcript)
-        fw_title = st.session_state.get("target_framework", {}).get("title", selected_framework)
+    conversation_text = "\n".join(full_transcript)
+    fw_title = st.session_state.get("target_framework", {}).get("title", selected_framework)
 
-        RETRO_PROMPT = f"""
-        You are an expert executive leadership and native English communication coach. Review this simulation transcript:
-        Domain: {selected_domain}
-        Focus: {selected_framework}
-        Framework Evaluated: {fw_title}
-        Persona: {selected_persona}
-        Evaluation Criteria Target: {domain_info['eval_focus']}
+    RETRO_PROMPT = f"""
+    You are an expert executive leadership and native English communication coach. Review this simulation transcript:
+    Domain: {selected_domain}
+    Focus: {selected_framework}
+    Framework Evaluated: {fw_title}
+    Persona: {selected_persona}
+    Evaluation Criteria Target: {domain_info['eval_focus']}
 
-        Transcript:
-        {conversation_text}
+    Transcript:
+    {conversation_text}
 
-        Generate a Session Retrospective Summary with these sections:
-        1. 📊 **Executive Summary (BLUF):** Overall score (1-10) and core takeaway.
-        2. 💪 **Key Strengths:** 2 specific moments where the user handled tone, pushback, or strategy well.
-        3. 🎯 **Framework Adherence ({fw_title}):** How effectively the user applied the recommended framework steps.
-        4. ✍️ **Grammar & Linguistic Precision Audit:**
-           - Identify recurring grammatical mistakes, improper preposition/tense usages, or awkward syntax across the session.
-           - Provide explicit **Original vs. Corrected Native Version** comparisons.
-        5. 💬 **Vocabulary Range & Native Phrasing Audit:**
-           - Evaluate vocabulary sophistication, precision, and usage of target expressions.
-           - Offer 3 high-impact native phrases/idioms/phrasal verbs that could replace plain phrasing used during the session.
-        6. 🚀 **Actionable Focus Areas:** Top 2 high-leverage focus points for future interactions.
-        """
+    Generate a Session Retrospective Summary with these sections:
+    1. 📊 **Executive Summary (BLUF):** Overall score (1-10) and core takeaway.
+    2. 💪 **Key Strengths:** 2 specific moments where the user handled tone, pushback, or strategy well.
+    3. 🎯 **Framework Adherence ({fw_title}):** How effectively the user applied the recommended framework steps.
+    4. ✍️ **Grammar & Linguistic Precision Audit:**
+       - Identify recurring grammatical mistakes, improper preposition/tense usages, or awkward syntax across the session.
+       - Provide explicit **Original vs. Corrected Native Version** comparisons.
+    5. 💬 **Vocabulary Range & Native Phrasing Audit:**
+       - Evaluate vocabulary sophistication, precision, and usage of target expressions.
+       - Offer 3 high-impact native phrases/idioms/phrasal verbs that could replace plain phrasing used during the session.
+    6. 🚀 **Actionable Focus Areas:** Top 2 high-leverage focus points for future interactions.
+    """
 
-        with st.spinner("Generating Retrospective..."):
-            try:
-                retro_response = client.chat.completions.create(
-                    model=FEEDBACK_MODEL,
-                    messages=[{"role": "user", "content": RETRO_PROMPT}],
-                    temperature=0.3
-                )
-                st.session_state["retro_summary"] = retro_response.choices[0].message.content
-            except Exception as e:
-                st.error(f"Error generating retrospective: {e}")
-        st.rerun()
+    with st.spinner("Generating Retrospective..."):
+        try:
+            retro_response = client.chat.completions.create(
+                model=FEEDBACK_MODEL,
+                messages=[{"role": "user", "content": RETRO_PROMPT}],
+                temperature=0.3
+            )
+            st.session_state["retro_summary"] = retro_response.choices[0].message.content
+        except Exception as e:
+            st.error(f"Error generating retrospective: {e}")
+    save_resume_point(data, "ld")
+    st.rerun()
 
-# --- MAIN TAB NAVIGATION ---
-# Short labels keep the tab bar usable (scrollable, not cramped) on narrow mobile screens
-tab1, tab2, tab3, tab4 = st.tabs([
-    "🎭 Simulation",
-    "📜 Logs",
-    "📚 Vocabulary",
-    "💡 Library"
-])
+def process_leadership_turn(user_transcript: str, transcription: dict = None):
+    """One simulator turn (spoken or typed): counterpart reply, structured coaching, notebook/vocab/XP updates."""
+    prev_line = next((m["content"] for m in reversed(st.session_state["chat_history"]) if m["role"] == "assistant"), "")
+    st.session_state["chat_history"].append({"role": "user", "content": user_transcript})
+    with st.chat_message("user"):
+        st.write(user_transcript)
+
+    # 2. AI Counterpart Response (live-streamed with in-character reaction)
+    ai_reply, ai_emoji = stream_reply_with_reaction(st.session_state["chat_history"], MODEL_CHOICE, 0.7, "🎭")
+    st.session_state["chat_history"].append({"role": "assistant", "content": ai_reply})
+    st.session_state["reactions"].append(ai_emoji)
+
+    # 3. REAL-TIME PER-TURN COACHING EVALUATION
+    with st.spinner("Coaching..."):
+        evaluation = evaluate_leadership_turn(user_transcript, prev_line, st.session_state.get("target_framework", {}))
+    used = register_vocab_usage(data, user_transcript)
+    log_errors(data, evaluation["errors"], "leadership", selected_framework, user_transcript)
+    save_data(data)
+    turn_no = len(st.session_state["evaluations"]) + 1
+    st.session_state["evaluations"].append({
+        "turn": turn_no,
+        "transcript": user_transcript,
+        **evaluation,
+        "fluency": fluency_stats(transcription) if transcription else None,
+        "used_words": used,
+    })
+    if used:
+        queue_toast(f"🎯 You used {', '.join(used)} — that's active vocabulary! +{10 * len(used)} XP", "🎉")
+    if data["profile"].get("retry_enabled", True):
+        st.session_state["ld_retry"] = build_retry(evaluation, user_transcript, turn_no)
+    apply_gamification("ld", evaluation["grammar_accurate"], data, bonus_xp=10 * len(used))
+    save_resume_point(data, "ld")
+    st.rerun()
+
+def render_ld_reference(expanded: bool):
+    # 1. Dynamic Framework & Strategy Card
+    fw_data = st.session_state.get("target_framework", {})
+    with st.expander("🎯 Tactical Framework & Strategy Guide", expanded=expanded):
+        if fw_data:
+            st.markdown(f"### **{fw_data.get('title', selected_framework)}**")
+            st.caption(fw_data.get("overview", ""))
+            st.markdown("**Recommended Steps to Follow:**")
+            for step in fw_data.get("steps", []):
+                st.markdown(f"- {step}")
+            if fw_data.get("model_phrase"):
+                st.info(f"💡 **Model Opening/Pivot:** \"{fw_data.get('model_phrase')}\"")
+        else:
+            st.caption("Framework guidance will load when starting a simulation.")
+
+    # 2. Dynamic Target Vocabulary Panel with TTS Audio Preview
+    with st.expander("💡 Scenario Target Vocabulary", expanded=expanded):
+        st.caption("Incorporate these expressions into your turns:")
+
+        accent_choice = st.radio(
+            "Pronunciation Accent:",
+            options=["🇺🇸 US", "🇬🇧 UK", "🇦🇺 AU"],
+            horizontal=True,
+            key="vocab_accent_selector"
+        )
+        tld_map = {"🇺🇸 US": "com", "🇬🇧 UK": "co.uk", "🇦🇺 AU": "com.au"}
+        selected_tld = tld_map[accent_choice]
+
+        st.divider()
+
+        for idx, item in enumerate(st.session_state.get("target_vocab", [])):
+            phrase = item.get("phrase", "")
+            meaning = item.get("meaning", "")
+            example = item.get("example", "")
+
+            st.markdown(f"**`{phrase}`** — {meaning}")
+            st.caption(f"💬 *\"{example}\"*")
+
+            col_audio, col_add = st.columns([2, 2])
+
+            with col_audio:
+                try:
+                    audio_bytes = get_pronunciation_audio(phrase, accent=selected_tld)
+                    st.audio(audio_bytes, format="audio/mp3")
+                except Exception:
+                    st.caption("⚠️ Audio preview unavailable")
+
+            with col_add:
+                btn_key = f"add_dyn_vocab_{idx}"
+                if st.button(f"➕ Add to Vocab", key=btn_key, width="stretch"):
+                    if add_word_to_vocabulary(data, phrase, meaning, example, enrich=False):
+                        st.toast(f"Saved '{phrase}'!", icon="✅")
+                    else:
+                        st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
+
+            st.divider()
+
+def render_ld_chat(phone: bool):
+    render_session_stats("ld")
+
+    # Fixed-height, self-scrolling chat (like the tutor) so the input stays close to the latest message.
+    chat_box = st.container(height=340 if phone else 420)
+    reaction_idx = 0
+    for c_idx, msg in enumerate(st.session_state["chat_history"]):
+        if msg["role"] == "system":
+            continue
+        if msg["role"] == "assistant":
+            avatar = st.session_state["reactions"][reaction_idx] if reaction_idx < len(st.session_state["reactions"]) else "🎭"
+            reaction_idx += 1
+            with chat_box, st.chat_message("assistant", avatar=avatar):
+                st.write(msg["content"])
+                render_message_tools(msg["content"], "com", f"ld_{c_idx}")
+        else:
+            with chat_box, st.chat_message("user"):
+                st.write(msg["content"])
+
+    evaluations = st.session_state["evaluations"]
+    if phone and evaluations:
+        with st.container(border=True):
+            st.markdown(f"**📊 Coaching · turn {evaluations[-1]['turn']}**")
+            render_leadership_feedback(evaluations[-1], data)
+    elif not phone:
+        st.markdown("---")
+
+    if not render_retry_gate("ld", data, "com", evaluations_key="evaluations"):
+        audio_file = st.audio_input("Record your verbal response", key="audio_input_widget")
+        if audio_file:
+            audio_bytes = audio_file.getvalue()
+            audio_id = hash(audio_bytes)
+            if st.session_state["processed_audio_id"] != audio_id:
+                st.session_state["processed_audio_id"] = audio_id
+                with st.spinner("Transcribing..."):
+                    # 1. Transcribe Audio (with word timestamps for fluency stats)
+                    transcription = transcribe_audio(audio_bytes, keep_fillers=True)
+                if transcription["text"]:
+                    process_leadership_turn(transcription["text"], transcription)
+                else:
+                    st.warning("I couldn't hear anything in that recording — please try again.")
+        # Typing is the fallback when you can't speak out loud (or the phone's mic isn't available).
+        typed_turn = st.chat_input("...or type your response", key="ld_chat_input")
+        if typed_turn:
+            process_leadership_turn(typed_turn)
+
+    if phone and len(evaluations) > 1:
+        with st.expander(f"🗂️ Coaching for earlier turns ({len(evaluations) - 1})"):
+            for ev in reversed(evaluations[:-1]):
+                st.markdown(f"**Turn {ev['turn']}** — *{ev['transcript']}*")
+                st.markdown(ev.get("grammar_feedback") or ev.get("feedback") or ev.get("raw", ""))
+                if ev.get("corrected_sentence"):
+                    st.caption(f"✅ {ev['corrected_sentence']}")
+                st.divider()
+
+def render_ld_coaching_notes():
+    # 3. REAL-TIME PER-TURN COACHING NOTES
+    st.subheader("📊 Real-Time Coaching Notes")
+    if not st.session_state["evaluations"]:
+        st.caption(f"Target metrics: **{domain_info['eval_focus']}**.\n\nGrammar, vocabulary, framework, and tone audits will render here after your first response.")
+    else:
+        for eval_item in reversed(st.session_state["evaluations"]):
+            with st.expander(f"Turn {eval_item['turn']} Audit", expanded=True):
+                st.caption(f"**You said:** \"{eval_item['transcript']}\"")
+                render_leadership_feedback(eval_item, data)
+
+# --- MAIN SECTION NAVIGATION ---
+st.title("🎭 Leadership Simulator")
+ld_section = render_section_nav("ld_nav", LEADERSHIP_SECTIONS)
 
 # ==========================================
-# TAB 1: ROLEPLAY SIMULATION
+# SECTION 1: ROLEPLAY SIMULATION
 # ==========================================
-with tab1:
-    st.title("🎭 Leadership & Communication Simulator")
+if ld_section == "🎭 Simulation":
+    roleplay_active = st.session_state["roleplay_active"]
+    # Scenario setup lives here (not in the sidebar) so it's one tap away on a phone; it folds away mid-simulation.
+    with st.expander("🎬 Scenario setup", expanded=not roleplay_active):
+        new_domain = st.selectbox("Communication Domain", _domains, index=_domains.index(selected_domain))
+        _frameworks = SCENARIO_DOMAINS[new_domain]["frameworks"]
+        _personas = SCENARIO_DOMAINS[new_domain]["personas"]
+        new_framework = st.selectbox("Scenario Focus", _frameworks, index=_frameworks.index(selected_framework) if selected_framework in _frameworks else 0)
+        new_persona = st.selectbox("Counterpart Persona", _personas, index=_personas.index(selected_persona) if selected_persona in _personas else 0)
+        if (new_domain, new_framework, new_persona) != (selected_domain, selected_framework, selected_persona):
+            st.session_state.update(ld_domain=new_domain, ld_framework=new_framework, ld_persona=new_persona)
+            st.rerun()
+        if st.button("🎬 Start New Simulation", type="primary", width="stretch", key="ld_start"):
+            start_simulation()
 
-    if not st.session_state["roleplay_active"]:
-        st.info("Select your domain and scenario in the sidebar, then click **🎬 Start New Simulation**.")
-
-        if st.session_state.get("retro_summary"):
-            st.markdown("---")
-            st.header("📋 Session Retrospective Report")
+    if not roleplay_active:
+        if not st.session_state.get("retro_summary"):
+            st.info("Choose a scenario above and tap **🎬 Start New Simulation**.")
+        else:
+            st.subheader("📋 Session Retrospective Report")
             st.markdown(st.session_state["retro_summary"])
 
             if st.button("💾 Save Retrospective to Audit Log"):
@@ -2461,164 +2837,33 @@ with tab1:
                 save_data(data)
                 st.success("Saved to Audit Log!")
     else:
-        col_chat, col_coach = st.columns([3, 2])
-
-        # LEFT COLUMN: CONVERSATION & AUDIO RECORDING
-        with col_chat:
-            st.subheader(f"💬 Live Interaction ({selected_persona})")
-            st.caption(f"**Focus:** {selected_framework}")
-
-            m1, m2, m3 = st.columns(3)
-            m1.metric("✨ XP", st.session_state.get("ld_xp", 0))
-            m2.metric("🔥 Streak", st.session_state.get("ld_streak", 0))
-            m3.metric("🏆 Best", st.session_state.get("ld_best_streak", 0))
-            st.progress(min(1.0, st.session_state.get("ld_turns", 0) / 10), text="Session progress toward 10 turns")
-
-            reaction_idx = 0
-            for c_idx, msg in enumerate(st.session_state["chat_history"]):
-                if msg["role"] == "system":
-                    continue
-                if msg["role"] == "assistant":
-                    avatar = st.session_state["reactions"][reaction_idx] if reaction_idx < len(st.session_state["reactions"]) else "🎭"
-                    reaction_idx += 1
-                    with st.chat_message("assistant", avatar=avatar):
-                        st.write(msg["content"])
-                        render_message_tools(msg["content"], "com", f"ld_{c_idx}")
-                else:
-                    with st.chat_message("user"):
-                        st.write(msg["content"])
-
-            st.markdown("---")
-            if not render_retry_gate("ld", data, "com", evaluations_key="evaluations"):
-                audio_file = st.audio_input("Record your verbal response", key="audio_input_widget")
-
-                if audio_file:
-                    audio_bytes = audio_file.getvalue()
-                    audio_id = hash(audio_bytes)
-
-                    if st.session_state["processed_audio_id"] != audio_id:
-                        st.session_state["processed_audio_id"] = audio_id
-
-                        with st.spinner("Transcribing..."):
-                            # 1. Transcribe Audio (with word timestamps for fluency stats)
-                            transcription = transcribe_audio(audio_bytes, keep_fillers=True)
-                        user_transcript = transcription["text"]
-
-                        if not user_transcript:
-                            st.warning("I couldn't hear anything in that recording — please try again.")
-                        else:
-                            prev_line = next((m["content"] for m in reversed(st.session_state["chat_history"]) if m["role"] == "assistant"), "")
-                            st.session_state["chat_history"].append({"role": "user", "content": user_transcript})
-                            with st.chat_message("user"):
-                                st.write(user_transcript)
-
-                            # 2. AI Counterpart Response (live-streamed with in-character reaction)
-                            ai_reply, ai_emoji = stream_reply_with_reaction(st.session_state["chat_history"], MODEL_CHOICE, 0.7, "🎭")
-                            st.session_state["chat_history"].append({"role": "assistant", "content": ai_reply})
-                            st.session_state["reactions"].append(ai_emoji)
-
-                            # 3. REAL-TIME PER-TURN COACHING EVALUATION
-                            with st.spinner("Coaching..."):
-                                evaluation = evaluate_leadership_turn(user_transcript, prev_line, st.session_state.get("target_framework", {}))
-                            used = register_vocab_usage(data, user_transcript)
-                            log_errors(data, evaluation["errors"], "leadership", selected_framework, user_transcript)
-                            save_data(data)
-                            turn_no = len(st.session_state["evaluations"]) + 1
-                            st.session_state["evaluations"].append({
-                                "turn": turn_no,
-                                "transcript": user_transcript,
-                                **evaluation,
-                                "fluency": fluency_stats(transcription),
-                                "used_words": used,
-                            })
-                            if used:
-                                queue_toast(f"🎯 You used {', '.join(used)} — that's active vocabulary! +{10 * len(used)} XP", "🎉")
-                            if data["profile"].get("retry_enabled", True):
-                                st.session_state["ld_retry"] = build_retry(evaluation, user_transcript, turn_no)
-                            apply_gamification("ld", evaluation["grammar_accurate"], data, bonus_xp=10 * len(used))
-                            st.rerun()
-
-        # RIGHT COLUMN: REAL-TIME COACHING & REFERENCE PANELS
-        with col_coach:
-            # 1. Dynamic Framework & Strategy Card
-            fw_data = st.session_state.get("target_framework", {})
-            with st.expander("🎯 Tactical Framework & Strategy Guide", expanded=True):
-                if fw_data:
-                    st.markdown(f"### **{fw_data.get('title', selected_framework)}**")
-                    st.caption(fw_data.get("overview", ""))
-                    st.markdown("**Recommended Steps to Follow:**")
-                    for step in fw_data.get("steps", []):
-                        st.markdown(f"- {step}")
-                    if fw_data.get("model_phrase"):
-                        st.info(f"💡 **Model Opening/Pivot:** \"{fw_data.get('model_phrase')}\"")
-                else:
-                    st.caption("Framework guidance will load when starting a simulation.")
-
-            # 2. Dynamic Target Vocabulary Panel with TTS Audio Preview
-            with st.expander("💡 Scenario Target Vocabulary", expanded=True):
-                st.caption("Incorporate these expressions into your turns:")
-
-                accent_choice = st.radio(
-                    "Pronunciation Accent:",
-                    options=["🇺🇸 US", "🇬🇧 UK", "🇦🇺 AU"],
-                    horizontal=True,
-                    key="vocab_accent_selector"
-                )
-                tld_map = {"🇺🇸 US": "com", "🇬🇧 UK": "co.uk", "🇦🇺 AU": "com.au"}
-                selected_tld = tld_map[accent_choice]
-
-                st.divider()
-
-                for idx, item in enumerate(st.session_state.get("target_vocab", [])):
-                    phrase = item.get("phrase", "")
-                    meaning = item.get("meaning", "")
-                    example = item.get("example", "")
-
-                    st.markdown(f"**`{phrase}`** — {meaning}")
-                    st.caption(f"💬 *\"{example}\"*")
-
-                    col_audio, col_add = st.columns([2, 2])
-
-                    with col_audio:
-                        try:
-                            audio_bytes = get_pronunciation_audio(phrase, accent=selected_tld)
-                            st.audio(audio_bytes, format="audio/mp3")
-                        except Exception:
-                            st.caption("⚠️ Audio preview unavailable")
-
-                    with col_add:
-                        btn_key = f"add_dyn_vocab_{idx}"
-                        if st.button(f"➕ Add to Vocab", key=btn_key, width="stretch"):
-                            if add_word_to_vocabulary(data, phrase, meaning, example, enrich=False):
-                                st.toast(f"Saved '{phrase}'!", icon="✅")
-                            else:
-                                st.toast(f"'{phrase}' is already in your list.", icon="ℹ️")
-
-                    st.divider()
-
-            # 3. REAL-TIME PER-TURN COACHING NOTES
-            st.subheader("📊 Real-Time Coaching Notes")
-            if not st.session_state["evaluations"]:
-                st.caption(f"Target metrics: **{domain_info['eval_focus']}**.\n\nGrammar, vocabulary, framework, and tone audits will render here after your first spoken response.")
-            else:
-                for eval_item in reversed(st.session_state["evaluations"]):
-                    with st.expander(f"Turn {eval_item['turn']} Audit", expanded=True):
-                        st.caption(f"**You said:** \"{eval_item['transcript']}\"")
-                        render_leadership_feedback(eval_item, data)
+        st.caption(f"💬 **{selected_persona}** · {selected_framework}")
+        if st.button("🛑 End & Generate Retrospective", width="stretch", key="ld_end"):
+            end_simulation()
+        if phone_layout():
+            render_ld_reference(expanded=False)
+            render_ld_chat(phone=True)
+        else:
+            col_chat, col_coach = st.columns([3, 2])
+            with col_chat:
+                render_ld_chat(phone=False)
+            with col_coach:
+                render_ld_reference(expanded=True)
+                render_ld_coaching_notes()
 
 # ==========================================
-# TAB 2: AUDIT LOG & RETROSPECTIVES
+# SECTION 2: AUDIT LOG & RETROSPECTIVES
 # ==========================================
-with tab2:
-    st.title("📜 Practice History & Audit Logs")
+if ld_section == "📜 Logs":
+    st.subheader("📜 Practice History & Audit Logs")
 
     if not data["history"]:
-        st.info("No saved retrospectives yet. Complete a session and click 'Save Retrospective' to build history.")
+        st.info("No saved retrospectives yet. Complete a session and tap 'Save Retrospective' to build history.")
     else:
         for idx, entry in enumerate(data["history"]):
             domain_label = entry.get('domain', 'General')
             framework_label = entry.get('framework', '')
-            with st.expander(f"🗓️ {entry['id']} | {domain_label} - {framework_label}"):
+            with st.expander(f"🗓️ {short_date(entry['id'])} | {domain_label} - {framework_label}"):
                 st.markdown(f"**Persona:** {entry.get('persona', 'N/A')}")
                 st.markdown(entry.get("retro", "No retrospective text."))
 
@@ -2630,39 +2875,32 @@ with tab2:
                     st.success("Note saved!")
 
 # ==========================================
-# TAB 3: VOCABULARY & FLASHCARDS
+# SECTION 3: VOCABULARY & FLASHCARDS
 # ==========================================
-with tab3:
-    st.title("📚 Leadership & Communication Vocabulary")
+if ld_section == "📚 Cards":
     render_flashcard_review(data, "ld")
     st.markdown("---")
     render_vocabulary_manager(data, "ld")
 
 # ==========================================
-# TAB 4: REFERENCE LIBRARY
+# SECTION 4: REFERENCE LIBRARY
 # ==========================================
-with tab4:
-    st.title("💡 Core Leadership Communication Reference Library")
+if ld_section == "💡 Library":
+    # Stacked sections instead of nested tabs, whose long labels don't fit across a phone screen.
+    st.markdown("### 👥 The SBI Feedback Framework (Situation-Behavior-Impact)")
+    st.markdown("""
+    * **Situation:** Define the exact context (*"During yesterday's architecture review..."*).
+    * **Behavior:** Describe observable actions without judgment (*"...you interrupted the junior engineer three times..."*).
+    * **Impact:** State the result (*"...which caused the team to stop raising critical security questions."*).
+    """)
 
-    t_lead, t_exec, t_social = st.tabs(["👥 People Leadership", "👔 Executive Presence", "🗣️ Everyday Workplace"])
+    st.markdown("### 👔 Executive Communication (BLUF & Minto Pyramid)")
+    st.markdown("""
+    * **BLUF:** Answer first, context second. Lead with decision outcomes, dates, or financial impact.
+    * **Rule of 3:** Group risks or trade-offs into maximum 3 structured buckets.
+    """)
 
-    with t_lead:
-        st.markdown("### The SBI Feedback Framework (Situation-Behavior-Impact)")
-        st.markdown("""
-        * **Situation:** Define the exact context (*"During yesterday's architecture review..."*).
-        * **Behavior:** Describe observable actions without judgment (*"...you interrupted the junior engineer three times..."*).
-        * **Impact:** State the result (*"...which caused the team to stop raising critical security questions."*).
-        """)
-
-    with t_exec:
-        st.markdown("### Executive Communication (BLUF & Minto Pyramid)")
-        st.markdown("""
-        * **BLUF:** Answer first, context second. Lead with decision outcomes, dates, or financial impact.
-        * **Rule of 3:** Group risks or trade-offs into maximum 3 structured buckets.
-        """)
-
-    with t_social:
-        st.markdown("### Professional Small Talk & Rapport")
-        st.markdown("""
-        * **ARE Method:** Anchor, Reveal, Encourage. Comment on the setting, share a brief personal note, ask open questions.
-        """)
+    st.markdown("### 🗣️ Professional Small Talk & Rapport")
+    st.markdown("""
+    * **ARE Method:** Anchor, Reveal, Encourage. Comment on the setting, share a brief personal note, ask open questions.
+    """)
