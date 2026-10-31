@@ -1,0 +1,9 @@
+# Personal practice history (conversations, mistakes, vocabulary) — keep it local
+practice_data.json
+practice_data.json.tmp
+practice_data.json.corrupt-*
+
+# Local secrets (GROQ_API_KEY)
+.streamlit/secrets.toml
+
+__pycache__/
