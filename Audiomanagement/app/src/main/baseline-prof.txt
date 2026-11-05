@@ -1,0 +1,5 @@
+# Baseline Profile: ART compiles these ahead of time at install, so launch and first scrolls run
+# compiled code instead of the interpreter/JIT. The Compose, Media3, Room etc. libraries ship
+# their own profiles; this covers the app's own code.
+HSPLcom/audiohub/**->**(**)**
+Lcom/audiohub/**;

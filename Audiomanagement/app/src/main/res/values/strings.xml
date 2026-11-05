@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">My Audio Hub</string>
+    <string name="playlists_widget_description">Your playlists and music folders, one tap to shuffle</string>
     <string name="widget_description">Now playing with play, pause and skip</string>
 </resources>

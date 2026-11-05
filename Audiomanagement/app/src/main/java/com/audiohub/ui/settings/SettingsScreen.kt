@@ -137,11 +137,39 @@ fun SettingsScreen() {
             }
             TextButton(onClick = { BackgroundSettings.openAppDetails(context) }) { Text("Open app info") }
 
+            SectionTitle("Advanced")
+            Row(
+                Modifier.fillMaxWidth().clickable { navActions.navigate(com.audiohub.ui.Routes.youtube()) }.padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("YouTube to audio", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Save a video's audio (best quality, optional start/end) to /Music/Youtube",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
             SectionTitle("About")
             val versionName = remember {
                 context.packageManager.getPackageInfo(context.packageName, 0).versionName
             }
             Text("My Audio Hub $versionName", style = MaterialTheme.typography.bodyMedium)
+            Row(
+                Modifier.fillMaxWidth().clickable { navActions.navigate(com.audiohub.ui.Routes.DIAGNOSTICS) }.padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Diagnostics", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "View and share the playback log",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }

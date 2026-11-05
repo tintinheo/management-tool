@@ -31,7 +31,10 @@ android {
 
     buildTypes {
         release {
+            // R8 is OFF until a shrunk build is verified on the phone (playback/Bluetooth broke after
+            // the first shrunk release). Turning it on cuts the APK from ~85 MB to ~7 MB.
             isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
@@ -40,6 +43,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // NewPipeExtractor uses java.nio / java.time APIs newer than minSdk 29.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
@@ -84,6 +89,7 @@ dependencies {
 
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
+    implementation(libs.media3.transformer)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
@@ -97,6 +103,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.reorderable)
     implementation(libs.glance.appwidget)
+    implementation(libs.newpipe.extractor)
+    coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

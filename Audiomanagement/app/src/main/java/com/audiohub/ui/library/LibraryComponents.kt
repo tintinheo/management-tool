@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.RingVolume
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.AlertDialog
@@ -151,6 +152,7 @@ fun TrackRow(
                 HorizontalDivider()
                 MenuEntry("Go to album", Icons.Rounded.Album, close) { actions.navigate(Routes.album(track.albumId)) }
                 MenuEntry("Go to artist", Icons.Rounded.Person, close) { actions.navigate(Routes.artist(track.artist)) }
+                MenuEntry("Make ringtone…", Icons.Rounded.RingVolume, close) { actions.navigate(Routes.ringtone(track.id)) }
                 extraMenu.forEach { extra -> MenuEntry(extra.label, extra.icon, close, extra.onClick) }
             }
         }

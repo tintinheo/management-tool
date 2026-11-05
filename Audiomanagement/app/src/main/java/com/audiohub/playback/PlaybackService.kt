@@ -7,7 +7,12 @@ import androidx.core.os.bundleOf
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import com.audiohub.system.DiagnosticsLog
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.LibraryResult
@@ -81,9 +86,29 @@ class PlaybackService : MediaLibraryService() {
             },
         ).also(player::addListener)
 
+        DiagnosticsLog.log("Service", "Created · audio session ${player.audioSessionId}")
+        audioManager.registerAudioDeviceCallback(audioDevices, null)
+
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = applyPerItemSettings()
-            override fun onAudioSessionIdChanged(audioSessionId: Int) = applyEqualizer()
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                DiagnosticsLog.log("Player", "Audio session → $audioSessionId")
+                applyEqualizer()
+            }
+            override fun onPlayerError(error: PlaybackException) {
+                DiagnosticsLog.log(
+                    "Player",
+                    "Error ${error.errorCodeName} on ${player.currentMediaItem?.mediaId} (${player.currentMediaItem?.localConfiguration?.uri})",
+                    error,
+                )
+            }
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                val name = when (playbackState) {
+                    Player.STATE_IDLE -> "IDLE"; Player.STATE_BUFFERING -> "BUFFERING"
+                    Player.STATE_READY -> "READY"; else -> "ENDED"
+                }
+                DiagnosticsLog.log("Player", "State $name · playWhenReady=${player.playWhenReady} · items=${player.mediaItemCount}")
+            }
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 // "End of track" sleep timer fired.
                 if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM && sleepEndOfItem) {
@@ -91,7 +116,7 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
             override fun onEvents(player: Player, events: Player.Events) {
-                if (events.containsAny(Player.EVENT_MEDIA_METADATA_CHANGED, Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                if (events.containsAny(Player.EVENT_MEDIA_METADATA_CHANGED, Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED)) {
                     updateWidget()
                 }
             }
@@ -126,9 +151,45 @@ class PlaybackService : MediaLibraryService() {
         if (player.skipSilenceEnabled != skip) player.skipSilenceEnabled = skip
     }
 
+    /**
+     * The equalizer is only attached to the audio session while the user has it switched on:
+     * a (even disabled) third-party effect on the session can clash with system effects such as
+     * Dolby / Mi Sound on Xiaomi and disturb output routing.
+     */
     private fun applyEqualizer() {
         val s = settings ?: return
-        effects.attach(player.audioSessionId, s.eqEnabled, s.eqPreset, s.eqBands)
+        if (!s.eqEnabled) {
+            effects.release()
+            return
+        }
+        runCatching { effects.attach(player.audioSessionId, true, s.eqPreset, s.eqBands) }
+            .onFailure { DiagnosticsLog.log("Equalizer", "Couldn't attach to session ${player.audioSessionId}", it) }
+    }
+
+    private val audioManager by lazy { getSystemService(AudioManager::class.java) }
+
+    /** Logs where audio goes (speaker, wired, Bluetooth A2DP/LE…) — the usual suspect when "there's no sound". */
+    private val audioDevices = object : AudioDeviceCallback() {
+        private fun describe(devices: Array<out AudioDeviceInfo>) = devices.filter { it.isSink }.joinToString {
+            "${it.productName}(${deviceType(it.type)})"
+        }
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            DiagnosticsLog.log("Audio", "Outputs added: ${describe(addedDevices)}")
+        }
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+            DiagnosticsLog.log("Audio", "Outputs removed: ${describe(removedDevices)}")
+        }
+    }
+
+    private fun deviceType(type: Int) = when (type) {
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "speaker"
+        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "earpiece"
+        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "bt-a2dp"
+        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "bt-sco"
+        AudioDeviceInfo.TYPE_BLE_HEADSET, AudioDeviceInfo.TYPE_BLE_SPEAKER -> "bt-le"
+        AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wired"
+        AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE -> "usb"
+        else -> "type$type"
     }
 
     // ------------------------------------------------------------------ sleep timer
@@ -172,14 +233,24 @@ class PlaybackService : MediaLibraryService() {
 
     // ------------------------------------------------------------------ widget
 
-    private var lastWidget: Triple<String, String, Boolean>? = null
+    private data class WidgetState(val title: String, val artist: String, val playing: Boolean, val shuffle: Boolean)
 
+    private var lastWidget: WidgetState? = null
+
+    /** Pushes to the home-screen widget only when something it shows changed (each update re-renders it). */
     private fun updateWidget() {
         val md = player.mediaMetadata
-        val state = Triple(md.title?.toString().orEmpty(), (md.artist ?: md.albumArtist)?.toString().orEmpty(), player.isPlaying)
+        val state = WidgetState(
+            md.title?.toString().orEmpty(),
+            (md.artist ?: md.albumArtist)?.toString().orEmpty(),
+            player.isPlaying,
+            player.shuffleModeEnabled,
+        )
         if (state == lastWidget) return
         lastWidget = state
-        serviceScope.launch { runCatching { NowPlayingWidget.update(this@PlaybackService, state.first, state.second, state.third) } }
+        serviceScope.launch {
+            runCatching { NowPlayingWidget.update(this@PlaybackService, state.title, state.artist, state.playing, state.shuffle) }
+        }
     }
 
     // ------------------------------------------------------------------ play counts
@@ -233,6 +304,7 @@ class PlaybackService : MediaLibraryService() {
     private inner class LibraryCallback : MediaLibrarySession.Callback {
 
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
+            DiagnosticsLog.log("Session", "Controller connected: ${controller.packageName} (v${controller.controllerVersion})")
             val commands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
                 .add(SessionCommand(ACTION_SLEEP, Bundle.EMPTY))
                 .build()
@@ -312,6 +384,8 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        DiagnosticsLog.log("Service", "Destroyed")
+        runCatching { audioManager.unregisterAudioDeviceCallback(audioDevices) }
         episodeTracker?.flush()
         sleepJob?.cancel()
         effects.release()

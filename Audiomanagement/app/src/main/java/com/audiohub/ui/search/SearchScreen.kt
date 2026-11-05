@@ -42,6 +42,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.audiohub.data.music.LibrarySearch
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import com.audiohub.data.music.SearchResults
 import com.audiohub.ui.Routes
 import com.audiohub.ui.components.EmptyState
@@ -68,7 +72,11 @@ fun SearchScreen() {
     var mode by rememberSaveable { mutableStateOf(SearchMode.Library) }
     var query by rememberSaveable { mutableStateOf("") }
     var podcastQuery by rememberSaveable { mutableStateOf("") }
-    val results = remember(tracks, query) { LibrarySearch.search(tracks.orEmpty(), query) }
+    // Debounced and off the main thread so typing stays smooth on big libraries.
+    val results by produceState(SearchResults.EMPTY, tracks, query) {
+        delay(120)
+        value = withContext(Dispatchers.Default) { LibrarySearch.search(tracks.orEmpty(), query) }
+    }
     val podcastState by podcastVm.state.collectAsStateWithLifecycle()
     SearchContent(
         query = if (mode == SearchMode.Library) query else podcastQuery,

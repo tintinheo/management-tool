@@ -38,6 +38,7 @@ class LibraryDaoTest {
                 t(5, "Blue Rondo", "Dave Brubeck", "Time Out", 20, track = 1, year = 1959, added = 200, genre = null),
             ),
         )
+        Unit
     }
 
     @After

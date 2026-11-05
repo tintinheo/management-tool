@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
+import com.audiohub.system.DiagnosticsLog
 import androidx.media3.session.SessionCommand
 import androidx.core.content.ContextCompat
 import androidx.media3.common.C
@@ -30,6 +31,8 @@ data class PlayerUiState(
     val isPlaying: Boolean = false,
     /** User intent to play (false after pause / sleep timer; stays true when a queue simply ends). */
     val playWhenReady: Boolean = false,
+    /** Last playback error, shown to the user (null when playing fine). */
+    val errorMessage: String? = null,
     val isBuffering: Boolean = false,
     val mediaId: String? = null,
     val title: String = "",
@@ -88,7 +91,7 @@ class PlayerConnection(private val context: Context) : PlayerControls {
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
 
     private val listener = object : Player.Listener {
-        override fun onEvents(player: Player, events: Player.Events) = publish(player)
+        override fun onEvents(player: Player, events: Player.Events) = publish(player, events)
     }
 
     private var sleepExtras: Bundle = Bundle.EMPTY
@@ -98,6 +101,15 @@ class PlayerConnection(private val context: Context) : PlayerControls {
             sleepExtras = extras
             publish(controller)
         }
+
+        override fun onDisconnected(controller: MediaController) {
+            DiagnosticsLog.log("Controller", "Disconnected from the playback service")
+            if (this@PlayerConnection.controller === controller) {
+                this@PlayerConnection.controller = null
+                controllerFuture = null
+                _state.value = _state.value.copy(isPlaying = false, isBuffering = false)
+            }
+        }
     }
 
     fun connect() {
@@ -106,11 +118,16 @@ class PlayerConnection(private val context: Context) : PlayerControls {
         val future = MediaController.Builder(context, token).setListener(controllerListener).buildAsync()
         controllerFuture = future
         future.addListener({
-            val connected = runCatching { future.get() }.getOrNull()
+            val result = runCatching { future.get() }
+            val connected = result.getOrNull()
             if (connected == null) {
+                DiagnosticsLog.log("Controller", "Couldn't connect to the playback service", result.exceptionOrNull())
                 controllerFuture = null
+                // Don't replay stale taps later (a burst of queued play/pause toggles looks like broken controls).
+                pending.clear()
                 return@addListener
             }
+            DiagnosticsLog.log("Controller", "Connected · commands=${connected.availableCommands.size()}")
             connected.addListener(listener)
             sleepExtras = connected.sessionExtras
             controller = connected
@@ -125,21 +142,36 @@ class PlayerConnection(private val context: Context) : PlayerControls {
             block(c)
         } else {
             if (c != null) { // session died (e.g. service killed); reconnect
+                DiagnosticsLog.log("Controller", "Not connected any more — reconnecting")
+                runCatching { c.release() }
                 controller = null
                 controllerFuture = null
             }
+            // Keep only the latest few commands while (re)connecting.
+            while (pending.size >= 4) pending.removeFirst()
             pending.addLast(block)
             connect()
         }
     }
 
-    private fun publish(player: Player) {
+    private var cachedUpNext: List<QueueItem> = emptyList()
+
+    private fun publish(player: Player, events: Player.Events? = null) {
+        // Walking a 500-item queue is the costliest part; only redo it when the queue can have changed.
+        if (events == null || events.containsAny(
+                Player.EVENT_TIMELINE_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION,
+                Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED, Player.EVENT_REPEAT_MODE_CHANGED,
+            )
+        ) {
+            cachedUpNext = upNextOf(player)
+        }
         val md = player.mediaMetadata
         val item = player.currentMediaItem
         _state.value = PlayerUiState(
             hasMedia = item != null,
             isPlaying = player.isPlaying,
             playWhenReady = player.playWhenReady,
+            errorMessage = player.playerError?.let { e -> playbackErrorText(e) },
             isBuffering = player.playbackState == Player.STATE_BUFFERING,
             mediaId = item?.mediaId,
             title = md.title?.toString().orEmpty(),
@@ -153,7 +185,7 @@ class PlayerConnection(private val context: Context) : PlayerControls {
             queueIndex = player.currentMediaItemIndex,
             queueSize = player.mediaItemCount,
             speed = player.playbackParameters.speed,
-            upNext = upNextOf(player),
+            upNext = cachedUpNext,
             sleepEndsAt = sleepExtras.getLong(PlaybackService.EXTRA_SLEEP_ENDS_AT, 0),
             sleepEndOfItem = sleepExtras.getBoolean(PlaybackService.EXTRA_SLEEP_END_OF_ITEM, false),
         )
@@ -279,4 +311,17 @@ class PlayerConnection(private val context: Context) : PlayerControls {
     private companion object {
         const val MAX_UP_NEXT = 500
     }
+}
+
+/** Human-readable reason a track couldn't play. */
+fun playbackErrorText(e: androidx.media3.common.PlaybackException): String = when (e.errorCode) {
+    androidx.media3.common.PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND -> "The file is missing — was it moved or deleted?"
+    androidx.media3.common.PlaybackException.ERROR_CODE_IO_NO_PERMISSION -> "No permission to read this file"
+    androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+    androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> "No internet connection"
+    androidx.media3.common.PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED,
+    androidx.media3.common.PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED -> "The audio output (speaker/Bluetooth) refused playback — try reconnecting it"
+    androidx.media3.common.PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+    androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED -> "This file format can't be played"
+    else -> "Playback error: ${e.errorCodeName}"
 }

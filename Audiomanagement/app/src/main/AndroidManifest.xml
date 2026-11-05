@@ -14,6 +14,22 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Lets the user set a clip as the phone ringtone (granted in system settings). -->
+    <uses-permission
+        android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Apps we may open for "device sound effects" (Android 11+ hides other packages otherwise). -->
+    <queries>
+        <package android:name="com.dolby.daxappui" />
+        <package android:name="com.dolby.dax2appUI" />
+        <package android:name="com.miui.misound" />
+        <package android:name="com.sec.android.app.soundalive" />
+        <package android:name="com.motorola.dolby.dolbyui" />
+        <intent>
+            <action android:name="android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL" />
+        </intent>
+    </queries>
 
     <application
         android:name=".AudioHubApp"
@@ -99,6 +115,17 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/now_playing_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.PlaylistsWidgetReceiver"
+            android:exported="true"
+            android:label="My Audio Hub · Playlists">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/playlists_widget_info" />
         </receiver>
         <receiver
             android:name=".widget.WidgetActionReceiver"

@@ -66,6 +66,11 @@ import com.audiohub.ui.components.ScreenHeader
 import com.audiohub.ui.components.SortButton
 import com.audiohub.data.SortOrder
 import com.audiohub.data.TrackSorter
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import com.audiohub.playback.LibraryTree
 import com.audiohub.ui.components.SectionLabel
 import com.audiohub.ui.components.plural
@@ -76,8 +81,20 @@ import com.audiohub.ui.components.formatDuration
 fun rememberTrackListState(): TrackListState {
     val vm = libraryViewModel()
     val favorites by vm.favoriteIds.collectAsStateWithLifecycle()
-    val player by LocalContext.current.appContainer.playerConnection.state.collectAsStateWithLifecycle()
-    return TrackListState(favorites, player.mediaId)
+    // Only the playing id matters here: play/pause/position changes must not recompose long lists.
+    val player = LocalContext.current.appContainer.playerConnection
+    val mediaId by remember(player) { player.state.map { it.mediaId }.distinctUntilChanged() }
+        .collectAsStateWithLifecycle(initialValue = null)
+    return remember(favorites, mediaId) { TrackListState(favorites, mediaId) }
+}
+
+/** Sorts on a background thread; keeps showing the previous order until the new one is ready. */
+@Composable
+fun rememberSortedTracks(tracks: List<TrackEntity>?, order: SortOrder): List<TrackEntity>? {
+    val sorted by produceState<List<TrackEntity>?>(null, tracks, order) {
+        value = tracks?.let { withContext(Dispatchers.Default) { TrackSorter.sort(it, order) } }
+    }
+    return sorted
 }
 
 // ------------------------------------------------------------------ Library home
@@ -224,7 +241,7 @@ fun SongsScreen() {
     val vm = libraryViewModel()
     val tracks by vm.tracks.collectAsStateWithLifecycle()
     val sort by vm.songSort.collectAsStateWithLifecycle()
-    val sorted = remember(tracks, sort) { tracks?.let { TrackSorter.sort(it, sort) } }
+    val sorted = rememberSortedTracks(tracks, sort)
     TrackListContent("Songs", sorted, rememberTrackListState(), LocalTrackActions.current, sort = sort, onSortChange = vm::setSongSort)
 }
 
@@ -235,7 +252,7 @@ fun FolderDetailScreen(path: String) {
     val root by vm.musicRoot.collectAsStateWithLifecycle()
     val tracks by remember(path) { vm.folderTracks(path) }.collectAsStateWithLifecycle(initialValue = null)
     val sort by vm.songSort.collectAsStateWithLifecycle()
-    val sorted = remember(tracks, sort) { tracks?.let { TrackSorter.sort(it, sort) } }
+    val sorted = rememberSortedTracks(tracks, sort)
     TrackListContent(
         LibraryTree.folderDisplayName(path, root), sorted, rememberTrackListState(), LocalTrackActions.current,
         emptyIcon = Icons.Rounded.Folder,

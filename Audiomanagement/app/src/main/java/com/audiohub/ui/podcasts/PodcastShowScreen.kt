@@ -300,7 +300,9 @@ fun PodcastShowContent(
                 state.message,
                 action = { Button(onClick = onRetry) { Text("Try again") } },
             )
-            is ShowUiState.Ready -> LazyColumn(Modifier.fillMaxSize()) {
+            is ShowUiState.Ready -> {
+                val sortedEpisodes = remember(state.episodes, sort) { EpisodeSorter.sort(state.episodes, sort) }
+                LazyColumn(Modifier.fillMaxSize()) {
                 item { ShowHeaderBlock(state, onFollow) }
                 if (state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) }
                 item {
@@ -312,9 +314,10 @@ fun PodcastShowContent(
                 if (state.episodes.isEmpty()) {
                     item { EmptyState(Icons.Rounded.Podcasts, "No episodes", "This feed has no playable episodes.") }
                 }
-                items(EpisodeSorter.sort(state.episodes, sort), key = { it.key }) { e ->
+                items(sortedEpisodes, key = { it.key }) { e ->
                     EpisodeRow(e, actions, e.mediaId == currentMediaId, isPlaying, showArtwork = false)
                     Hairline()
+                }
                 }
             }
         }

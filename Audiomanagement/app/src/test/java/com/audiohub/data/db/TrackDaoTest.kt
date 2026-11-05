@@ -2,6 +2,8 @@ package com.audiohub.data.db
 
 import androidx.room.Room
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import org.junit.Assert.assertTrue
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -38,6 +40,29 @@ class TrackDaoTest {
         val after = dao.observeAll().first()
         assertEquals(listOf("Banana", "Cherry", "Zebra"), after.map { it.title })
         assertEquals(setOf(1L, 2L, 4L), after.map { it.id }.toSet())
+    }
+
+    @Test
+    fun replaceAll_unchangedRescanWritesNothingAndDoesNotNotifyObservers() = runBlocking {
+        val tracks = listOf(track(1, "A"), track(2, "B"), track(3, "C"))
+        assertEquals(3, dao.replaceAll(tracks))
+
+        // Count emissions of the observed list while rescanning with identical data.
+        val emissions = java.util.concurrent.atomic.AtomicInteger()
+        val job = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            dao.observeAll().collect { emissions.incrementAndGet() }
+        }
+        kotlinx.coroutines.delay(300)
+        val initial = emissions.get()
+        assertEquals(0, dao.replaceAll(tracks))
+        assertEquals(0, dao.replaceAll(tracks.reversed()))
+        kotlinx.coroutines.delay(300)
+        assertEquals("no reload for an unchanged rescan", initial, emissions.get())
+
+        assertEquals(1, dao.replaceAll(listOf(track(1, "A"), track(2, "B2"), track(3, "C")))) // one retitle
+        kotlinx.coroutines.delay(300)
+        assertTrue(emissions.get() > initial)
+        job.cancel()
     }
 
     @Test

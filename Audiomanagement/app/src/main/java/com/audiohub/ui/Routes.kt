@@ -20,6 +20,10 @@ object Routes {
     const val RECENTLY_PLAYED = "recently_played"
     const val DOWNLOADS = "downloads"
     const val EQUALIZER = "equalizer"
+    const val DIAGNOSTICS = "diagnostics"
+    /** Advanced: YouTube to audio; optional prefilled link (from a share). */
+    const val YOUTUBE = "youtube?url={url}"
+    fun youtube(url: String = "") = "youtube?url=${Uri.encode(url)}"
 
     // Details
     const val ALBUM = "album/{albumId}"
@@ -41,6 +45,9 @@ object Routes {
     fun playlist(playlistId: Long) = "playlist/$playlistId"
     fun folder(path: String) = "folder?path=${Uri.encode(path)}"
 
+    const val RINGTONE = "ringtone/{trackId}"
+    fun ringtone(trackId: Long) = "ringtone/$trackId"
+
     val TABS = setOf(LIBRARY, PODCASTS, SEARCH, SETTINGS)
 
     private val linkInText = Regex("""(?i)\b(?:https?|feed|pcast|itpc)://\S+""")
@@ -51,6 +58,8 @@ object Routes {
      */
     fun forSharedText(text: String?): String? {
         val link = text?.let { linkInText.find(it)?.value?.trimEnd('.', ',', ')', '"', '\'') } ?: return null
+        // YouTube links shared to the app open the (hidden) YouTube-to-audio screen, prefilled.
+        if (com.audiohub.data.youtube.YoutubeLinks.videoId(link) != null) return youtube(link)
         return when (val input = com.audiohub.data.podcast.ApplePodcastLinks.classify(link)) {
             is com.audiohub.data.podcast.PodcastInput.Apple -> show(itunesId = input.itunesId)
             is com.audiohub.data.podcast.PodcastInput.Feed ->

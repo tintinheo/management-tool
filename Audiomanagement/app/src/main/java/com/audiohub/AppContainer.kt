@@ -82,6 +82,9 @@ class AppContainer(private val app: Application) {
 
     val playerConnection: PlayerConnection by lazy { PlayerConnection(app) }
 
+    /** Advanced: YouTube → audio (Settings → Advanced). */
+    val youtubeConverter by lazy { com.audiohub.data.youtube.YoutubeConverter(app, okHttp) }
+
     companion object {
         // Some podcast hosts reject requests without a recognisable client name.
         const val USER_AGENT = "MyAudioHub/1.0 (Android; podcast player)"

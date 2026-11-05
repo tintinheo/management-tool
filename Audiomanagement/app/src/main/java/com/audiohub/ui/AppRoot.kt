@@ -190,6 +190,12 @@ private fun MainScaffold() {
     val downloadProgress by container.downloadProgress.progress.collectAsStateWithLifecycle()
 
     // Links opened/shared into the app (podcasts.apple.com, RSS) → show page.
+    // Never fail silently: tell the user why a track won't play.
+    val context = LocalContext.current
+    LaunchedEffect(playerState.errorMessage) {
+        playerState.errorMessage?.let { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() }
+    }
+
     val pendingRoute by container.pendingRoute.collectAsStateWithLifecycle()
     LaunchedEffect(pendingRoute) {
         pendingRoute?.let { route ->
@@ -273,6 +279,13 @@ private fun MainScaffold() {
                     FolderDetailScreen(it.arguments?.getString("path").orEmpty())
                 }
                 composable(Routes.EQUALIZER) { EqualizerScreen() }
+                composable(Routes.DIAGNOSTICS) { com.audiohub.ui.settings.DiagnosticsScreen() }
+                composable(Routes.YOUTUBE, listOf(navArgument("url") { type = NavType.StringType; defaultValue = "" })) {
+                    com.audiohub.ui.settings.YoutubeScreen(it.arguments?.getString("url").orEmpty())
+                }
+                composable(Routes.RINGTONE, listOf(navArgument("trackId") { type = NavType.LongType })) {
+                    com.audiohub.ui.ringtone.RingtoneScreen(it.arguments?.getLong("trackId") ?: 0L)
+                }
 
                 composable(Routes.ALBUM, listOf(navArgument("albumId") { type = NavType.LongType })) {
                     AlbumDetailScreen(it.arguments?.getLong("albumId") ?: 0L)

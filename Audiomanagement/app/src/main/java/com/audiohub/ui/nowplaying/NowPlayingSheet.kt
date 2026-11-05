@@ -90,13 +90,21 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 
 /** Position isn't pushed by Media3, so poll it while playing (and once when paused). */
 @Composable
-fun rememberPolledPosition(isPlaying: Boolean, provider: () -> Long, intervalMs: Long = 500): Long {
-    var position by remember { mutableLongStateOf(provider()) }
+fun rememberPolledPosition(isPlaying: Boolean, provider: () -> Long, intervalMs: Long = 500): Long =
+    rememberPolledPositionState(isPlaying, provider, intervalMs).value
+
+/**
+ * Same as [rememberPolledPosition] but returns the State itself, so callers can read it inside a
+ * draw/layout lambda (e.g. a progress bar) and avoid recomposing everything around it twice a second.
+ */
+@Composable
+fun rememberPolledPositionState(isPlaying: Boolean, provider: () -> Long, intervalMs: Long = 500): androidx.compose.runtime.State<Long> {
+    val position = remember { mutableLongStateOf(provider()) }
     LaunchedEffect(isPlaying, intervalMs) {
-        position = provider()
+        position.longValue = provider()
         while (isPlaying) {
             delay(intervalMs)
-            position = provider()
+            position.longValue = provider()
         }
     }
     return position
@@ -330,6 +338,20 @@ fun NowPlayingContent(
 
 // ------------------------------------------------------------------ Sleep timer
 
+/** "20" → 20, "1:30" → 90 (hours:minutes); null if invalid or outside 1 min … 24 h. */
+fun parseSleepMinutes(text: String): Long? {
+    val t = text.trim()
+    if (t.isEmpty()) return null
+    val minutes = if (':' in t) {
+        val (h, m) = t.split(':', limit = 2).map { it.toLongOrNull() ?: return null }
+        if (m >= 60) return null
+        h * 60 + m
+    } else {
+        t.toLongOrNull() ?: return null
+    }
+    return minutes.takeIf { it in 1..24 * 60 }
+}
+
 @Composable
 private fun SleepTimerButton(state: PlayerUiState, player: PlayerControls) {
     var open by remember { mutableStateOf(false) }
@@ -367,13 +389,52 @@ private fun SleepTimerButton(state: PlayerUiState, player: PlayerControls) {
 
 @Composable
 fun SleepTimerDialog(active: Boolean, onPick: (Long) -> Unit, onDismiss: () -> Unit) {
-    val options = listOf(5, 15, 30, 45, 60, 90).map { "$it minutes" to it * 60_000L } +
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        SleepTimerPanel(active, onPick, onDismiss)
+    }
+}
+
+/** Body of the sleep timer dialog (separate so it can be previewed without a dialog window). */
+@Composable
+fun SleepTimerPanel(active: Boolean, onPick: (Long) -> Unit, onDismiss: () -> Unit) {
+    val options = listOf(15, 30, 45, 60).map { "$it minutes" to it * 60_000L } +
         ("End of track / episode" to com.audiohub.playback.PlaybackService.SLEEP_END_OF_ITEM)
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Sleep timer", style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            Column {
+    var custom by remember { mutableStateOf("") }
+    val customMinutes = parseSleepMinutes(custom)
+    run {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp)) {
+                Text("Sleep timer", style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(16.dp))
+                // Any length: "20", "90", "1:30" (h:mm).
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = custom,
+                        onValueChange = { v -> custom = v.filter { it.isDigit() || it == ':' }.take(5) },
+                        label = { Text("Minutes") },
+                        placeholder = { Text("e.g. 20 or 1:30") },
+                        singleLine = true,
+                        isError = custom.isNotEmpty() && customMinutes == null,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onDone = { customMinutes?.let { onPick(it * 60_000L) } },
+                        ),
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = { customMinutes?.let { onPick(it * 60_000L) } },
+                        enabled = customMinutes != null,
+                        modifier = Modifier.padding(start = 8.dp),
+                    ) { Text("Start") }
+                }
+                Spacer(Modifier.height(8.dp))
                 options.forEach { (label, ms) ->
                     Text(
                         label,
@@ -381,13 +442,13 @@ fun SleepTimerDialog(active: Boolean, onPick: (Long) -> Unit, onDismiss: () -> U
                         modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable { onPick(ms) }.padding(vertical = 12.dp, horizontal = 4.dp),
                     )
                 }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
+                    if (active) TextButton(onClick = { onPick(0) }) { Text("Turn off") }
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                }
             }
-        },
-        confirmButton = {
-            if (active) TextButton(onClick = { onPick(0) }) { Text("Turn off") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+        }
+    }
 }
 
 @Composable

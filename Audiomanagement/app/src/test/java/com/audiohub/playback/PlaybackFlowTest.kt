@@ -185,6 +185,27 @@ class PlaybackFlowTest {
         waitFor("cancelled") { !connection.state.value.sleepActive }
     }
 
+    @Test
+    fun brokenTrackReportsAReadableErrorAndControlsKeepWorking() {
+        val missing = File(app.cacheDir, "does-not-exist.wav")
+        val uri = Uri.fromFile(missing)
+        val broken = MediaItem.Builder().setMediaId("test:missing").setUri(uri)
+            .setRequestMetadata(MediaItem.RequestMetadata.Builder().setMediaUri(uri).build())
+            .setMediaMetadata(MediaMetadata.Builder().setTitle("Missing").build()).build()
+
+        connection.playQueue(listOf(broken))
+        waitFor("error surfaced") { connection.state.value.errorMessage != null }
+        assertTrue(connection.state.value.errorMessage!!.contains("missing", ignoreCase = true))
+        assertTrue("logged for Diagnostics", com.audiohub.system.DiagnosticsLog.read().contains("Error"))
+
+        // The player recovers: the next queue plays normally and the error clears.
+        connection.playQueue(listOf(wavItem("Fine", 440.0, seconds = 2)))
+        waitFor("playing after an error") { connection.state.value.isPlaying }
+        assertEquals(null, connection.state.value.errorMessage)
+        connection.togglePlayPause()
+        waitFor("pause works") { !connection.state.value.isPlaying }
+    }
+
     /** Pumps the main looper (controller callbacks) while ExoPlayer runs on its own thread. */
     private fun waitFor(what: String, timeoutMs: Long = 8_000, condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + timeoutMs

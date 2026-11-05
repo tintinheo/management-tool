@@ -79,9 +79,18 @@ fun minutesLabel(ms: Long, suffix: String = ""): String {
     return base + suffix
 }
 
-/** Plain-text preview of HTML show notes. */
-fun notesPreview(html: String): String =
-    AnnotatedString.fromHtml(html).text.replace(Regex("\\s+"), " ").trim()
+private val previewCache = android.util.LruCache<String, String>(400)
+private val whitespace = Regex("\\s+")
+
+/** Plain-text preview of HTML show notes (cached: parsing HTML for every row on scroll is costly). */
+fun notesPreview(html: String): String {
+    if (html.isEmpty()) return ""
+    val key = "${html.length}:${html.hashCode()}"
+    previewCache.get(key)?.let { return it }
+    val text = AnnotatedString.fromHtml(html).text.replace(whitespace, " ").trim()
+    previewCache.put(key, text)
+    return text
+}
 
 @Composable
 fun EpisodeRow(

@@ -101,13 +101,23 @@ abstract class TrackDao {
     @Query("DELETE FROM tracks WHERE id IN (:ids)")
     abstract suspend fun deleteByIds(ids: List<Long>)
 
-    /** Makes the table mirror [tracks] exactly (insert/update new ones, drop missing ones). */
+    @Query("SELECT * FROM tracks")
+    abstract suspend fun allTracks(): List<TrackEntity>
+
+    /**
+     * Makes the table mirror [tracks] exactly (insert/update new ones, drop missing ones).
+     * Only rows that actually differ are written: an unchanged rescan writes nothing, so Room
+     * doesn't invalidate and every open list doesn't reload/re-sort. Returns rows changed.
+     */
     @Transaction
-    open suspend fun replaceAll(tracks: List<TrackEntity>) {
-        upsertAll(tracks)
+    open suspend fun replaceAll(tracks: List<TrackEntity>): Int {
+        val existing = allTracks().associateBy { it.id }
+        val changed = tracks.filter { existing[it.id] != it }
         val keep = tracks.mapTo(HashSet()) { it.id }
-        val stale = allIds().filterNot { it in keep }
+        val stale = existing.keys.filterNot { it in keep }
+        if (changed.isNotEmpty()) upsertAll(changed)
         // SQLite caps bound parameters per statement, so delete in chunks.
         stale.chunked(500).forEach { deleteByIds(it) }
+        return changed.size + stale.size
     }
 }

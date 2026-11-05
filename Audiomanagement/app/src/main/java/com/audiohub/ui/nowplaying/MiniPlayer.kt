@@ -37,7 +37,8 @@ fun MiniPlayer(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val position = rememberPolledPosition(state.isPlaying, positionProvider)
+    // Read only inside the progress lambda: the card itself doesn't recompose on every tick.
+    val position = rememberPolledPositionState(state.isPlaying, positionProvider)
     Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
         Surface(
             shape = MaterialTheme.shapes.large,
@@ -73,7 +74,7 @@ fun MiniPlayer(
                     }
                 }
                 LinearProgressIndicator(
-                    progress = { if (state.durationMs > 0) (position.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f },
+                    progress = { if (state.durationMs > 0) (position.value.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 6.dp).height(2.dp),
                     trackColor = MaterialTheme.colorScheme.outlineVariant,
                     gapSize = 0.dp,

@@ -161,8 +161,44 @@ class ScreenshotTest {
     }
 
     @Test
-    fun sleepTimerDialog() = shot("sleep_timer") {
-        com.audiohub.ui.nowplaying.SleepTimerDialog(active = true, onPick = {}, onDismiss = {})
+    fun youtubeConverter() = shot("youtube", manualClock = true) {
+        com.audiohub.ui.settings.YoutubeContent(
+            link = "https://youtu.be/dQw4w9WgXcQ",
+            onLinkChange = {}, onPaste = {}, onFetch = {},
+            loading = false, error = null,
+            video = com.audiohub.data.youtube.VideoInfo(
+                url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                title = "Sơn Tùng M-TP | Lạc Trôi | Official Music Video",
+                uploader = "Sơn Tùng M-TP Official",
+                durationMs = 274_000,
+                thumbnailUrl = null,
+                audio = com.audiohub.data.youtube.AudioCandidate("x", 160, com.audiohub.data.youtube.AudioContainer.WEBM_OPUS),
+            ),
+            startMs = 12_000, endMs = 245_500,
+            onRangeChange = { _, _ -> },
+            convertState = com.audiohub.data.youtube.ConvertState.Downloading("Lạc Trôi", 0.42f),
+            onConvert = {}, onCancel = {}, onPlay = {}, onAnother = {},
+        )
+    }
+
+    @Test
+    fun ringtoneEditor() = shot("ringtone_editor", manualClock = true) {
+        com.audiohub.ui.ringtone.RingtoneContent(
+            track = tracks[2],
+            startMs = 45_000,
+            endMs = 75_500,
+            onRangeChange = { _, _ -> },
+            previewing = false,
+            onTogglePreview = {},
+            status = com.audiohub.ui.ringtone.RingtoneStatus.Saved(android.net.Uri.parse("content://media/external/audio/media/1")),
+            onSave = {},
+            onSetAs = { _, _ -> },
+        )
+    }
+
+    @Test
+    fun sleepTimerDialog() = shot("sleep_timer", manualClock = true) {
+        com.audiohub.ui.nowplaying.SleepTimerPanel(active = true, onPick = {}, onDismiss = {})
     }
 
     @Test
@@ -292,12 +328,15 @@ class ScreenshotTest {
         }
     }
 
-    private fun shot(name: String, dark: Boolean = false, content: @Composable () -> Unit) {
+    private fun shot(name: String, dark: Boolean = false, manualClock: Boolean = false, content: @Composable () -> Unit) {
+        // Screens with a text field can have a blinking cursor, which never lets the test clock go idle.
+        if (manualClock) compose.mainClock.autoAdvance = false
         compose.setContent {
             AudioHubTheme(darkTheme = dark, dynamicColor = false) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { content() }
             }
         }
+        if (manualClock) compose.mainClock.advanceTimeBy(1_000)
         compose.onRoot().captureRoboImage("build/screenshots/$name.png")
     }
 
