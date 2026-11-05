@@ -1,0 +1,103 @@
+package com.audiohub.data.db
+
+import androidx.room.Dao
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+abstract class TrackDao {
+
+    @Query("SELECT * FROM tracks ORDER BY title COLLATE NOCASE")
+    abstract fun observeAll(): Flow<List<TrackEntity>>
+
+    @Query("SELECT * FROM tracks WHERE id = :id")
+    abstract suspend fun byId(id: Long): TrackEntity?
+
+    @Query("SELECT * FROM tracks WHERE albumId = :albumId ORDER BY discNumber, trackNumber, title COLLATE NOCASE")
+    abstract fun observeAlbumTracks(albumId: Long): Flow<List<TrackEntity>>
+
+    @Query("SELECT * FROM tracks WHERE artist = :artist ORDER BY album COLLATE NOCASE, discNumber, trackNumber")
+    abstract fun observeArtistTracks(artist: String): Flow<List<TrackEntity>>
+
+    @Query("SELECT * FROM tracks WHERE genre = :genre ORDER BY artist COLLATE NOCASE, album COLLATE NOCASE, trackNumber")
+    abstract fun observeGenreTracks(genre: String): Flow<List<TrackEntity>>
+
+    @Query(
+        """SELECT albumId, MAX(album) AS title, COALESCE(MAX(albumArtist), MAX(artist)) AS artist,
+           MAX(year) AS year, COUNT(*) AS trackCount
+           FROM tracks GROUP BY albumId ORDER BY MAX(album) COLLATE NOCASE""",
+    )
+    abstract fun observeAlbums(): Flow<List<AlbumSummary>>
+
+    @Query(
+        """SELECT albumId, MAX(album) AS title, COALESCE(MAX(albumArtist), MAX(artist)) AS artist,
+           MAX(year) AS year, COUNT(*) AS trackCount
+           FROM tracks GROUP BY albumId ORDER BY MAX(dateAddedSec) DESC LIMIT :limit""",
+    )
+    abstract fun observeRecentlyAddedAlbums(limit: Int): Flow<List<AlbumSummary>>
+
+    @Query(
+        """SELECT albumId, MAX(album) AS title, COALESCE(MAX(albumArtist), MAX(artist)) AS artist,
+           MAX(year) AS year, COUNT(*) AS trackCount
+           FROM tracks WHERE albumId = :albumId GROUP BY albumId""",
+    )
+    abstract fun observeAlbum(albumId: Long): Flow<AlbumSummary?>
+
+    @Query(
+        """SELECT albumId, MAX(album) AS title, COALESCE(MAX(albumArtist), MAX(artist)) AS artist,
+           MAX(year) AS year, COUNT(*) AS trackCount
+           FROM tracks WHERE artist = :artist GROUP BY albumId ORDER BY MAX(year) DESC, MAX(album) COLLATE NOCASE""",
+    )
+    abstract fun observeArtistAlbums(artist: String): Flow<List<AlbumSummary>>
+
+    @Query(
+        """SELECT artist AS name, COUNT(DISTINCT albumId) AS albumCount, COUNT(*) AS trackCount
+           FROM tracks GROUP BY artist ORDER BY artist COLLATE NOCASE""",
+    )
+    abstract fun observeArtists(): Flow<List<ArtistSummary>>
+
+    @Query(
+        """SELECT genre AS name, COUNT(*) AS trackCount FROM tracks
+           WHERE genre IS NOT NULL GROUP BY genre ORDER BY genre COLLATE NOCASE""",
+    )
+    abstract fun observeGenres(): Flow<List<GenreSummary>>
+
+    @Query(
+        """SELECT t.* FROM tracks t JOIN play_stats s ON s.trackId = t.id
+           WHERE s.favorite = 1 ORDER BY s.favoritedAt DESC""",
+    )
+    abstract fun observeFavorites(): Flow<List<TrackEntity>>
+
+    @Query(
+        """SELECT t.* FROM tracks t JOIN play_stats s ON s.trackId = t.id
+           WHERE s.playCount > 0 ORDER BY s.playCount DESC, s.lastPlayedAt DESC LIMIT :limit""",
+    )
+    abstract fun observeMostPlayed(limit: Int): Flow<List<TrackEntity>>
+
+    @Query(
+        """SELECT t.* FROM tracks t JOIN play_stats s ON s.trackId = t.id
+           WHERE s.lastPlayedAt > 0 ORDER BY s.lastPlayedAt DESC LIMIT :limit""",
+    )
+    abstract fun observeRecentlyPlayed(limit: Int): Flow<List<TrackEntity>>
+
+    @Query("SELECT id FROM tracks")
+    abstract suspend fun allIds(): List<Long>
+
+    @Upsert
+    abstract suspend fun upsertAll(tracks: List<TrackEntity>)
+
+    @Query("DELETE FROM tracks WHERE id IN (:ids)")
+    abstract suspend fun deleteByIds(ids: List<Long>)
+
+    /** Makes the table mirror [tracks] exactly (insert/update new ones, drop missing ones). */
+    @Transaction
+    open suspend fun replaceAll(tracks: List<TrackEntity>) {
+        upsertAll(tracks)
+        val keep = tracks.mapTo(HashSet()) { it.id }
+        val stale = allIds().filterNot { it in keep }
+        // SQLite caps bound parameters per statement, so delete in chunks.
+        stale.chunked(500).forEach { deleteByIds(it) }
+    }
+}
