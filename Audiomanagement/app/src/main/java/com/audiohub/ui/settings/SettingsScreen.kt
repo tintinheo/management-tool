@@ -4,6 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import com.audiohub.ui.theme.SectionLabelStyle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,6 +44,7 @@ fun SettingsScreen() {
     val container = context.appContainer
     val settings by container.settings.settings.collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
+    val navActions = com.audiohub.ui.library.LocalTrackActions.current
     var unrestricted by remember { mutableStateOf(BackgroundSettings.isIgnoringBatteryOptimizations(context)) }
     LifecycleResumeEffect(Unit) {
         unrestricted = BackgroundSettings.isIgnoringBatteryOptimizations(context)
@@ -73,6 +77,39 @@ fun SettingsScreen() {
                 current = current.podcastCountry,
                 onPick = { code -> scope.launch { container.settings.setPodcastCountry(code) } },
             )
+            SettingSwitch(
+                title = "Download on Wi-Fi only",
+                subtitle = "Episodes wait for Wi-Fi before downloading",
+                checked = current.downloadWifiOnly,
+                onCheckedChange = { scope.launch { container.settings.setDownloadWifiOnly(it) } },
+            )
+            SettingSwitch(
+                title = "Remove played downloads",
+                subtitle = "Delete an episode's file after you finish it",
+                checked = current.deletePlayedDownloads,
+                onCheckedChange = { scope.launch { container.settings.setDeletePlayedDownloads(it) } },
+            )
+
+            SectionTitle("Playback")
+            SettingSwitch(
+                title = "Skip silence in podcasts",
+                subtitle = "Trims pauses so episodes finish sooner",
+                checked = current.skipSilence,
+                onCheckedChange = { scope.launch { container.settings.setSkipSilence(it) } },
+            )
+            Row(
+                Modifier.fillMaxWidth().clickable { navActions.navigate(com.audiohub.ui.Routes.EQUALIZER) }.padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Equalizer", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        if (current.eqEnabled) "On" else "Off",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             SectionTitle("Background playback")
             ChecklistItem(
@@ -93,7 +130,7 @@ fun SettingsScreen() {
                 ChecklistItem(
                     done = null,
                     title = "HyperOS autostart",
-                    description = "Turn on Autostart for AudioHub.",
+                    description = "Turn on Autostart for My Audio Hub.",
                     actionLabel = "Open",
                     onAction = { BackgroundSettings.openAutostart(context) },
                 )
@@ -104,7 +141,7 @@ fun SettingsScreen() {
             val versionName = remember {
                 context.packageManager.getPackageInfo(context.packageName, 0).versionName
             }
-            Text("AudioHub $versionName", style = MaterialTheme.typography.bodyMedium)
+            Text("My Audio Hub $versionName", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -112,11 +149,33 @@ fun SettingsScreen() {
 @Composable
 private fun SectionTitle(text: String) {
     Text(
-        text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 12.dp),
+        text.uppercase(),
+        style = SectionLabelStyle,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 20.dp),
     )
+}
+
+@Composable
+private fun SettingSwitch(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) }.padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = MaterialTheme.colorScheme.onSurface,
+                checkedThumbColor = MaterialTheme.colorScheme.surface,
+                uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+            ),
+        )
+    }
 }
 
 private val REGIONS = listOf(

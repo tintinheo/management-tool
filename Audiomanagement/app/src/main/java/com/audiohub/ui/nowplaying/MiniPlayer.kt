@@ -1,6 +1,7 @@
 package com.audiohub.ui.nowplaying
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.audiohub.playback.PlayerUiState
 import com.audiohub.ui.components.Artwork
 
+/** Floating "now playing" card above the tab bar. */
 @Composable
 fun MiniPlayer(
     state: PlayerUiState,
@@ -36,41 +38,47 @@ fun MiniPlayer(
     onNext: () -> Unit,
 ) {
     val position = rememberPolledPosition(state.isPlaying, positionProvider)
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
-        Column {
-            // Hairline track with the accent showing progress — the only colour in the bar.
-            LinearProgressIndicator(
-                progress = { if (state.durationMs > 0) (position.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f },
-                modifier = Modifier.fillMaxWidth().height(1.5.dp),
-                trackColor = MaterialTheme.colorScheme.outlineVariant,
-                gapSize = 0.dp,
-                drawStopIndicator = {},
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                Artwork(state.artworkUri, Modifier.size(40.dp))
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(state.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        state.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shadowElevation = 10.dp,
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen),
+        ) {
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 9.dp, bottom = 8.dp),
+                ) {
+                    Artwork(state.artworkUri, Modifier.size(42.dp), cornerRadius = 8.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(state.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            state.artist,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    IconButton(onClick = onPlayPause) {
+                        Icon(
+                            if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = if (state.isPlaying) "Pause" else "Play",
+                        )
+                    }
+                    IconButton(onClick = onNext, enabled = state.hasNext) {
+                        Icon(Icons.Rounded.SkipNext, contentDescription = "Next")
+                    }
                 }
-                IconButton(onClick = onPlayPause) {
-                    Icon(
-                        if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = if (state.isPlaying) "Pause" else "Play",
-                    )
-                }
-                IconButton(onClick = onNext, enabled = state.hasNext) {
-                    Icon(Icons.Rounded.SkipNext, contentDescription = "Next")
-                }
+                LinearProgressIndicator(
+                    progress = { if (state.durationMs > 0) (position.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 6.dp).height(2.dp),
+                    trackColor = MaterialTheme.colorScheme.outlineVariant,
+                    gapSize = 0.dp,
+                    drawStopIndicator = {},
+                )
             }
         }
     }

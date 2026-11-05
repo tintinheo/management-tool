@@ -3,6 +3,8 @@ package com.audiohub.playback
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import android.os.Bundle
+import androidx.media3.session.SessionCommand
 import androidx.core.content.ContextCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -26,6 +28,8 @@ data class QueueItem(
 data class PlayerUiState(
     val hasMedia: Boolean = false,
     val isPlaying: Boolean = false,
+    /** User intent to play (false after pause / sleep timer; stays true when a queue simply ends). */
+    val playWhenReady: Boolean = false,
     val isBuffering: Boolean = false,
     val mediaId: String? = null,
     val title: String = "",
@@ -42,7 +46,13 @@ data class PlayerUiState(
     val speed: Float = 1f,
     /** Items that will play after the current one, in play order (respects shuffle). */
     val upNext: List<QueueItem> = emptyList(),
-)
+    /** Wall-clock time the sleep timer pauses playback (0 = no timed sleep). */
+    val sleepEndsAt: Long = 0,
+    /** Sleep timer set to "end of this track/episode". */
+    val sleepEndOfItem: Boolean = false,
+) {
+    val sleepActive get() = sleepEndsAt > 0 || sleepEndOfItem
+}
 
 /** Transport controls used by the player UI; lets screens be previewed/tested without a player. */
 interface PlayerControls {
@@ -59,6 +69,8 @@ interface PlayerControls {
     fun removeAt(index: Int)
     /** Moves the item at list [from] to list [to] (player indices, see [QueueItem.index]). */
     fun move(from: Int, to: Int)
+    /** Minutes in ms, [PlaybackService.SLEEP_END_OF_ITEM], or 0 to cancel. */
+    fun setSleepTimer(durationMs: Long)
 }
 
 /**
@@ -79,10 +91,19 @@ class PlayerConnection(private val context: Context) : PlayerControls {
         override fun onEvents(player: Player, events: Player.Events) = publish(player)
     }
 
+    private var sleepExtras: Bundle = Bundle.EMPTY
+
+    private val controllerListener = object : MediaController.Listener {
+        override fun onExtrasChanged(controller: MediaController, extras: Bundle) {
+            sleepExtras = extras
+            publish(controller)
+        }
+    }
+
     fun connect() {
         if (controllerFuture != null) return
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        val future = MediaController.Builder(context, token).buildAsync()
+        val future = MediaController.Builder(context, token).setListener(controllerListener).buildAsync()
         controllerFuture = future
         future.addListener({
             val connected = runCatching { future.get() }.getOrNull()
@@ -91,6 +112,7 @@ class PlayerConnection(private val context: Context) : PlayerControls {
                 return@addListener
             }
             connected.addListener(listener)
+            sleepExtras = connected.sessionExtras
             controller = connected
             publish(connected)
             while (pending.isNotEmpty()) pending.removeFirst().invoke(connected)
@@ -117,6 +139,7 @@ class PlayerConnection(private val context: Context) : PlayerControls {
         _state.value = PlayerUiState(
             hasMedia = item != null,
             isPlaying = player.isPlaying,
+            playWhenReady = player.playWhenReady,
             isBuffering = player.playbackState == Player.STATE_BUFFERING,
             mediaId = item?.mediaId,
             title = md.title?.toString().orEmpty(),
@@ -131,6 +154,8 @@ class PlayerConnection(private val context: Context) : PlayerControls {
             queueSize = player.mediaItemCount,
             speed = player.playbackParameters.speed,
             upNext = upNextOf(player),
+            sleepEndsAt = sleepExtras.getLong(PlaybackService.EXTRA_SLEEP_ENDS_AT, 0),
+            sleepEndOfItem = sleepExtras.getBoolean(PlaybackService.EXTRA_SLEEP_END_OF_ITEM, false),
         )
     }
 
@@ -241,6 +266,13 @@ class PlayerConnection(private val context: Context) : PlayerControls {
     fun playNext(item: MediaItem) = playNext(listOf(item))
 
     fun addToQueue(item: MediaItem) = addToQueue(listOf(item))
+
+    override fun setSleepTimer(durationMs: Long) = withController {
+        it.sendCustomCommand(
+            SessionCommand(PlaybackService.ACTION_SLEEP, Bundle.EMPTY),
+            Bundle().apply { putLong(PlaybackService.ARG_DURATION_MS, durationMs) },
+        )
+    }
 
     fun setSpeed(speed: Float) = withController { it.setPlaybackSpeed(speed) }
 

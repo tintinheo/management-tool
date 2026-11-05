@@ -58,6 +58,10 @@ import com.audiohub.ui.Routes
 import com.audiohub.ui.components.Artwork
 import com.audiohub.ui.components.EmptyState
 import com.audiohub.ui.components.ScreenHeader
+import com.audiohub.ui.components.SectionLabel
+import com.audiohub.data.db.FolderSummary
+import com.audiohub.playback.LibraryTree
+import androidx.compose.material.icons.rounded.Folder
 import com.audiohub.ui.components.plural
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -83,9 +87,13 @@ fun PlaylistsScreen() {
         }
     }
 
+    val folders by vm.folders.collectAsStateWithLifecycle()
+    val musicRoot by vm.musicRoot.collectAsStateWithLifecycle()
     PlaylistsContent(
         playlists = playlists,
         actions = actions,
+        folders = folders.filter { it.path != musicRoot },
+        musicRoot = musicRoot,
         onNew = { creating = true },
         onImport = { importLauncher.launch(arrayOf("audio/x-mpegurl", "audio/mpegurl", "application/vnd.apple.mpegurl", "*/*")) },
     )
@@ -110,6 +118,9 @@ fun PlaylistsContent(
     actions: TrackActions,
     onNew: () -> Unit,
     onImport: () -> Unit,
+    /** Subfolders of the music folder — each is an automatic, always-in-sync playlist. */
+    folders: List<FolderSummary> = emptyList(),
+    musicRoot: String = "",
 ) {
     LazyColumn(Modifier.fillMaxSize()) {
         item {
@@ -117,7 +128,20 @@ fun PlaylistsContent(
                 IconButton(onClick = onImport) { Icon(Icons.Rounded.FileDownload, contentDescription = "Import .m3u") }
             }
         }
-        item { ScreenHeader("Playlists", subtitle = plural(playlists.size, "playlist")) }
+        item { ScreenHeader("Playlists", subtitle = plural(playlists.size + folders.size, "playlist")) }
+        if (folders.isNotEmpty()) {
+            item { SectionLabel("Folders") }
+            items(folders, key = { "f:" + it.path }) { f ->
+                PlaylistRow(
+                    title = LibraryTree.folderDisplayName(f.path, musicRoot),
+                    subtitle = plural(f.trackCount, "song"),
+                    cover = f.coverAlbumId?.let(MusicScanner::albumArtUri),
+                    placeholder = Icons.Rounded.Folder,
+                    onClick = { actions.navigate(Routes.folder(f.path)) },
+                )
+            }
+            item { SectionLabel("My playlists") }
+        }
         item { NavRow(Icons.Rounded.Add, "New Playlist…", onClick = onNew) }
         if (playlists.isEmpty()) {
             item {
@@ -149,6 +173,21 @@ fun PlaylistsContent(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistRow(title: String, subtitle: String, cover: android.net.Uri?, placeholder: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Artwork(cover, Modifier.size(56.dp), placeholder = placeholder)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

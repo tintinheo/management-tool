@@ -63,6 +63,10 @@ import com.audiohub.ui.components.Artwork
 import com.audiohub.ui.components.EmptyState
 import com.audiohub.ui.components.Hairline
 import com.audiohub.ui.components.ScreenHeader
+import com.audiohub.ui.components.SortButton
+import com.audiohub.data.SortOrder
+import com.audiohub.data.TrackSorter
+import com.audiohub.playback.LibraryTree
 import com.audiohub.ui.components.SectionLabel
 import com.audiohub.ui.components.plural
 import com.audiohub.ui.components.formatDuration
@@ -86,7 +90,7 @@ fun LibraryHomeScreen() {
         EmptyState(
             icon = Icons.Rounded.Lock,
             title = "Allow access to music",
-            message = "AudioHub needs permission to read the audio files in your music folder.",
+            message = "My Audio Hub needs permission to read the audio files in your music folder.",
             action = { Button(onClick = permission.request) { Text("Allow") } },
         )
         return
@@ -192,10 +196,16 @@ fun TrackListContent(
     emptyTitle: String = "Nothing here yet",
     emptyMessage: String = "",
     subtitle: String? = tracks?.let { plural(it.size, "song") },
+    /** When set, the list shows a sort control; the caller passes [tracks] already sorted. */
+    sort: SortOrder? = null,
+    onSortChange: (SortOrder) -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize()) {
         DetailTopBar("", onBack = actions::back)
         ScreenHeader(title, subtitle = subtitle)
+        if (sort != null && !tracks.isNullOrEmpty()) {
+            SortButton(sort, onSortChange, Modifier.padding(start = 12.dp, bottom = 4.dp))
+        }
         when {
             tracks == null -> Unit
             tracks.isEmpty() -> EmptyState(emptyIcon, emptyTitle, emptyMessage)
@@ -213,7 +223,26 @@ fun TrackListContent(
 fun SongsScreen() {
     val vm = libraryViewModel()
     val tracks by vm.tracks.collectAsStateWithLifecycle()
-    TrackListContent("Songs", tracks, rememberTrackListState(), LocalTrackActions.current)
+    val sort by vm.songSort.collectAsStateWithLifecycle()
+    val sorted = remember(tracks, sort) { tracks?.let { TrackSorter.sort(it, sort) } }
+    TrackListContent("Songs", sorted, rememberTrackListState(), LocalTrackActions.current, sort = sort, onSortChange = vm::setSongSort)
+}
+
+/** A folder of the music library as an automatic playlist (sortable). */
+@Composable
+fun FolderDetailScreen(path: String) {
+    val vm = libraryViewModel()
+    val root by vm.musicRoot.collectAsStateWithLifecycle()
+    val tracks by remember(path) { vm.folderTracks(path) }.collectAsStateWithLifecycle(initialValue = null)
+    val sort by vm.songSort.collectAsStateWithLifecycle()
+    val sorted = remember(tracks, sort) { tracks?.let { TrackSorter.sort(it, sort) } }
+    TrackListContent(
+        LibraryTree.folderDisplayName(path, root), sorted, rememberTrackListState(), LocalTrackActions.current,
+        emptyIcon = Icons.Rounded.Folder,
+        emptyTitle = "Folder is empty",
+        sort = sort,
+        onSortChange = vm::setSongSort,
+    )
 }
 
 @Composable

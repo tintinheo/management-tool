@@ -79,20 +79,20 @@ abstract class PodcastDao {
     abstract fun observeEpisodes(podcastId: Long): Flow<List<EpisodeEntity>>
 
     @Query(
-        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl
+        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl, p.author AS podcastAuthor
            FROM episodes e JOIN podcasts p ON p.id = e.podcastId WHERE e.id = :id""",
     )
     abstract suspend fun episodeWithPodcast(id: Long): EpisodeWithPodcast?
 
     @Query(
-        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl
+        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl, p.author AS podcastAuthor
            FROM episodes e JOIN podcasts p ON p.id = e.podcastId WHERE e.id = :id""",
     )
     abstract fun observeEpisodeWithPodcast(id: Long): Flow<EpisodeWithPodcast?>
 
     /** Started but not finished, most recently listened first. */
     @Query(
-        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl
+        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl, p.author AS podcastAuthor
            FROM episodes e JOIN podcasts p ON p.id = e.podcastId
            WHERE e.played = 0 AND e.positionMs > 0 ORDER BY e.lastPlayedAt DESC LIMIT :limit""",
     )
@@ -100,7 +100,7 @@ abstract class PodcastDao {
 
     /** Newest unplayed, unstarted episodes across all shows. */
     @Query(
-        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl
+        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl, p.author AS podcastAuthor
            FROM episodes e JOIN podcasts p ON p.id = e.podcastId
            WHERE e.played = 0 AND e.positionMs = 0 AND e.pubDate >= :since
            ORDER BY e.pubDate DESC LIMIT :limit""",
@@ -148,7 +148,7 @@ abstract class PodcastDao {
     abstract suspend fun setDownload(id: Long, localUri: String?, state: Int)
 
     @Query(
-        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl
+        """SELECT e.*, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl, p.author AS podcastAuthor
            FROM episodes e JOIN podcasts p ON p.id = e.podcastId
            WHERE e.localUri IS NOT NULL AND p.feedUrl NOT LIKE 'local://%' ORDER BY e.pubDate DESC""",
     )
@@ -184,6 +184,9 @@ abstract class PodcastDao {
 
     @Query("DELETE FROM episodes WHERE podcastId = :podcastId AND guid NOT IN (:keepGuids)")
     abstract suspend fun deleteEpisodesExcept(podcastId: Long, keepGuids: List<String>)
+
+    @Query("UPDATE episodes SET fileModifiedAt = :modifiedAt WHERE podcastId = :podcastId AND guid = :guid")
+    abstract suspend fun setFileModified(podcastId: Long, guid: String, modifiedAt: Long)
 
     @Query("SELECT * FROM podcasts WHERE feedUrl LIKE 'local://%'")
     abstract suspend fun localPodcasts(): List<PodcastEntity>

@@ -97,6 +97,7 @@ class ScreenshotTest {
         override fun jumpTo(index: Int) = Unit
         override fun removeAt(index: Int) = Unit
         override fun move(from: Int, to: Int) = Unit
+        override fun setSleepTimer(durationMs: Long) = Unit
     }
 
     private val albums = listOf(
@@ -127,7 +128,42 @@ class ScreenshotTest {
     }
 
     @Test
-    fun songs() = shot("songs") { TrackListContent("Songs", tracks, listState, TrackActions.None) }
+    fun songs() = shot("songs") {
+        TrackListContent("Songs", tracks, listState, TrackActions.None, sort = com.audiohub.data.SortOrder(com.audiohub.data.SortField.TITLE))
+    }
+
+    @Test
+    fun playlistsWithFolders() = shot("playlists_folders") {
+        com.audiohub.ui.library.PlaylistsContent(
+            playlists = listOf(com.audiohub.data.db.PlaylistSummary(1, "Road Trip", 24, 1)),
+            actions = TrackActions.None,
+            onNew = {}, onImport = {},
+            folders = listOf(
+                com.audiohub.data.db.FolderSummary("Music/AudioHub/Jazz/", 31, 4),
+                com.audiohub.data.db.FolderSummary("Music/AudioHub/Nhạc Việt/", 112, 3),
+                com.audiohub.data.db.FolderSummary("Music/AudioHub/Nhạc Việt/Trịnh Công Sơn/", 18, 3),
+            ),
+            musicRoot = "Music/AudioHub/",
+        )
+    }
+
+    @Test
+    fun equalizer() = shot("equalizer") {
+        com.audiohub.ui.settings.EqualizerContent(
+            info = com.audiohub.playback.EqualizerInfo(
+                presets = listOf("Normal", "Classical", "Dance", "Jazz", "Pop", "Rock"),
+                bandFrequencies = listOf(60, 230, 910, 3600, 14000),
+                minLevel = -1500, maxLevel = 1500,
+            ),
+            enabled = true, preset = -1, bands = listOf(400, 200, 0, 300, 600),
+            onChange = { _, _, _ -> }, onOpenSystem = {},
+        )
+    }
+
+    @Test
+    fun sleepTimerDialog() = shot("sleep_timer") {
+        com.audiohub.ui.nowplaying.SleepTimerDialog(active = true, onPick = {}, onDismiss = {})
+    }
 
     @Test
     fun albumDetail() = shot("album_detail") {

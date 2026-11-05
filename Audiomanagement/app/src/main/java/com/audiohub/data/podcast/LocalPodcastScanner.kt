@@ -21,6 +21,7 @@ data class LocalAudio(
     val durationMs: Long,
     val dateAddedSec: Long,
     val mimeType: String?,
+    val dateModifiedSec: Long = 0,
 )
 
 /**
@@ -45,7 +46,7 @@ class LocalPodcastScanner(
         val projection = arrayOf(
             MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.DISPLAY_NAME,
             MediaStore.Audio.Media.RELATIVE_PATH, MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.DATE_ADDED, MediaStore.Audio.Media.MIME_TYPE,
+            MediaStore.Audio.Media.DATE_ADDED, MediaStore.Audio.Media.MIME_TYPE, MediaStore.Audio.Media.DATE_MODIFIED,
         )
         val selection = "${MediaStore.Audio.Media.RELATIVE_PATH} LIKE ? AND ${MediaStore.Audio.Media.IS_PENDING} = 0"
         val out = ArrayList<LocalAudio>()
@@ -61,6 +62,7 @@ class LocalPodcastScanner(
                     durationMs = c.getLong(4),
                     dateAddedSec = c.getLong(5),
                     mimeType = c.getString(6),
+                    dateModifiedSec = c.getLong(7),
                 )
             }
         }
@@ -100,6 +102,7 @@ class LocalPodcastScanner(
             }
             dao.mergeEpisodes(id, episodes)
             dao.markAllLocal(id)
+            list.forEach { f -> dao.setFileModified(id, "media:${f.mediaId}", f.dateModifiedSec * 1000) }
             dao.deleteEpisodesExcept(id, episodes.map { it.guid })
         }
         // Folders that no longer contain audio disappear.

@@ -2,6 +2,7 @@ package com.audiohub.data.music
 
 import com.audiohub.data.db.AlbumSummary
 import com.audiohub.data.db.ArtistSummary
+import com.audiohub.data.db.FolderSummary
 import com.audiohub.data.db.GenreSummary
 import com.audiohub.data.db.TrackDao
 import com.audiohub.data.db.TrackEntity
@@ -30,6 +31,10 @@ class MusicRepository(
     val artists: Flow<List<ArtistSummary>> = trackDao.observeArtists()
     val genres: Flow<List<GenreSummary>> = trackDao.observeGenres()
     val favorites: Flow<List<TrackEntity>> = trackDao.observeFavorites()
+    /** Every folder that directly contains audio (each one is an automatic playlist). */
+    val folders: Flow<List<FolderSummary>> = trackDao.observeFolders()
+
+    fun folderTracks(path: String) = trackDao.observeFolderTracks(path)
 
     fun recentlyAddedAlbums(limit: Int = 20) = trackDao.observeRecentlyAddedAlbums(limit)
     fun mostPlayed(limit: Int = 100) = trackDao.observeMostPlayed(limit)

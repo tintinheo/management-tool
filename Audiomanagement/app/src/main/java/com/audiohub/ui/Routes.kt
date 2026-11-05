@@ -18,12 +18,16 @@ object Routes {
     const val FAVORITES = "favorites"
     const val MOST_PLAYED = "most_played"
     const val RECENTLY_PLAYED = "recently_played"
+    const val DOWNLOADS = "downloads"
+    const val EQUALIZER = "equalizer"
 
     // Details
     const val ALBUM = "album/{albumId}"
     const val ARTIST = "artist/{name}"
     const val GENRE = "genre/{name}"
     const val PLAYLIST = "playlist/{playlistId}"
+    /** Folder playlists use a query parameter because paths contain slashes. */
+    const val FOLDER = "folder?path={path}"
 
     /** A podcast show: by saved id, by feed URL (preview/follow), or by Apple id (resolved via lookup). */
     const val SHOW = "show?id={id}&feed={feed}&itunes={itunes}"
@@ -35,6 +39,7 @@ object Routes {
     fun artist(name: String) = "artist/${Uri.encode(name)}"
     fun genre(name: String) = "genre/${Uri.encode(name)}"
     fun playlist(playlistId: Long) = "playlist/$playlistId"
+    fun folder(path: String) = "folder?path=${Uri.encode(path)}"
 
     val TABS = setOf(LIBRARY, PODCASTS, SEARCH, SETTINGS)
 

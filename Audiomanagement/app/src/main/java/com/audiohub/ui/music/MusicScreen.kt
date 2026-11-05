@@ -70,7 +70,7 @@ fun MusicScreen() {
         EmptyState(
             icon = Icons.Rounded.Lock,
             title = "Allow access to music",
-            message = "AudioHub needs permission to read the audio files in your music folder.",
+            message = "My Audio Hub needs permission to read the audio files in your music folder.",
             action = { Button(onClick = permission.request) { Text("Allow") } },
         )
         return

@@ -26,7 +26,10 @@ import com.audiohub.appContainer
 import com.audiohub.data.db.PodcastDao
 import com.audiohub.data.podcast.DownloadState
 import com.audiohub.data.settings.SettingsRepository
-import com.audiohub.system.AppPermissions
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import java.util.concurrent.TimeUnit
 
 object Notifications {
@@ -50,7 +53,10 @@ object Notifications {
     )
 
     fun showNewEpisodes(context: Context, count: Int) {
-        if (count <= 0 || !AppPermissions.isGranted(context, AppPermissions.NOTIFICATIONS)) return
+        if (count <= 0) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return
         val n = NotificationCompat.Builder(context, CHANNEL_NEW_EPISODES)
             .setSmallIcon(R.drawable.ic_stat_audiohub)
             .setContentTitle(if (count == 1) "1 new episode" else "$count new episodes")

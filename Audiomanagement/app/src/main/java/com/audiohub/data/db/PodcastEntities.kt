@@ -1,5 +1,6 @@
 package com.audiohub.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -62,6 +63,8 @@ data class EpisodeEntity(
     /** Phase 5: content:// URI of the downloaded file. */
     val localUri: String? = null,
     val downloadState: Int = 0,
+    /** For files in the podcast folder: file modification time (ms). Added in schema v4. */
+    @ColumnInfo(defaultValue = "0") val fileModifiedAt: Long = 0,
 )
 
 /** Episode joined with the show fields the UI needs. */
@@ -69,6 +72,7 @@ data class EpisodeWithPodcast(
     @Embedded val episode: EpisodeEntity,
     val podcastTitle: String,
     val podcastArtworkUrl: String?,
+    val podcastAuthor: String = "",
 )
 
 data class PodcastSummary(

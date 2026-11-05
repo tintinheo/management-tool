@@ -5,6 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import com.audiohub.data.db.EpisodeEntity
 import com.audiohub.data.db.EpisodeFeedData
 import com.audiohub.data.db.EpisodeWithPodcast
+import com.audiohub.data.SortableEpisode
 import com.audiohub.data.podcast.DownloadState
 import com.audiohub.data.podcast.PodcastRepository
 import com.audiohub.playback.EPISODE_ID_PREFIX
@@ -15,10 +16,10 @@ import com.audiohub.playback.podcastEpisodeItem
 data class EpisodeUi(
     /** null for episodes of shows that aren't followed (preview): playable, progress not saved. */
     val episodeId: Long?,
-    val title: String,
-    val showTitle: String,
+    override val title: String,
+    override val showTitle: String,
     val description: String,
-    val pubDate: Long,
+    override val pubDate: Long,
     val durationMs: Long,
     val positionMs: Long,
     val played: Boolean,
@@ -26,7 +27,11 @@ data class EpisodeUi(
     val localUri: String?,
     val artworkUrl: String?,
     val downloadState: Int = DownloadState.NONE,
-) {
+    override val showAuthor: String = "",
+    val fileModifiedAt: Long = 0,
+) : SortableEpisode {
+    override val sortName: String get() = title
+    override val modifiedAt: Long get() = fileModifiedAt
     val key: String get() = episodeId?.toString() ?: enclosureUrl
     val mediaId: String get() = episodeId?.let { "$EPISODE_ID_PREFIX$it" } ?: "$STREAM_ID_PREFIX$enclosureUrl"
     val inProgress: Boolean get() = !played && positionMs > 0
@@ -39,18 +44,19 @@ data class EpisodeUi(
     fun toMediaItem() = podcastEpisodeItem(mediaId, title, showTitle, enclosureUrl, localUri, artworkUrl)
 }
 
-fun EpisodeWithPodcast.toUi() = episode.toUi(podcastTitle, podcastArtworkUrl)
+fun EpisodeWithPodcast.toUi() = episode.toUi(podcastTitle, podcastArtworkUrl, podcastAuthor)
 
-fun EpisodeEntity.toUi(showTitle: String, showArtwork: String?) = EpisodeUi(
+fun EpisodeEntity.toUi(showTitle: String, showArtwork: String?, showAuthor: String = "") = EpisodeUi(
     episodeId = id, title = title, showTitle = showTitle, description = description, pubDate = pubDate,
     durationMs = durationMs, positionMs = positionMs, played = played, enclosureUrl = enclosureUrl,
     localUri = localUri, artworkUrl = artworkUrl ?: showArtwork, downloadState = downloadState,
+    showAuthor = showAuthor, fileModifiedAt = fileModifiedAt,
 )
 
-fun EpisodeFeedData.toPreviewUi(showTitle: String, showArtwork: String?) = EpisodeUi(
+fun EpisodeFeedData.toPreviewUi(showTitle: String, showArtwork: String?, showAuthor: String = "") = EpisodeUi(
     episodeId = null, title = title, showTitle = showTitle, description = description, pubDate = pubDate,
     durationMs = durationMs, positionMs = 0, played = false, enclosureUrl = enclosureUrl, localUri = null,
-    artworkUrl = artworkUrl ?: showArtwork,
+    artworkUrl = artworkUrl ?: showArtwork, showAuthor = showAuthor,
 )
 
 /** Everything an episode list can ask for. */

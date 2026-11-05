@@ -26,6 +26,10 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
+import androidx.compose.material.icons.rounded.Download
+import com.audiohub.data.podcast.EpisodeDownloader
+import com.audiohub.data.podcast.isLocalFeed
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -56,6 +60,14 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.audiohub.appContainer
 import com.audiohub.data.podcast.ParsedFeed
+import com.audiohub.data.EpisodeSorter
+import com.audiohub.data.SortOrder
+import com.audiohub.data.settings.SettingsRepository
+import com.audiohub.ui.components.Hairline
+import com.audiohub.ui.components.SectionLabel
+import com.audiohub.ui.components.SortButton
+import com.audiohub.ui.components.plural
+import androidx.compose.runtime.rememberCoroutineScope
 import com.audiohub.data.podcast.PodcastRepository
 import com.audiohub.ui.components.Artwork
 import com.audiohub.ui.components.EmptyState
@@ -85,6 +97,9 @@ sealed interface ShowUiState {
         val episodes: List<EpisodeUi>,
         val podcastId: Long?,
         val busy: Boolean = false,
+        val autoDownload: Boolean = false,
+        /** A folder of audio files on the phone rather than an RSS feed. */
+        val isLocal: Boolean = false,
     ) : ShowUiState {
         val following get() = podcastId != null
     }
@@ -93,6 +108,7 @@ sealed interface ShowUiState {
 @OptIn(ExperimentalCoroutinesApi::class)
 class PodcastShowViewModel(
     private val repo: PodcastRepository,
+    private val downloader: EpisodeDownloader,
     podcastId: Long?,
     private var feedUrl: String?,
     private val itunesId: Long?,
@@ -109,9 +125,11 @@ class PodcastShowViewModel(
                 if (p == null) ShowUiState.Loading
                 else ShowUiState.Ready(
                     ShowHeader(p.title, p.author, p.description, p.artworkUrl),
-                    eps.map { it.toUi(p.title, p.artworkUrl) },
+                    eps.map { it.toUi(p.title, p.artworkUrl, p.author) },
                     podcastId = p.id,
                     busy = b,
+                    autoDownload = p.autoDownload,
+                    isLocal = isLocalFeed(p.feedUrl),
                 )
             }
         } else {
@@ -121,7 +139,7 @@ class PodcastShowViewModel(
                     feed == null -> ShowUiState.Loading
                     else -> ShowUiState.Ready(
                         ShowHeader(feed.title, feed.author, feed.description, feed.artworkUrl),
-                        feed.episodes.map { it.toPreviewUi(feed.title, feed.artworkUrl) },
+                        feed.episodes.map { it.toPreviewUi(feed.title, feed.artworkUrl, feed.author) },
                         podcastId = null,
                         busy = b,
                     )
@@ -171,9 +189,15 @@ class PodcastShowViewModel(
     fun unfollow(onDone: () -> Unit) {
         val id = subscribedId.value ?: return
         viewModelScope.launch {
+            downloader.deleteAllFor(id) // free the space used by this show's downloads
             repo.unsubscribe(id)
             onDone()
         }
+    }
+
+    fun setAutoDownload(enabled: Boolean) {
+        val id = subscribedId.value ?: return
+        viewModelScope.launch { repo.setAutoDownload(id, enabled) }
     }
 
     fun refresh() {
@@ -200,10 +224,14 @@ fun PodcastShowScreen(podcastId: Long?, feedUrl: String?, itunesId: Long?) {
     val container = LocalContext.current.appContainer
     val vm: PodcastShowViewModel = viewModel(
         key = "show:$podcastId:$feedUrl:$itunesId",
-        factory = viewModelFactory { initializer { PodcastShowViewModel(container.podcastRepository, podcastId, feedUrl, itunesId) } },
+        factory = viewModelFactory {
+            initializer { PodcastShowViewModel(container.podcastRepository, container.episodeDownloader, podcastId, feedUrl, itunesId) }
+        },
     )
     val state by vm.state.collectAsStateWithLifecycle()
     val player by container.playerConnection.state.collectAsStateWithLifecycle()
+    val settings by container.settings.settings.collectAsStateWithLifecycle(initialValue = null)
+    val scope = rememberCoroutineScope()
     val actions = LocalPodcastActions.current
     PodcastShowContent(
         state = state,
@@ -214,6 +242,9 @@ fun PodcastShowScreen(podcastId: Long?, feedUrl: String?, itunesId: Long?) {
         onUnfollow = { vm.unfollow(onDone = actions::back) },
         onRefresh = vm::refresh,
         onRetry = vm::retry,
+        onAutoDownloadChange = vm::setAutoDownload,
+        sort = settings?.episodeSort ?: SettingsRepository.DEFAULT_EPISODE_SORT,
+        onSortChange = { scope.launch { container.settings.setEpisodeSort(it) } },
     )
 }
 
@@ -227,12 +258,15 @@ fun PodcastShowContent(
     onUnfollow: () -> Unit,
     onRefresh: () -> Unit,
     onRetry: () -> Unit,
+    onAutoDownloadChange: (Boolean) -> Unit = {},
+    sort: SortOrder = SettingsRepository.DEFAULT_EPISODE_SORT,
+    onSortChange: (SortOrder) -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmUnfollow by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         DetailTopBar("", onBack = actions::back) {
-            if (state is ShowUiState.Ready && state.following) {
+            if (state is ShowUiState.Ready && state.following && !state.isLocal) {
                 Box {
                     IconButton(onClick = { menuOpen = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = "Show options") }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -240,6 +274,14 @@ fun PodcastShowContent(
                             text = { Text("Refresh") },
                             leadingIcon = { Icon(Icons.Rounded.Refresh, null) },
                             onClick = { menuOpen = false; onRefresh() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Auto-download new episodes") },
+                            leadingIcon = { Icon(Icons.Rounded.Download, null) },
+                            trailingIcon = {
+                                Checkbox(checked = state.autoDownload, onCheckedChange = null)
+                            },
+                            onClick = { menuOpen = false; onAutoDownloadChange(!state.autoDownload) },
                         )
                         DropdownMenuItem(
                             text = { Text("Unfollow") },
@@ -262,18 +304,17 @@ fun PodcastShowContent(
                 item { ShowHeaderBlock(state, onFollow) }
                 if (state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) }
                 item {
-                    Text(
-                        "Episodes · ${state.episodes.size}",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 4.dp),
-                    )
+                    Row(Modifier.fillMaxWidth().padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        SectionLabel(plural(state.episodes.size, "episode"), Modifier.weight(1f))
+                        SortButton(sort, onSortChange, Modifier.padding(top = 20.dp), labels = mapOf(com.audiohub.data.SortField.ALBUM to "Show", com.audiohub.data.SortField.ARTIST to "Author", com.audiohub.data.SortField.DATE_ADDED to "Release date"))
+                    }
                 }
                 if (state.episodes.isEmpty()) {
                     item { EmptyState(Icons.Rounded.Podcasts, "No episodes", "This feed has no playable episodes.") }
                 }
-                items(state.episodes, key = { it.key }) { e ->
+                items(EpisodeSorter.sort(state.episodes, sort), key = { it.key }) { e ->
                     EpisodeRow(e, actions, e.mediaId == currentMediaId, isPlaying, showArtwork = false)
-                    HorizontalDivider(Modifier.padding(horizontal = 20.dp))
+                    Hairline()
                 }
             }
         }

@@ -75,6 +75,7 @@ class MusicScanner(private val context: Context) {
             add(MediaStore.Audio.Media.YEAR)
             add(MediaStore.Audio.Media.DURATION)
             add(MediaStore.Audio.Media.DATE_ADDED)
+            add(MediaStore.Audio.Media.DATE_MODIFIED)
             add(MediaStore.Audio.Media.RELATIVE_PATH)
             add(MediaStore.Audio.Media.DISPLAY_NAME)
             if (hasGenre) add(MediaStore.Audio.Media.GENRE)
@@ -96,6 +97,7 @@ class MusicScanner(private val context: Context) {
             val yearCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
             val durationCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val dateAddedCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+            val dateModifiedCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
             val pathCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH)
             val nameCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
             val genreCol = if (hasGenre) c.getColumnIndexOrThrow(MediaStore.Audio.Media.GENRE) else -1
@@ -119,6 +121,7 @@ class MusicScanner(private val context: Context) {
                     genre = if (genreCol >= 0) c.getString(genreCol).cleanTag() else null,
                     durationMs = c.getLong(durationCol),
                     dateAddedSec = c.getLong(dateAddedCol),
+                    dateModifiedSec = c.getLong(dateModifiedCol),
                     relativePath = c.getString(pathCol).orEmpty(),
                     displayName = displayName,
                 ).let { it.copy(searchText = SearchText.of(it.title, it.artist, it.album, it.albumArtist)) }

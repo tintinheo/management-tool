@@ -37,7 +37,7 @@ object Opml {
             ?.let { p.getAttributeValue(it)?.trim() }
             ?.takeIf { it.isNotEmpty() }
 
-    fun format(entries: List<OpmlEntry>, title: String = "AudioHub subscriptions"): String = buildString {
+    fun format(entries: List<OpmlEntry>, title: String = "My Audio Hub subscriptions"): String = buildString {
         append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         append("<opml version=\"2.0\">\n")
         append("  <head><title>").append(escape(title)).append("</title></head>\n")

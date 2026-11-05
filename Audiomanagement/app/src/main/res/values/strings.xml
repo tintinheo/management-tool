@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AudioHub</string>
+    <string name="app_name">My Audio Hub</string>
+    <string name="widget_description">Now playing with play, pause and skip</string>
 </resources>

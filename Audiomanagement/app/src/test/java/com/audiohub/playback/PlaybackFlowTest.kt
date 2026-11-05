@@ -156,6 +156,35 @@ class PlaybackFlowTest {
         waitFor("music at 1x") { connection.state.value.isPlaying && connection.state.value.speed == 1f }
     }
 
+    @Test
+    fun sleepTimerPausesAfterDurationAndAtEndOfTrack() {
+        // Timed: pauses (after fading) once the duration elapses, then clears itself.
+        connection.playQueue(listOf(wavItem("Long", 330.0, seconds = 30)))
+        waitFor("playing") { connection.state.value.isPlaying }
+        connection.setSleepTimer(1_500)
+        waitFor("timer visible") { connection.state.value.sleepEndsAt > 0 }
+        waitFor("paused by timer", timeoutMs = 6_000) { !connection.state.value.isPlaying }
+        waitFor("timer cleared") { !connection.state.value.sleepActive }
+        // A natural end keeps playWhenReady=true; only a pause (the timer) clears it.
+        assertTrue("paused by the timer (pos=${connection.currentPositionMs})", !connection.state.value.playWhenReady)
+
+        // End of track: the first item plays out, then playback pauses instead of continuing.
+        connection.playQueue(listOf(wavItem("A", 440.0, seconds = 1), wavItem("B", 550.0, seconds = 3)))
+        waitFor("playing A") { connection.state.value.isPlaying }
+        connection.setSleepTimer(PlaybackService.SLEEP_END_OF_ITEM)
+        waitFor("end-of-track armed") { connection.state.value.sleepEndOfItem }
+        waitFor("paused at end of A", timeoutMs = 6_000) { !connection.state.value.isPlaying }
+        waitFor("timer cleared") { !connection.state.value.sleepActive }
+        assertTrue("didn't play through B", connection.state.value.title != "B" || connection.currentPositionMs < 500)
+
+        // Cancel works.
+        connection.togglePlayPause()
+        connection.setSleepTimer(60_000)
+        waitFor("armed") { connection.state.value.sleepActive }
+        connection.setSleepTimer(0)
+        waitFor("cancelled") { !connection.state.value.sleepActive }
+    }
+
     /** Pumps the main looper (controller callbacks) while ExoPlayer runs on its own thread. */
     private fun waitFor(what: String, timeoutMs: Long = 8_000, condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + timeoutMs

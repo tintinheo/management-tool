@@ -67,6 +67,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -115,10 +121,46 @@ fun NowPlayingSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var panel by rememberSaveable { mutableStateOf(NowPlayingPanel.Artwork) }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        NowPlayingContent(
-            state, player, isFavorite, canFavorite, onToggleFavorite, lyrics, panel, { panel = it },
-            isPodcast = isPodcast, podcastSpeed = podcastSpeed, onCycleSpeed = onCycleSpeed, showNotes = showNotes,
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.background,
+        dragHandle = {
+            Box(
+                Modifier.padding(top = 10.dp, bottom = 6.dp).size(width = 36.dp, height = 4.dp)
+                    .clip(CircleShape).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+            )
+        },
+    ) {
+        Box {
+            // Soft, blurred artwork glow behind everything — the "gallery" backdrop.
+            ArtworkBackdrop(state.artworkUri, Modifier.matchParentSize())
+            NowPlayingContent(
+                state, player, isFavorite, canFavorite, onToggleFavorite, lyrics, panel, { panel = it },
+                isPodcast = isPodcast, podcastSpeed = podcastSpeed, onCycleSpeed = onCycleSpeed, showNotes = showNotes,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArtworkBackdrop(uri: android.net.Uri?, modifier: Modifier) {
+    if (uri == null) return
+    val bg = MaterialTheme.colorScheme.background
+    Box(modifier) {
+        coil3.compose.AsyncImage(
+            model = uri,
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            alpha = 0.45f,
+            modifier = Modifier.fillMaxSize().blur(80.dp),
+        )
+        Box(
+            Modifier.fillMaxSize().background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0f to bg.copy(alpha = 0.2f), 0.55f to bg.copy(alpha = 0.75f), 1f to bg,
+                ),
+            ),
         )
     }
 }
@@ -156,12 +198,12 @@ fun NowPlayingContent(
             .padding(bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).padding(top = 8.dp)) {
             when (panel) {
                 NowPlayingPanel.Artwork -> Artwork(
                     state.artworkUri,
-                    Modifier.fillMaxSize(),
-                    cornerRadius = 8.dp,
+                    Modifier.fillMaxSize().shadow(28.dp, MaterialTheme.shapes.medium, spotColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f)),
+                    cornerRadius = 12.dp,
                     placeholder = if (isPodcast) Icons.Rounded.Podcasts else Icons.Rounded.MusicNote,
                 )
                 NowPlayingPanel.Lyrics ->
@@ -172,7 +214,7 @@ fun NowPlayingContent(
         Spacer(Modifier.height(20.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(state.title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(state.title, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     listOf(state.artist, state.album).filter { it.isNotBlank() }.joinToString(" — "),
                     style = MaterialTheme.typography.bodyLarge,
@@ -278,11 +320,74 @@ fun NowPlayingContent(
             ) {
                 onPanelChange(if (it) NowPlayingPanel.Lyrics else NowPlayingPanel.Artwork)
             }
+            SleepTimerButton(state, player)
             PanelToggle(Icons.AutoMirrored.Rounded.QueueMusic, "Up Next", panel == NowPlayingPanel.Queue) {
                 onPanelChange(if (it) NowPlayingPanel.Queue else NowPlayingPanel.Artwork)
             }
         }
     }
+}
+
+// ------------------------------------------------------------------ Sleep timer
+
+@Composable
+private fun SleepTimerButton(state: PlayerUiState, player: PlayerControls) {
+    var open by remember { mutableStateOf(false) }
+    val tint = if (state.sleepActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    // Re-render once a minute so the remaining time stays fresh.
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(state.sleepEndsAt) {
+        while (state.sleepEndsAt > 0) {
+            now = System.currentTimeMillis()
+            delay(15_000)
+        }
+    }
+    Row(
+        Modifier.clip(CircleShape).clickable { open = true }.padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.Bedtime, contentDescription = "Sleep timer", tint = tint)
+        val label = when {
+            state.sleepEndOfItem -> "End"
+            state.sleepEndsAt > 0 -> "${((state.sleepEndsAt - now + 59_999) / 60_000).coerceAtLeast(1)}m"
+            else -> null
+        }
+        if (label != null) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = tint, modifier = Modifier.padding(start = 4.dp))
+        }
+    }
+    if (open) {
+        SleepTimerDialog(
+            active = state.sleepActive,
+            onPick = { player.setSleepTimer(it); open = false },
+            onDismiss = { open = false },
+        )
+    }
+}
+
+@Composable
+fun SleepTimerDialog(active: Boolean, onPick: (Long) -> Unit, onDismiss: () -> Unit) {
+    val options = listOf(5, 15, 30, 45, 60, 90).map { "$it minutes" to it * 60_000L } +
+        ("End of track / episode" to com.audiohub.playback.PlaybackService.SLEEP_END_OF_ITEM)
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sleep timer", style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            Column {
+                options.forEach { (label, ms) ->
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable { onPick(ms) }.padding(vertical = 12.dp, horizontal = 4.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (active) TextButton(onClick = { onPick(0) }) { Text("Turn off") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable

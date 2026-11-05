@@ -1,6 +1,9 @@
 package com.audiohub.ui.library
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -175,12 +178,12 @@ fun PlayShuffleButtons(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilledTonalButton(onClick = { actions.play(tracks, 0) }, enabled = tracks.isNotEmpty(), shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f).height(44.dp)) {
+        OutlinedButton(onClick = { actions.play(tracks, 0) }, enabled = tracks.isNotEmpty(), shape = MaterialTheme.shapes.medium, border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outline), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface), modifier = Modifier.weight(1f).height(46.dp)) {
             Icon(Icons.Rounded.PlayArrow, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text("Play")
         }
-        FilledTonalButton(onClick = { actions.shuffle(tracks) }, enabled = tracks.isNotEmpty(), shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f).height(44.dp)) {
+        OutlinedButton(onClick = { actions.shuffle(tracks) }, enabled = tracks.isNotEmpty(), shape = MaterialTheme.shapes.medium, border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outline), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface), modifier = Modifier.weight(1f).height(46.dp)) {
             Icon(Icons.Rounded.Shuffle, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text("Shuffle")

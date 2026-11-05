@@ -51,7 +51,10 @@ import com.audiohub.playback.episodeIdOf
 import com.audiohub.playback.isPodcastMediaId
 import com.audiohub.playback.trackContentUri
 import com.audiohub.playback.trackIdOf
+import com.audiohub.AppContainer
+import com.audiohub.ui.podcasts.DownloadsScreen
 import com.audiohub.ui.podcasts.EpisodeUi
+import com.audiohub.ui.podcasts.LocalDownloadProgress
 import com.audiohub.ui.podcasts.LocalPodcastActions
 import com.audiohub.ui.podcasts.PodcastActions
 import com.audiohub.ui.podcasts.PodcastShowScreen
@@ -62,6 +65,8 @@ import com.audiohub.ui.library.AlbumsScreen
 import com.audiohub.ui.library.ArtistDetailScreen
 import com.audiohub.ui.library.ArtistsScreen
 import com.audiohub.ui.library.FavoritesScreen
+import com.audiohub.ui.library.FolderDetailScreen
+import com.audiohub.ui.settings.EqualizerScreen
 import com.audiohub.ui.library.GenreDetailScreen
 import com.audiohub.ui.library.GenresScreen
 import com.audiohub.ui.library.LibraryHomeScreen
@@ -124,18 +129,35 @@ private class AppTrackActions(
 }
 
 private class AppPodcastActions(
-    private val repo: PodcastRepository,
-    private val player: PlayerConnection,
+    private val container: AppContainer,
     private val nav: NavHostController,
     private val scope: CoroutineScope,
 ) : PodcastActions {
+    private val repo = container.podcastRepository
+    private val player = container.playerConnection
+
     override fun play(episode: EpisodeUi) =
         player.playQueue(listOf(episode.toMediaItem()), startPositionMs = episode.resumePositionMs)
     override fun playNext(episode: EpisodeUi) = player.playNext(episode.toMediaItem())
     override fun addToQueue(episode: EpisodeUi) = player.addToQueue(episode.toMediaItem())
     override fun setPlayed(episode: EpisodeUi, played: Boolean) {
         val id = episode.episodeId ?: return
-        scope.launch { repo.setPlayed(id, played) }
+        scope.launch {
+            repo.setPlayed(id, played)
+            if (played) container.episodeDownloader.onPlayed(id)
+        }
+    }
+    override fun download(episode: EpisodeUi) {
+        val id = episode.episodeId ?: return
+        scope.launch { container.downloadScheduler.enqueue(id) }
+    }
+    override fun cancelDownload(episode: EpisodeUi) {
+        val id = episode.episodeId ?: return
+        scope.launch { container.downloadScheduler.cancel(id) }
+    }
+    override fun removeDownload(episode: EpisodeUi) {
+        val id = episode.episodeId ?: return
+        scope.launch { container.episodeDownloader.delete(id) }
     }
     override fun navigate(route: String) = nav.navigate(route) { launchSingleTop = true }
     override fun back() {
@@ -164,11 +186,23 @@ private fun MainScaffold() {
     val actions = remember(vm, navController) { AppTrackActions(vm, navController) { addToPlaylistIds = it } }
     val scope = rememberCoroutineScope()
     val settings by container.settings.settings.collectAsStateWithLifecycle(initialValue = null)
-    val podcastActions = remember(navController, scope) {
-        AppPodcastActions(container.podcastRepository, player, navController, scope)
+    val podcastActions = remember(navController, scope) { AppPodcastActions(container, navController, scope) }
+    val downloadProgress by container.downloadProgress.progress.collectAsStateWithLifecycle()
+
+    // Links opened/shared into the app (podcasts.apple.com, RSS) → show page.
+    val pendingRoute by container.pendingRoute.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingRoute) {
+        pendingRoute?.let { route ->
+            container.pendingRoute.value = null
+            navController.navigate(route) { launchSingleTop = true }
+        }
     }
 
-    CompositionLocalProvider(LocalTrackActions provides actions, LocalPodcastActions provides podcastActions) {
+    CompositionLocalProvider(
+        LocalTrackActions provides actions,
+        LocalPodcastActions provides podcastActions,
+        LocalDownloadProgress provides downloadProgress,
+    ) {
         Scaffold(
             bottomBar = {
                 Column {
@@ -234,6 +268,11 @@ private fun MainScaffold() {
                 composable(Routes.FAVORITES) { FavoritesScreen() }
                 composable(Routes.MOST_PLAYED) { MostPlayedScreen() }
                 composable(Routes.RECENTLY_PLAYED) { RecentlyPlayedScreen() }
+                composable(Routes.DOWNLOADS) { DownloadsScreen() }
+                composable(Routes.FOLDER, listOf(navArgument("path") { type = NavType.StringType; defaultValue = "" })) {
+                    FolderDetailScreen(it.arguments?.getString("path").orEmpty())
+                }
+                composable(Routes.EQUALIZER) { EqualizerScreen() }
 
                 composable(Routes.ALBUM, listOf(navArgument("albumId") { type = NavType.LongType })) {
                     AlbumDetailScreen(it.arguments?.getLong("albumId") ?: 0L)

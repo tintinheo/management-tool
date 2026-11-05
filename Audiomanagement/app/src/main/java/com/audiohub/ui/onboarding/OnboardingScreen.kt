@@ -64,7 +64,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
 
 @Composable
 private fun WelcomeStep(onNext: () -> Unit) {
-    Text("Welcome to AudioHub", style = MaterialTheme.typography.headlineMedium)
+    Text("Welcome to My Audio Hub", style = MaterialTheme.typography.headlineMedium)
     Text("Your music and podcasts, ad-free and stored on your phone.", style = MaterialTheme.typography.bodyLarge)
     Card {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -131,7 +131,7 @@ private fun BackgroundStep(onDone: () -> Unit) {
         if (BackgroundSettings.isXiaomi) {
             "HyperOS aggressively stops background apps. Do these steps so music doesn't stop when the screen is off."
         } else {
-            "Allow AudioHub to run in the background so playback and downloads aren't interrupted."
+            "Allow My Audio Hub to run in the background so playback and downloads aren't interrupted."
         },
         style = MaterialTheme.typography.bodyLarge,
     )
@@ -153,12 +153,12 @@ private fun BackgroundStep(onDone: () -> Unit) {
         ChecklistItem(
             done = null,
             title = "Autostart",
-            description = "Turn on Autostart for AudioHub so it can resume after a reboot.",
+            description = "Turn on Autostart for My Audio Hub so it can resume after a reboot.",
             actionLabel = "Open",
             onAction = { BackgroundSettings.openAutostart(context) },
         )
         Text(
-            "Optional: open Recents, long-press AudioHub and tap the lock icon.",
+            "Optional: open Recents, long-press My Audio Hub and tap the lock icon.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

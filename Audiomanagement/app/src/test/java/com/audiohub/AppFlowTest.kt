@@ -34,7 +34,7 @@ class AppFlowTest {
 
     @Test
     fun onboardingThenMainTabs() {
-        compose.onNodeWithText("Welcome to AudioHub").assertExists()
+        compose.onNodeWithText("Welcome to My Audio Hub").assertExists()
         compose.onRoot().captureRoboImage("build/screenshots/flow_01_welcome.png")
 
         // Simulate the user tapping "Allow" in the system dialogs.

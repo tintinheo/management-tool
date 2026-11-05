@@ -13,16 +13,27 @@ android {
         applicationId = "com.audiohub"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "1.0.0"
+    }
+
+    signingConfigs {
+        // The same key that signed the APKs already on the phone (copied into keystore/, which is
+        // gitignored) so release builds install as updates and keep playlists/progress.
+        create("release") {
+            val key = rootProject.file("keystore/my-audio-hub.keystore")
+            storeFile = if (key.exists()) key else file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Personal sideloaded build: sign release with the debug key until a real keystore is set up.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -85,6 +96,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.reorderable)
+    implementation(libs.glance.appwidget)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

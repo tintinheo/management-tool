@@ -84,6 +84,6 @@ class AppContainer(private val app: Application) {
 
     companion object {
         // Some podcast hosts reject requests without a recognisable client name.
-        const val USER_AGENT = "AudioHub/0.1 (Android; podcast player)"
+        const val USER_AGENT = "MyAudioHub/1.0 (Android; podcast player)"
     }
 }

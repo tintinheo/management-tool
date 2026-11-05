@@ -1,5 +1,6 @@
 package com.audiohub.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -27,6 +28,8 @@ data class TrackEntity(
     val displayName: String,
     /** Accent-free lowercase "title artist album" used by search; see SearchText. */
     val searchText: String = "",
+    /** File modification time (MediaStore DATE_MODIFIED, seconds). Added in schema v4. */
+    @ColumnInfo(defaultValue = "0") val dateModifiedSec: Long = 0,
 )
 
 data class AlbumSummary(
@@ -41,6 +44,14 @@ data class ArtistSummary(
     val name: String,
     val albumCount: Int,
     val trackCount: Int,
+)
+
+/** A folder of the music library, shown as an automatic playlist. */
+data class FolderSummary(
+    /** MediaStore RELATIVE_PATH, e.g. "Music/AudioHub/Rock/80s/". */
+    val path: String,
+    val trackCount: Int,
+    val coverAlbumId: Long?,
 )
 
 data class GenreSummary(

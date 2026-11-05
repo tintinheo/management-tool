@@ -14,77 +14,80 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /*
- * Minimalist design system: near-monochrome neutrals, one accent used only for "active" state
- * (now playing, progress, toggles), flat surfaces (no tonal tints), hairline dividers, small radii.
+ * "Quiet luxury" design system: warm ivory / deep charcoal neutrals, a single champagne-gold accent
+ * reserved for active state (now playing, progress, toggles), editorial serif display type over a
+ * clean sans body, flat surfaces, hairline dividers.
  */
 
-private val Accent = Color(0xFFE0314B)
-private val AccentDark = Color(0xFFFF5A6E)
+private val Gold = Color(0xFFA8823F)
+private val GoldDark = Color(0xFFD2B47A)
 
-private val Ink = Color(0xFF111111)
-private val InkSoft = Color(0xFF6B6B6B)
+private val Ink = Color(0xFF151413)
+private val InkSoft = Color(0xFF7C766E)
+private val Ivory = Color(0xFFFAF8F4)
 private val Paper = Color(0xFFFFFFFF)
-private val Mist = Color(0xFFF4F4F4)
-private val Hairline = Color(0xFFE8E8E8)
+private val Sand = Color(0xFFF1EDE6)
+private val Hairline = Color(0xFFE6E0D6)
 
-private val Night = Color(0xFF0B0B0B)
-private val NightRaised = Color(0xFF161616)
-private val NightMist = Color(0xFF1F1F1F)
-private val Snow = Color(0xFFF2F2F2)
-private val SnowSoft = Color(0xFF9A9A9A)
-private val NightHairline = Color(0xFF262626)
+private val Night = Color(0xFF0D0D0C)
+private val NightRaised = Color(0xFF171615)
+private val NightMist = Color(0xFF211F1D)
+private val Pearl = Color(0xFFF2EEE7)
+private val PearlSoft = Color(0xFF948D83)
+private val NightHairline = Color(0xFF2A2724)
 
 private val LightColors = lightColorScheme(
-    primary = Accent,
+    primary = Gold,
     onPrimary = Paper,
-    primaryContainer = Mist,
+    primaryContainer = Sand,
     onPrimaryContainer = Ink,
     secondary = Ink,
     onSecondary = Paper,
-    secondaryContainer = Mist,
+    secondaryContainer = Sand,
     onSecondaryContainer = Ink,
     tertiary = Ink,
-    background = Paper,
+    background = Ivory,
     onBackground = Ink,
-    surface = Paper,
+    surface = Ivory,
     onSurface = Ink,
-    surfaceVariant = Mist,
+    surfaceVariant = Sand,
     onSurfaceVariant = InkSoft,
     surfaceTint = Color.Transparent,
     surfaceContainerLowest = Paper,
     surfaceContainerLow = Paper,
     surfaceContainer = Paper,
     surfaceContainerHigh = Paper,
-    surfaceContainerHighest = Mist,
+    surfaceContainerHighest = Sand,
     surfaceBright = Paper,
-    surfaceDim = Mist,
+    surfaceDim = Sand,
     inverseSurface = Ink,
-    inverseOnSurface = Paper,
-    outline = Color(0xFFCFCFCF),
+    inverseOnSurface = Ivory,
+    outline = Color(0xFFCBC3B6),
     outlineVariant = Hairline,
 )
 
 private val DarkColors = darkColorScheme(
-    primary = AccentDark,
+    primary = GoldDark,
     onPrimary = Night,
     primaryContainer = NightMist,
-    onPrimaryContainer = Snow,
-    secondary = Snow,
+    onPrimaryContainer = Pearl,
+    secondary = Pearl,
     onSecondary = Night,
     secondaryContainer = NightMist,
-    onSecondaryContainer = Snow,
-    tertiary = Snow,
+    onSecondaryContainer = Pearl,
+    tertiary = Pearl,
     background = Night,
-    onBackground = Snow,
+    onBackground = Pearl,
     surface = Night,
-    onSurface = Snow,
+    onSurface = Pearl,
     surfaceVariant = NightMist,
-    onSurfaceVariant = SnowSoft,
+    onSurfaceVariant = PearlSoft,
     surfaceTint = Color.Transparent,
     surfaceContainerLowest = Night,
     surfaceContainerLow = NightRaised,
@@ -93,17 +96,22 @@ private val DarkColors = darkColorScheme(
     surfaceContainerHighest = NightMist,
     surfaceBright = NightMist,
     surfaceDim = Night,
-    inverseSurface = Snow,
+    inverseSurface = Pearl,
     inverseOnSurface = Night,
-    outline = Color(0xFF3A3A3A),
+    outline = Color(0xFF45403A),
     outlineVariant = NightHairline,
 )
 
+/** Editorial serif for large titles (Noto Serif on Android). */
+val DisplayFamily = FontFamily.Serif
+
 private val AppTypography = Typography().run {
     copy(
-        headlineLarge = headlineLarge.copy(fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp),
-        headlineMedium = headlineMedium.copy(fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.4).sp),
-        titleLarge = titleLarge.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.2).sp),
+        displaySmall = displaySmall.copy(fontFamily = DisplayFamily, fontSize = 34.sp, lineHeight = 40.sp, fontWeight = FontWeight.Normal, letterSpacing = (-0.6).sp),
+        headlineLarge = headlineLarge.copy(fontFamily = DisplayFamily, fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Normal, letterSpacing = (-0.6).sp),
+        headlineMedium = headlineMedium.copy(fontFamily = DisplayFamily, fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.Normal, letterSpacing = (-0.4).sp),
+        headlineSmall = headlineSmall.copy(fontFamily = DisplayFamily, fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Normal, letterSpacing = (-0.3).sp),
+        titleLarge = titleLarge.copy(fontSize = 19.sp, fontWeight = FontWeight.Medium, letterSpacing = (-0.2).sp),
         titleMedium = titleMedium.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
         titleSmall = titleSmall.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium),
         bodyLarge = bodyLarge.copy(fontSize = 16.sp, letterSpacing = 0.sp),
@@ -117,14 +125,14 @@ private val AppTypography = Typography().run {
 
 /** Small caps-like section label ("RECENTLY ADDED"). */
 val SectionLabelStyle: TextStyle
-    @Composable get() = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold)
+    @Composable get() = MaterialTheme.typography.labelSmall.copy(letterSpacing = 2.sp, fontWeight = FontWeight.Medium)
 
 private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(4.dp),
-    small = RoundedCornerShape(6.dp),
-    medium = RoundedCornerShape(10.dp),
-    large = RoundedCornerShape(14.dp),
-    extraLarge = RoundedCornerShape(20.dp),
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(18.dp),
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
 @Composable

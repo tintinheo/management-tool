@@ -280,7 +280,7 @@ fun ShowTile(title: String, artworkUrl: String?, badge: Int, onClick: () -> Unit
             Artwork(
                 artworkUri(artworkUrl),
                 Modifier.fillMaxWidth().aspectRatio(1f),
-                cornerRadius = 8.dp,
+                cornerRadius = 4.dp,
                 placeholder = Icons.Rounded.Podcasts,
             )
             if (badge > 0) {

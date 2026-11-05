@@ -1,6 +1,13 @@
 package com.audiohub
 
+import android.app.SearchManager
 import android.content.Intent
+import android.provider.MediaStore
+import androidx.lifecycle.lifecycleScope
+import com.audiohub.data.music.LibrarySearch
+import com.audiohub.playback.toMediaItem
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -33,8 +40,30 @@ class MainActivity : ComponentActivity() {
         appContainer.playerConnection.connect()
     }
 
+    /** Voice search from Assistant: play the best library matches. */
+    private fun playFromSearch(query: String) {
+        lifecycleScope.launch {
+            val tracks = appContainer.musicRepository.tracks.first()
+            val r = LibrarySearch.search(tracks, query)
+            val songs = when {
+                query.isBlank() -> tracks.shuffled()
+                r.songs.isNotEmpty() -> r.songs
+                else -> r.artists.firstOrNull()?.let { a -> tracks.filter { it.artist == a.name } } ?: emptyList()
+            }
+            if (songs.isEmpty()) {
+                Toast.makeText(this@MainActivity, "Nothing in your library matches \"$query\"", Toast.LENGTH_SHORT).show()
+            } else {
+                appContainer.playerConnection.playQueue(songs.map { it.toMediaItem() })
+            }
+        }
+    }
+
     /** podcasts.apple.com / feed links opened or shared to the app → show page. */
     private fun handleLink(intent: Intent?) {
+        if (intent?.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
+            playFromSearch(intent.getStringExtra(SearchManager.QUERY).orEmpty())
+            return
+        }
         val text = when (intent?.action) {
             Intent.ACTION_VIEW -> intent.dataString
             Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)

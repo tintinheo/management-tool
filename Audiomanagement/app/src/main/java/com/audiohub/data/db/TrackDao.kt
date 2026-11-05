@@ -82,6 +82,16 @@ abstract class TrackDao {
     )
     abstract fun observeRecentlyPlayed(limit: Int): Flow<List<TrackEntity>>
 
+    /** Every folder that directly contains audio, with a cover. */
+    @Query(
+        """SELECT relativePath AS path, COUNT(*) AS trackCount, MIN(albumId) AS coverAlbumId
+           FROM tracks GROUP BY relativePath ORDER BY relativePath COLLATE NOCASE""",
+    )
+    abstract fun observeFolders(): Flow<List<FolderSummary>>
+
+    @Query("SELECT * FROM tracks WHERE relativePath = :path")
+    abstract fun observeFolderTracks(path: String): Flow<List<TrackEntity>>
+
     @Query("SELECT id FROM tracks")
     abstract suspend fun allIds(): List<Long>
 

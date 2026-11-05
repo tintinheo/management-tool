@@ -14,6 +14,11 @@ import com.audiohub.appContainer
 import com.audiohub.data.db.AlbumSummary
 import com.audiohub.data.db.ArtistSummary
 import com.audiohub.data.db.GenreSummary
+import com.audiohub.data.db.FolderSummary
+import com.audiohub.data.SortOrder
+import com.audiohub.data.settings.SettingsRepository
+import com.audiohub.data.storage.AudioFolders
+import kotlinx.coroutines.flow.map
 import com.audiohub.data.db.PlaylistSummary
 import com.audiohub.data.db.TrackEntity
 import com.audiohub.data.music.MusicRepository
@@ -35,6 +40,7 @@ class LibraryViewModel(
     private val playlists: PlaylistRepository,
     private val stats: StatsRepository,
     private val player: PlayerConnection,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     private fun <T> Flow<T>.state(initial: T) = stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
@@ -48,6 +54,15 @@ class LibraryViewModel(
     val playlistSummaries: StateFlow<List<PlaylistSummary>> = playlists.summaries.state(emptyList())
     val favoriteIds: StateFlow<Set<Long>> = stats.favoriteIds.state(emptySet())
     val scanning: StateFlow<Boolean> = music.scanning
+    val folders: StateFlow<List<FolderSummary>> = music.folders.state(emptyList())
+    val songSort: StateFlow<SortOrder> = settings.settings.map { it.songSort }.state(SettingsRepository.DEFAULT_SONG_SORT)
+    val musicRoot: StateFlow<String> = settings.settings.map { AudioFolders.normalize(it.musicFolder) }.state(AudioFolders.DEFAULT_MUSIC)
+
+    fun setSongSort(order: SortOrder) {
+        viewModelScope.launch { settings.setSongSort(order) }
+    }
+
+    fun folderTracks(path: String) = music.folderTracks(path)
 
     fun album(albumId: Long) = music.album(albumId)
     fun albumTracks(albumId: Long) = music.albumTracks(albumId)
@@ -141,6 +156,7 @@ fun libraryViewModel(): LibraryViewModel {
                     container.playlistRepository,
                     container.statsRepository,
                     container.playerConnection,
+                    container.settings,
                 )
             }
         },

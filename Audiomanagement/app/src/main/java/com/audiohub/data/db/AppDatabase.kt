@@ -13,10 +13,11 @@ import androidx.room.RoomDatabase
         PodcastEntity::class,
         EpisodeEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3), // adds podcasts + episodes
+        AutoMigration(from = 3, to = 4), // adds date-modified columns for sorting
     ],
 )
 abstract class AppDatabase : RoomDatabase() {

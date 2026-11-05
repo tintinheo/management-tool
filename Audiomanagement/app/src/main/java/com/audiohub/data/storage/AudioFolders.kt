@@ -27,5 +27,10 @@ object AudioFolders {
         return dir.isDirectory || runCatching { dir.mkdirs() }.getOrDefault(false)
     }
 
+    /** "Music/AudioHub/Rock/80s/" under root "Music/AudioHub/" → "Rock › 80s". */
+    fun displayName(path: String, root: String): String =
+        normalize(path).removePrefix(normalize(root)).trim('/').split('/')
+            .filter { it.isNotBlank() }.joinToString(" › ").ifEmpty { "Music" }
+
     fun isAudioFile(file: File): Boolean = file.isFile && file.extension.lowercase() in AUDIO_EXTENSIONS
 }
