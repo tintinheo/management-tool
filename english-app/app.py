@@ -1,3 +1,4 @@
+import base64
 import copy
 import difflib
 import html as html_lib
@@ -14,6 +15,9 @@ from gtts import gTTS
 import streamlit as st
 import streamlit.components.v1 as components
 from groq import Groq
+from reflex_core import (
+    clean_reflex_items, pick_reflex_queue, suggest_reflex_rating, words_without_reflex,
+)
 
 # Page Configuration
 # "auto" keeps the sidebar open on desktop but collapsed on phones, where it would otherwise cover the whole screen.
@@ -128,6 +132,7 @@ DEFAULT_PROFILE = {
 DEFAULT_DATA = {
     "history": [], "vocabulary": [], "writing_history": [], "grammar_scores": [], "tutor_turn_history": [],
     "error_log": [], "task_history": [], "listening_scores": [], "profile": DEFAULT_PROFILE, "resume": {},
+    "reflex_items": [],
 }
 
 def load_data():
@@ -1669,11 +1674,234 @@ GRAMMAR_TOPICS = {
     }
 }
 
+# --- REFLEX DRILL ---
+# Hear a question, answer it in your head, and the model answer plays by itself after a short countdown.
+# The countdown and audio run in a build-free component (components/reflex_player/index.html): a Streamlit
+# timer would rerun the script every tick, and browsers block audio that starts after a rerun without a tap.
+# The component keeps one iframe (fixed key) for the whole session, so after the first tap on ▶ Start every
+# later card auto-plays. Pure logic (validation, queue, rating) lives in reflex_core.py.
+_REFLEX_PLAYER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "components", "reflex_player")
+_reflex_player_component = components.declare_component("reflex_player", path=_REFLEX_PLAYER_DIR)
+
+REFLEX_MODES = {"🗨️ Conversation": "conversation", "🎧 Listen-only": "listen", "🔀 Mixed": "mixed"}
+REFLEX_DELAYS = [3, 5, 8]
+REFLEX_SESSION_SIZE = 10
+REFLEX_BATCH = 8  # saved words per LLM call
+REFLEX_ACCENT = "com.au"
+
+def _uses_word(word: str, text: str) -> bool:
+    pattern = _vocab_pattern(word)
+    if pattern:
+        return bool(pattern.search((text or "").replace("’", "'")))
+    return vocab_key(word) in (text or "").lower()
+
+def find_reflex(data: dict, item_id: str):
+    return next((it for it in data["reflex_items"] if it.get("id") == item_id), None)
+
+def generate_reflex_items(data: dict, words: list, n_extra: int = 0) -> list:
+    """Asks the feedback model for question/answer pairs for the given saved vocab entries (plus n_extra everyday
+    ones), keeps the valid ones, and saves them. Returns the new items."""
+    if not words and n_extra <= 0:
+        return []
+    level = learner_level()
+    word_lines = "\n".join(f'- "{v["word"]}": {v.get("meaning") or "(no meaning saved)"}' for v in words) or "(none)"
+    prompt = f"""
+You are writing speaking-reflex drills for a {level} English learner, in natural Australian English.
+Pitch the language like this: {LEVEL_GUIDES[level]}
+
+For EACH saved word/phrase below write one pair:
+- "question": a short, natural question (max 15 words) that someone might really ask in conversation, which invites an answer using the word/phrase. Don't put the word/phrase itself in the question.
+- "answer": a short, natural spoken reply (max 20 words) that uses the word/phrase (inflections are fine).
+Saved words/phrases:
+{word_lines}
+
+Also write {n_extra} extra everyday question/answer pairs at the same level (small talk, work, errands, plans), not tied to the words above.
+
+Return ONLY a JSON object: {{"items": [{{"word": "...", "question": "...", "answer": "..."}}], "extra": [{{"question": "...", "answer": "..."}}]}}
+"""
+    parsed = chat_json(prompt, 0.5)
+    new_items = clean_reflex_items(
+        parsed, [v["word"] for v in words], [it.get("question", "") for it in data["reflex_items"]], _uses_word
+    )
+    for item in new_items:
+        ensure_srs_fields(item)
+    if new_items:
+        data["reflex_items"].extend(new_items)
+        save_data(data)
+    return new_items
+
+def _generate_reflex_with_feedback(data: dict, words: list, n_extra: int) -> int:
+    try:
+        with st.spinner("Writing new questions..."):
+            added = generate_reflex_items(data, words, n_extra)
+    except Exception as e:
+        st.warning(f"Couldn't write new questions right now ({e}).")
+        return 0
+    if not added:
+        st.warning("The AI reply didn't contain usable questions — please try again.")
+    return len(added)
+
+def _reflex_audio_b64(text: str) -> str:
+    try:
+        return base64.b64encode(get_pronunciation_audio(text, accent=REFLEX_ACCENT)).decode("ascii")
+    except Exception:
+        return ""  # the component then shows the text and runs the countdown without audio
+
+def _reflex_advance(ns: str):
+    st.session_state[f"{ns}_pos"] += 1
+    st.session_state[f"{ns}_check"] = None
+    st.rerun()
+
+def render_reflex_drill(data: dict, ns: str = "reflex"):
+    st.subheader("⚡ Reflex Drill")
+    st.caption("Hear a question, answer it in your head, and the model answer plays by itself after the countdown. "
+               "Then replay it, say your own answer if you like, and rate how quickly it came to you.")
+    items = data["reflex_items"]
+    today_str = date.today().isoformat()
+    due = [it for it in items if (it.get("due") or today_str) <= today_str]
+    missing = words_without_reflex(data["vocabulary"], items, can_drill=lambda w: bool(normalize_words(w)))
+    st.caption(f"**{len(due)}** question(s) due · {len(items)} total"
+               + (f" · {len(missing)} saved word(s) without a question yet" if missing else ""))
+
+    with st.container(horizontal=True):
+        mode_label = st.segmented_control("Question type", list(REFLEX_MODES), default="🔀 Mixed", key=f"{ns}_mode")
+        delay = st.segmented_control("Think time", REFLEX_DELAYS, default=5, format_func=lambda s: f"⏱️ {s}s", key=f"{ns}_delay")
+    hands_free = st.toggle("🙌 Hands-free: go to the next question by itself after the answer", key=f"{ns}_hands_free",
+                           help="Cards you don't rate stay due, so they come back next session.")
+    mode = REFLEX_MODES.get(mode_label or "🔀 Mixed", "mixed")
+    delay = delay or 5
+
+    with st.container(horizontal=True):
+        start_clicked = st.button("⚡ Start session", type="primary", key=f"{ns}_start", width="stretch")
+        more_clicked = st.button("✨ Write more questions", key=f"{ns}_more", width="stretch",
+                                 help="Uses your saved words that don't have a question yet, plus a few everyday ones.")
+    if more_clicked:
+        if _generate_reflex_with_feedback(data, missing[:REFLEX_BATCH], 3):
+            queue_toast("New questions added.", "✨")
+            st.rerun()
+    if start_clicked:
+        if len(due) < REFLEX_SESSION_SIZE:
+            # Top up the session: questions for saved words first, everyday ones only to fill what's left.
+            batch = missing[:REFLEX_BATCH]
+            n_extra = min(5, max(0, REFLEX_SESSION_SIZE - len(due) - len(batch)))
+            if batch or n_extra:
+                _generate_reflex_with_feedback(data, batch, n_extra)
+        queue_ids = pick_reflex_queue(data["reflex_items"], today_str, REFLEX_SESSION_SIZE)
+        if not queue_ids:
+            st.info("Nothing is due right now. Tap ✨ Write more questions, or save more words in 📚 Cards.")
+        else:
+            st.session_state[f"{ns}_queue"] = [
+                {"id": i, "listen": mode == "listen" or (mode == "mixed" and random.random() < 0.5)} for i in queue_ids
+            ]
+            st.session_state[f"{ns}_pos"] = 0
+            st.session_state[f"{ns}_check"] = None
+            st.session_state[f"{ns}_session"] = st.session_state.get(f"{ns}_session", 0) + 1
+            st.rerun()
+
+    queue = st.session_state.get(f"{ns}_queue", [])
+    pos = st.session_state.get(f"{ns}_pos", 0)
+    if not queue:
+        return
+    if pos >= len(queue):
+        st.success(f"🎉 Session complete: {len(queue)} question(s). Tap ⚡ Start session for another round.")
+        return
+
+    entry = queue[pos]
+    item = find_reflex(data, entry["id"])
+    if item is None:  # removed mid-session
+        _reflex_advance(ns)
+    card_id = f"{st.session_state.get(f'{ns}_session', 0)}-{pos}-{item['id']}"
+
+    st.markdown("---")
+    header = f"**Question {pos + 1} of {len(queue)}**"
+    if item.get("word"):
+        header += f" · 🔑 Try to use **{item['word']}**"
+    st.markdown(header)
+    event = _reflex_player_component(
+        card_id=card_id, question=item["question"], answer=item["answer"],
+        q_audio=_reflex_audio_b64(item["question"]), a_audio=_reflex_audio_b64(item["answer"]),
+        delay=delay, hide_question=entry["listen"], hands_free=hands_free, next_delay=4,
+        key=f"{ns}_player", default=None,
+    )
+    current = isinstance(event, dict) and event.get("card_id") == card_id
+    if current and event.get("event") == "next":
+        _reflex_advance(ns)  # hands-free: move on without rating, so the card stays due
+    revealed = current and event.get("event") in ("revealed", "next")
+
+    if not revealed:
+        st.caption("⏳ The answer plays automatically when the countdown ends.")
+    else:
+        recording = st.audio_input("🎙️ Say your answer (optional)", key=f"{ns}_rec_{card_id}")
+        check = st.session_state.get(f"{ns}_check")
+        if recording:
+            audio_bytes = recording.getvalue()
+            audio_id = hash(audio_bytes)
+            if not check or check.get("card_id") != card_id or check.get("audio_id") != audio_id:
+                with st.spinner("Listening..."):
+                    try:
+                        heard_t = transcribe_audio(audio_bytes, "reflex.wav")
+                    except Exception as e:
+                        heard_t = None
+                        st.warning(f"Couldn't transcribe the recording ({e}).")
+                if heard_t is not None:
+                    heard = heard_t["text"]
+                    target_used = _uses_word(item["word"], heard) if item.get("word") else None
+                    clarity = clarity_score(heard_t)
+                    check = {
+                        "card_id": card_id, "audio_id": audio_id, "heard": heard, "clarity": clarity,
+                        "target_used": target_used, "suggested": suggest_reflex_rating(heard, target_used, clarity),
+                        **word_diff(item["answer"], heard),
+                    }
+                    st.session_state[f"{ns}_check"] = check
+                    if heard:
+                        data["listening_scores"].insert(0, {
+                            "id": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "mode": "reflex",
+                            "score": round(check["score"] * 100), "sentence": item["question"],
+                        })
+                        save_data(data)
+        if check and check.get("card_id") == card_id:
+            if not check["heard"]:
+                st.warning("I couldn't hear anything — please try again.")
+            else:
+                with st.container(horizontal=True):
+                    st.metric("Like the model", f"{round(check['score'] * 100)}%", border=True,
+                              help="Word overlap with the model answer. Your answer can be different and still be right.")
+                    st.metric("Clarity", f"{check['clarity']}%" if check["clarity"] is not None else "—", border=True,
+                              help="How confident the speech recogniser was. Treat it as a rough signal, not a precise score.")
+                st.markdown(f"**Whisper heard:** \"{check['heard']}\"")
+                if check["target_used"] is True:
+                    st.success(f"✅ You used **{item['word']}**.")
+                elif check["target_used"] is False:
+                    st.warning(f"🔑 You didn't use **{item['word']}** — listen to the model answer again and copy it.")
+                with st.expander("Compare with the model answer"):
+                    st.markdown(check["markdown"])
+                    st.caption(DIFF_LEGEND)
+
+        suggested = check.get("suggested") if check and check.get("card_id") == card_id else None
+        st.caption("How quickly did a good answer come to you?")
+        rating = None
+        with st.container(horizontal=True, gap="small"):
+            for label, quality in [("Again", 0), ("Hard", 1), ("Good", 2), ("Easy", 3)]:
+                if st.button(label, key=f"{ns}_{card_id}_{label}", type="primary" if quality == suggested else "secondary", width="stretch"):
+                    rating = quality
+        if rating is not None:
+            sm2_update(item, rating)
+            item["last_practised"] = today_str
+            record_practice(data, 3)  # also saves the updated schedule
+            _reflex_advance(ns)
+
+    # Warm the TTS cache for the next card so moving on doesn't wait for gTTS.
+    if pos + 1 < len(queue):
+        upcoming = find_reflex(data, queue[pos + 1]["id"])
+        if upcoming:
+            _reflex_audio_b64(upcoming["question"])
+            _reflex_audio_b64(upcoming["answer"])
+
 # --- SECTION NAVIGATION ---
 # Chips instead of st.tabs: every section is visible at once on a narrow screen (no hidden, side-scrolling
 # tabs), and only the selected section is rendered, so each tap reruns far less (fewer audio players and
 # vocab-selector iframes), which keeps the app responsive on a phone.
-TUTOR_SECTIONS = ["🗣️ Chat", "🎯 Tasks", "📚 Cards", "🧠 Mistakes", "🎧 Listen", "🎤 Speak", "✍️ Write", "📖 Grammar", "📈 Progress"]
+TUTOR_SECTIONS = ["🗣️ Chat", "🎯 Tasks", "📚 Cards", "🧠 Mistakes", "🎧 Listen", "🎤 Speak", "⚡ Reflex", "✍️ Write", "📖 Grammar", "📈 Progress"]
 LEADERSHIP_SECTIONS = ["🎭 Simulation", "📜 Logs", "📚 Cards", "💡 Library"]
 
 def render_section_nav(key: str, options: list) -> str:
@@ -2147,6 +2375,10 @@ In 3-5 short lines:
                 st.caption(DIFF_LEGEND)
                 st.markdown(pron["tips"])
 
+    # ---------------- SECTION: REFLEX DRILL ----------------
+    if section == "⚡ Reflex":
+        render_reflex_drill(data)
+
     # ---------------- SECTION: PROGRESS ----------------
     if section == "📈 Progress":
         profile = data["profile"]
@@ -2202,6 +2434,16 @@ In 3-5 short lines:
             st.markdown("  \n".join(
                 f"**{s['score']}%** {s['mode']} · {short_date(s['id'])} — _{s['sentence']}_" for s in data["listening_scores"][:10]
             ))
+        reflex_items = data["reflex_items"]
+        if reflex_items:
+            st.markdown("#### ⚡ Reflex drill")
+            today_str = date.today().isoformat()
+            reflex_scores = [s["score"] for s in data["listening_scores"] if s.get("mode") == "reflex"][:20]
+            with st.container(horizontal=True):
+                st.metric("Practised", f"{sum(1 for r in reflex_items if r.get('last_practised'))}/{len(reflex_items)}", border=True)
+                st.metric("Due today", sum(1 for r in reflex_items if (r.get("due") or today_str) <= today_str), border=True)
+                st.metric("Like the model", f"{round(sum(reflex_scores) / len(reflex_scores))}%" if reflex_scores else "—", border=True,
+                          help="Average word overlap of your last 20 recorded answers with the model answers.")
         if data["grammar_scores"]:
             st.markdown("#### 📖 Quizzes & drills")
             st.markdown("  \n".join(

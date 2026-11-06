@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --primary: #ff4b4b;
+    --text: #31333f;
+    --muted: rgba(49, 51, 63, 0.6);
+    --surface: rgba(151, 166, 195, 0.15);
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    /* Keep height intrinsic: measuring a body stretched to the iframe height would feed back into setFrameHeight. */
+    height: auto;
+    overflow: hidden;
+    background: transparent;
+    color: var(--text);
+    font-family: "Source Sans Pro", sans-serif;
+  }
+  #card { padding: 2px 2px 6px; }
+  .label {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 4px 2px;
+  }
+  .bubble {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 1.12rem;
+    line-height: 1.45;
+    margin-bottom: 10px;
+  }
+  .bubble.answer { border-left: 4px solid var(--primary); }
+  .veiled { color: var(--muted); font-style: italic; }
+  #stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 0;
+    margin: 4px 0 10px;
+  }
+  #stage:empty { display: none; }
+  .hint { color: var(--muted); font-size: 0.95rem; text-align: center; }
+  .ring { position: relative; width: 96px; height: 96px; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .track { stroke: var(--surface); }
+  .ring .bar { stroke: var(--primary); transition: stroke-dashoffset 0.1s linear; }
+  .ring .num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 600;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button {
+    min-height: 44px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(151, 166, 195, 0.45);
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--primary); color: var(--primary); }
+  button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+  button.primary:hover { color: #fff; filter: brightness(0.95); }
+  button.big { min-width: 180px; min-height: 52px; font-size: 1.05rem; }
+  .row button { flex: 1 1 auto; }
+</style>
+</head>
+<body>
+<div id="card">
+  <div class="label" id="qLabel">Question</div>
+  <div id="q" class="bubble"></div>
+  <div id="stage"></div>
+  <div id="answerBox" style="display: none">
+    <div class="label">Model answer</div>
+    <div id="a" class="bubble answer"></div>
+  </div>
+  <div id="controls" class="row"></div>
+</div>
+<audio id="player" preload="auto" playsinline></audio>
+<script>
+(function () {
+  var RING_R = 40, RING_C = 2 * Math.PI * RING_R;
+
+  function sendMessage(type, data) {
+    window.parent.postMessage(Object.assign({ isStreamlitMessage: true, type: type }, data), "*");
+  }
+  var lastSentHeight = null;
+  function setFrameHeight() {
+    var height = document.body.scrollHeight + 8;
+    if (height === lastSentHeight) return;
+    lastSentHeight = height;
+    sendMessage("streamlit:setFrameHeight", { height: height });
+  }
+  function sendValue(value) {
+    sendMessage("streamlit:setComponentValue", { value: value, dataType: "json" });
+  }
+
+  var player = document.getElementById("player");
+  var qEl = document.getElementById("q");
+  var qLabel = document.getElementById("qLabel");
+  var aEl = document.getElementById("a");
+  var answerBox = document.getElementById("answerBox");
+  var stage = document.getElementById("stage");
+  var controls = document.getElementById("controls");
+
+  // One <audio> element for the whole session: once a tap has started it, mobile browsers let it keep
+  // playing new sources without another tap, so later cards can auto-play.
+  var S = { cardId: null, args: null, phase: "idle", unlocked: false, timer: null, autoNext: null };
+
+  function el(tag, attrs, text) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "onclick") node.addEventListener("click", attrs[k]);
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (text != null) node.textContent = text;
+    return node;
+  }
+  function setStage(nodes) {
+    stage.innerHTML = "";
+    (nodes || []).forEach(function (n) { stage.appendChild(n); });
+    setFrameHeight();
+  }
+  function clearTimers() {
+    clearInterval(S.timer);
+    clearInterval(S.autoNext);
+    S.timer = S.autoNext = null;
+  }
+
+  // Every play() gets a sequence number so callbacks from an older clip (or an older card) are ignored.
+  var playSeq = 0, watchdog = null;
+  function stopAudio() {
+    playSeq += 1;
+    clearTimeout(watchdog);
+    player.onended = player.onerror = player.onloadedmetadata = null;
+    player.pause();
+  }
+
+  function play(b64, rate, onEnd, onBlocked) {
+    stopAudio();
+    var seq = playSeq;
+    rate = rate || 1;
+    function finish() {
+      if (seq !== playSeq) return;
+      stopAudio();
+      if (onEnd) onEnd();
+    }
+    if (!b64) { finish(); return; }
+    player.src = "data:audio/mpeg;base64," + b64;
+    // Changing src resets playbackRate to defaultPlaybackRate, so set both.
+    player.defaultPlaybackRate = rate;
+    player.playbackRate = rate;
+    player.onended = finish;
+    player.onerror = finish;  // undecodable audio: carry on without it rather than hang on "Listen…"
+    // Safety net in case "ended" never fires (stalled stream, audio device trouble): never get stuck.
+    watchdog = setTimeout(finish, 30000);
+    player.onloadedmetadata = function () {
+      if (seq !== playSeq || !isFinite(player.duration)) return;
+      clearTimeout(watchdog);
+      watchdog = setTimeout(finish, (player.duration / rate) * 1000 + 3000);
+    };
+    var p = player.play();
+    if (p && p.catch) {
+      p.catch(function (err) {
+        if (seq !== playSeq || (err && err.name === "AbortError")) return;  // replaced by a newer play() call
+        if (err && err.name === "NotAllowedError" && onBlocked) {
+          stopAudio();
+          onBlocked();
+        } else {
+          finish();
+        }
+      });
+    }
+  }
+
+  function tapToPlay(label, action) {
+    return function () {
+      setStage([
+        el("div", { class: "hint" }, "Your browser blocked auto-play."),
+        el("button", { class: "primary big", type: "button", onclick: action }, label),
+      ]);
+    };
+  }
+
+  function showQuestionText(show) {
+    if (show) {
+      qEl.textContent = S.args.question || "";
+      qEl.classList.remove("veiled");
+    } else {
+      qEl.textContent = "🎧 Listen to the question…";
+      qEl.classList.add("veiled");
+    }
+  }
+
+  function renderControls() {
+    controls.innerHTML = "";
+    var revealed = S.phase === "answer" || S.phase === "done";
+    if (S.args.q_audio) controls.appendChild(el("button", { type: "button", onclick: replayQuestion }, "🔁 Question"));
+    if (S.args.q_audio) controls.appendChild(el("button", { type: "button", onclick: function () { replay("q", 0.75); } }, "🐢 Question"));
+    if (revealed && S.args.a_audio) {
+      controls.appendChild(el("button", { type: "button", onclick: function () { replay("a", 1); } }, "🔁 Answer"));
+      controls.appendChild(el("button", { type: "button", onclick: function () { replay("a", 0.75); } }, "🐢 Answer"));
+    }
+    setFrameHeight();
+  }
+
+  function cancelAutoNext() {
+    if (S.autoNext) {
+      clearInterval(S.autoNext);
+      S.autoNext = null;
+      setStage([]);
+    }
+  }
+
+  function replay(which, rate) {
+    cancelAutoNext();
+    if (which === "q" && (S.phase === "question" || S.phase === "countdown")) {
+      // Before the reveal, hearing the question again restarts the think time once it has played.
+      startQuestion(rate);
+      return;
+    }
+    play(which === "q" ? S.args.q_audio : S.args.a_audio, rate, null, null);
+  }
+
+  function replayQuestion() { replay("q", 1); }
+
+  function startQuestion(rate) {
+    rate = typeof rate === "number" ? rate : 1;  // also used as a click handler, which passes an event
+    clearTimers();
+    S.unlocked = true;
+    S.phase = "question";
+    setStage([el("div", { class: "hint" }, S.args.q_audio ? "🔊 Listen…" : "Read the question…")]);
+    renderControls();
+    play(S.args.q_audio, rate, startCountdown, tapToPlay("▶ Play question", function () { startQuestion(rate); }));
+  }
+
+  function startCountdown() {
+    clearTimers();
+    S.phase = "countdown";
+    var total = Math.max(1, Number(S.args.delay) || 5) * 1000;
+    var started = Date.now();
+    var svgNS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", "96");
+    svg.setAttribute("height", "96");
+    [["track", 0], ["bar", 0]].forEach(function (spec) {
+      var c = document.createElementNS(svgNS, "circle");
+      c.setAttribute("class", spec[0]);
+      c.setAttribute("cx", "48");
+      c.setAttribute("cy", "48");
+      c.setAttribute("r", String(RING_R));
+      c.setAttribute("fill", "none");
+      c.setAttribute("stroke-width", "7");
+      c.setAttribute("stroke-linecap", "round");
+      if (spec[0] === "bar") {
+        c.setAttribute("stroke-dasharray", String(RING_C));
+        c.setAttribute("stroke-dashoffset", "0");
+      }
+      svg.appendChild(c);
+    });
+    var bar = svg.querySelector(".bar");
+    var num = el("div", { class: "num" }, String(Math.ceil(total / 1000)));
+    var ring = el("div", { class: "ring" });
+    ring.appendChild(svg);
+    ring.appendChild(num);
+    setStage([
+      ring,
+      el("div", { class: "hint" }, "Think of your answer…"),
+      el("button", { type: "button", onclick: reveal }, "👁️ Reveal now"),
+    ]);
+    S.timer = setInterval(function () {
+      var elapsed = Date.now() - started;
+      var left = Math.max(0, total - elapsed);
+      bar.setAttribute("stroke-dashoffset", String(RING_C * (elapsed / total)));
+      num.textContent = String(Math.ceil(left / 1000));
+      if (left <= 0) reveal();
+    }, 100);
+  }
+
+  function reveal() {
+    if (S.phase === "answer" || S.phase === "done") return;
+    clearTimers();
+    S.phase = "answer";
+    showQuestionText(true);
+    qLabel.textContent = "Question";
+    aEl.textContent = S.args.answer || "";
+    answerBox.style.display = "block";
+    setStage([]);
+    renderControls();
+    sendValue({ card_id: S.cardId, event: "revealed" });
+    play(S.args.a_audio, 1, answerFinished, tapToPlay("▶ Play answer", function () {
+      setStage([]);
+      play(S.args.a_audio, 1, answerFinished, null);
+    }));
+  }
+
+  function answerFinished() {
+    S.phase = "done";
+    if (!S.args.hands_free) return;
+    var left = Math.max(1, Number(S.args.next_delay) || 4);
+    var hint = el("div", { class: "hint" }, "Next question in " + left + "s…");
+    setStage([hint, el("button", { type: "button", onclick: cancelAutoNext }, "✋ Stay on this one")]);
+    S.autoNext = setInterval(function () {
+      left -= 1;
+      hint.textContent = "Next question in " + left + "s…";
+      if (left <= 0) {
+        cancelAutoNext();
+        sendValue({ card_id: S.cardId, event: "next" });
+      }
+    }, 1000);
+  }
+
+  function applyTheme(theme) {
+    if (!theme) return;
+    var root = document.documentElement.style;
+    if (theme.primaryColor) root.setProperty("--primary", theme.primaryColor);
+    if (theme.textColor) {
+      root.setProperty("--text", theme.textColor);
+      root.setProperty("--muted", "color-mix(in srgb, " + theme.textColor + " 60%, transparent)");
+    }
+    if (theme.secondaryBackgroundColor) root.setProperty("--surface", theme.secondaryBackgroundColor);
+    if (theme.font) document.body.style.fontFamily = theme.font;
+  }
+
+  function loadCard(args) {
+    clearTimers();
+    stopAudio();
+    S.args = args;
+    S.cardId = args.card_id;
+    S.phase = "idle";
+    // Listen-only hides the text, but only when there is audio to listen to.
+    var listen = !!args.hide_question && !!args.q_audio;
+    qLabel.textContent = listen ? "Question (listen only)" : "Question";
+    showQuestionText(!listen);
+    answerBox.style.display = "none";
+    aEl.textContent = "";
+    renderControls();
+    if (S.unlocked) {
+      startQuestion();
+    } else {
+      setStage([el("button", { class: "primary big", type: "button", onclick: startQuestion }, "▶ Start")]);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    var data = event.data;
+    if (!data || data.type !== "streamlit:render") return;
+    applyTheme(data.theme);
+    var args = data.args || {};
+    // Streamlit re-sends the same args on every rerun; only a new card_id starts a new card.
+    if (args.card_id && args.card_id !== S.cardId) loadCard(args);
+    setTimeout(setFrameHeight, 10);
+  });
+
+  sendMessage("streamlit:componentReady", { apiVersion: 1 });
+  setTimeout(setFrameHeight, 50);
+})();
+</script>
+</body>
+</html>
