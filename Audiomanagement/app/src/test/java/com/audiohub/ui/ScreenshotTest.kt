@@ -8,6 +8,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.media3.common.Player
@@ -286,6 +288,86 @@ class ScreenshotTest {
             isPlaying = false,
             actions = PodcastActions.None,
             onRefresh = {},
+            pendingRecall = listOf(episodes[2].copy(played = true)),
+            notesCount = 4,
+        )
+    }
+
+    // ------------------------------------------------------------------ Phase 8: styles, motion, recall
+
+    private val longTitle = "Một Bài Hát Có Cái Tên Rất Dài Để Kiểm Tra Chữ Chạy (Live at Hòa Bình Theater)"
+
+    @Test
+    fun nowPlayingNoir() = shot("now_playing_noir", manualClock = true, style = com.audiohub.ui.theme.UiStyle.Noir) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            NowPlayingContent(playing.copy(title = longTitle), fakeControls, isFavorite = true)
+        }
+    }
+
+    @Test
+    fun nowPlayingRivieraDark() = shot("now_playing_riviera_dark", dark = true, manualClock = true, style = com.audiohub.ui.theme.UiStyle.Riviera) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            NowPlayingContent(playing, fakeControls, isFavorite = true)
+        }
+    }
+
+    @Test
+    fun libraryHomeRiviera() = shot("library_home_riviera", manualClock = true, style = com.audiohub.ui.theme.UiStyle.Riviera) {
+        Column {
+            Box(Modifier.weight(1f)) {
+                LibraryHomeContent(1234, false, "Music/AudioHub/", albums, TrackActions.None, onRescan = {})
+            }
+            MiniPlayer(playing.copy(title = longTitle), { 84_000L }, {}, {}, {})
+        }
+    }
+
+    @Test
+    fun libraryHomeNoirDark() = shot("library_home_noir_dark", dark = true, manualClock = true, style = com.audiohub.ui.theme.UiStyle.Noir) {
+        LibraryHomeContent(1234, false, "Music/AudioHub/", albums, TrackActions.None, onRescan = {})
+    }
+
+    @Test
+    fun appearanceSettings() = shot("settings_appearance", manualClock = true) {
+        Column(Modifier.padding(20.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+            com.audiohub.ui.settings.AppearanceSection(
+                settings = com.audiohub.data.settings.AppSettings(
+                    onboardingDone = true, musicFolder = "Music/AudioHub/", podcastFolder = "Podcasts/AudioHub/",
+                    podcastCountry = "vn", podcastSpeed = 1f, uiStyle = "atelier", headingFont = "sys:serif",
+                ),
+                onStyle = {}, onMotion = {}, onHeadingFont = {}, onBodyFont = {},
+            )
+        }
+    }
+
+    @Test
+    fun recall() = shot("podcast_recall", manualClock = true) {
+        val note = com.audiohub.data.db.EpisodeNoteEntity(
+            episodeId = 1, episodeTitle = "Tập 42: Đà Lạt mùa sương", showTitle = "Chuyện Cà Phê", artworkUrl = null,
+            mainIdeas = "Đà Lạt thay đổi theo mùa; quán cà phê nhỏ giữ nhịp sống chậm.",
+            highlight = "Sương xuống lúc 5 giờ sáng ở hồ Tuyền Lâm.",
+            recallScore = 3, createdAt = 0, updatedAt = 0,
+        )
+        com.audiohub.ui.podcasts.RecallContent(
+            episode = com.audiohub.ui.podcasts.RecallEpisode(
+                com.audiohub.data.podcast.NotesRepository.EpisodeHeader(1, note.episodeTitle, note.showTitle, null),
+                "<p>Trong tập này: <b>Đà Lạt</b> mùa sương, quán cà phê ven hồ và nhịp sống chậm.</p>",
+                note,
+            ),
+            form = com.audiohub.ui.podcasts.RecallForm(note),
+            onBack = {}, onDelete = {},
+        )
+    }
+
+    @Test
+    fun notesList() = shot("podcast_notes") {
+        com.audiohub.ui.podcasts.NotesContent(
+            listOf(
+                com.audiohub.data.db.EpisodeNoteEntity(1, "Tập 42: Đà Lạt mùa sương", "Chuyện Cà Phê", null,
+                    mainIdeas = "Đà Lạt thay đổi theo mùa.", recallScore = 3, createdAt = 0, updatedAt = 0),
+                com.audiohub.data.db.EpisodeNoteEntity(2, "The Fall of Rome, Part 2", "Hardcore History", null,
+                    notes = "Look up the Battle of Adrianople.", recallScore = 1, createdAt = 0, updatedAt = 0),
+            ),
+            PodcastActions.None,
         )
     }
 
@@ -337,11 +419,17 @@ class ScreenshotTest {
         }
     }
 
-    private fun shot(name: String, dark: Boolean = false, manualClock: Boolean = false, content: @Composable () -> Unit) {
+    private fun shot(
+        name: String,
+        dark: Boolean = false,
+        manualClock: Boolean = false,
+        style: com.audiohub.ui.theme.UiStyle = com.audiohub.ui.theme.UiStyle.Default,
+        content: @Composable () -> Unit,
+    ) {
         // Screens with a text field can have a blinking cursor, which never lets the test clock go idle.
         if (manualClock) compose.mainClock.autoAdvance = false
         compose.setContent {
-            AudioHubTheme(darkTheme = dark, dynamicColor = false) {
+            AudioHubTheme(darkTheme = dark, style = style, dynamicColor = false) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { content() }
             }
         }

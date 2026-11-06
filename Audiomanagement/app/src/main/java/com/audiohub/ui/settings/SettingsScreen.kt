@@ -55,6 +55,15 @@ fun SettingsScreen() {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         ScreenHeader("Settings")
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionTitle("Appearance")
+            AppearanceSection(
+                settings = current,
+                onStyle = { scope.launch { container.settings.setUiStyle(it.id) } },
+                onMotion = { scope.launch { container.settings.setArtMotion(it) } },
+                onHeadingFont = { scope.launch { container.settings.setHeadingFont(it) } },
+                onBodyFont = { scope.launch { container.settings.setBodyFont(it) } },
+            )
+
             SectionTitle("Folders")
             FolderField(
                 label = "Music folder",

@@ -20,6 +20,10 @@ import com.audiohub.data.podcast.OkHttpHttpClient
 import com.audiohub.data.podcast.PodcastRepository
 import com.audiohub.data.settings.SettingsRepository
 import com.audiohub.playback.PlayerConnection
+import com.audiohub.data.podcast.NotesRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import java.io.File
@@ -81,6 +85,11 @@ class AppContainer(private val app: Application) {
     val pendingRoute = MutableStateFlow<String?>(null)
 
     val playerConnection: PlayerConnection by lazy { PlayerConnection(app) }
+
+    /** Process-wide scope for writes that must finish even after the screen that started them is gone. */
+    val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    val notesRepository: NotesRepository by lazy { NotesRepository(database.episodeNoteDao()) }
 
     /** Advanced: YouTube → audio (Settings → Advanced). */
     val youtubeConverter by lazy { com.audiohub.data.youtube.YoutubeConverter(app, okHttp) }

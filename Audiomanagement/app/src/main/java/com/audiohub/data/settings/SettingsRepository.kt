@@ -41,6 +41,13 @@ data class AppSettings(
     val eqEnabled: Boolean = false,
     val eqPreset: Int = 0,
     val eqBands: List<Int> = emptyList(),
+    /** Visual style id (see ui.theme.UiStyle); unknown/blank = default. */
+    val uiStyle: String = "",
+    /** Font ids for headings and body text ("" = the style's own; see ui.theme.AppFonts). */
+    val headingFont: String = "",
+    val bodyFont: String = "",
+    /** Album art motion id (see ui.theme.ArtMotion; "" = the style's default). */
+    val artMotion: String = "",
 )
 
 class SettingsRepository(private val context: Context) {
@@ -59,6 +66,10 @@ class SettingsRepository(private val context: Context) {
         val EQ_ENABLED = booleanPreferencesKey("eq_enabled")
         val EQ_PRESET = intPreferencesKey("eq_preset")
         val EQ_BANDS = stringPreferencesKey("eq_bands")
+        val UI_STYLE = stringPreferencesKey("ui_style")
+        val HEADING_FONT = stringPreferencesKey("heading_font")
+        val BODY_FONT = stringPreferencesKey("body_font")
+        val ART_MOTION = stringPreferencesKey("art_motion")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -76,6 +87,10 @@ class SettingsRepository(private val context: Context) {
             eqEnabled = p[Keys.EQ_ENABLED] ?: false,
             eqPreset = p[Keys.EQ_PRESET] ?: 0,
             eqBands = p[Keys.EQ_BANDS]?.split(",")?.mapNotNull { it.trim().toIntOrNull() }.orEmpty(),
+            uiStyle = p[Keys.UI_STYLE].orEmpty(),
+            headingFont = p[Keys.HEADING_FONT].orEmpty(),
+            bodyFont = p[Keys.BODY_FONT].orEmpty(),
+            artMotion = p[Keys.ART_MOTION].orEmpty(),
         )
     }
 
@@ -101,6 +116,22 @@ class SettingsRepository(private val context: Context) {
             it[Keys.EQ_PRESET] = preset
             it[Keys.EQ_BANDS] = bands.joinToString(",")
         }
+    }
+
+    suspend fun setUiStyle(id: String) {
+        context.dataStore.edit { it[Keys.UI_STYLE] = id }
+    }
+
+    suspend fun setHeadingFont(id: String) {
+        context.dataStore.edit { it[Keys.HEADING_FONT] = id }
+    }
+
+    suspend fun setBodyFont(id: String) {
+        context.dataStore.edit { it[Keys.BODY_FONT] = id }
+    }
+
+    suspend fun setArtMotion(id: String) {
+        context.dataStore.edit { it[Keys.ART_MOTION] = id }
     }
 
     suspend fun setDeletePlayedDownloads(enabled: Boolean) {

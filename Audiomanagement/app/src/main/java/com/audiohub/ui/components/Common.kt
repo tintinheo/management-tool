@@ -14,7 +14,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import com.audiohub.ui.theme.LocalUiTokens
 import com.audiohub.ui.theme.SectionLabelStyle
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,10 +37,13 @@ fun Artwork(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 4.dp,
     placeholder: ImageVector = Icons.Rounded.MusicNote,
+    /** Overrides [cornerRadius]; otherwise the radius is scaled by the UI style (Noir squarer, Riviera rounder). */
+    shape: Shape? = null,
 ) {
+    val scale = LocalUiTokens.current.cornerScale
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(cornerRadius))
+            .clip(shape ?: RoundedCornerShape(cornerRadius * scale))
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {

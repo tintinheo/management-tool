@@ -12,12 +12,14 @@ import androidx.room.RoomDatabase
         PlayStatsEntity::class,
         PodcastEntity::class,
         EpisodeEntity::class,
+        EpisodeNoteEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3), // adds podcasts + episodes
         AutoMigration(from = 3, to = 4), // adds date-modified columns for sorting
+        AutoMigration(from = 4, to = 5), // adds episode recall notes
     ],
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,4 +27,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
     abstract fun statsDao(): StatsDao
     abstract fun podcastDao(): PodcastDao
+    abstract fun episodeNoteDao(): EpisodeNoteDao
 }

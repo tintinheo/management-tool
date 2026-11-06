@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Notes
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FileDownload
@@ -78,7 +79,22 @@ class PodcastsViewModel(
     private val repo: PodcastRepository,
     private val localScanner: LocalPodcastScanner,
     private val canReadAudio: () -> Boolean,
+    private val notes: com.audiohub.data.podcast.NotesRepository? = null,
 ) : ViewModel() {
+
+    /** Recently finished episodes waiting for a "test your memory". */
+    val pendingRecall: StateFlow<List<EpisodeUi>> =
+        (notes?.pendingRecall()?.map { l -> l.map { it.toUi() } } ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val notesCount: StateFlow<Int> = (notes?.all?.map { it.size } ?: kotlinx.coroutines.flow.flowOf(0))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    fun skipRecall(episode: EpisodeUi) {
+        val id = episode.episodeId ?: return
+        viewModelScope.launch {
+            notes?.skip(com.audiohub.data.podcast.NotesRepository.EpisodeHeader(id, episode.title, episode.showTitle, episode.artworkUrl))
+        }
+    }
 
     val shows: StateFlow<List<PodcastSummary>?> =
         repo.summaries.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -151,9 +167,12 @@ fun PodcastsScreen() {
     val vm: PodcastsViewModel = viewModel(
         factory = viewModelFactory {
             initializer {
-                PodcastsViewModel(container.podcastRepository, container.localPodcastScanner) {
-                    AppPermissions.isGranted(context, AppPermissions.AUDIO)
-                }
+                PodcastsViewModel(
+                    container.podcastRepository,
+                    container.localPodcastScanner,
+                    { AppPermissions.isGranted(context, AppPermissions.AUDIO) },
+                    container.notesRepository,
+                )
             }
         },
     )
@@ -162,6 +181,8 @@ fun PodcastsScreen() {
     val latest by vm.latest.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val downloaded by vm.downloadedCount.collectAsStateWithLifecycle()
+    val pendingRecall by vm.pendingRecall.collectAsStateWithLifecycle()
+    val notesCount by vm.notesCount.collectAsStateWithLifecycle()
     val player by container.playerConnection.state.collectAsStateWithLifecycle()
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -183,6 +204,9 @@ fun PodcastsScreen() {
         onRefresh = { vm.refresh() },
         onImportOpml = { importLauncher.launch(arrayOf("text/x-opml", "text/xml", "application/xml", "*/*")) },
         onExportOpml = { exportLauncher.launch("My Audio Hub subscriptions.opml") },
+        pendingRecall = pendingRecall,
+        notesCount = notesCount,
+        onSkipRecall = vm::skipRecall,
     )
 }
 
@@ -199,6 +223,9 @@ fun PodcastsContent(
     downloadedCount: Int = 0,
     onImportOpml: () -> Unit = {},
     onExportOpml: () -> Unit = {},
+    pendingRecall: List<EpisodeUi> = emptyList(),
+    notesCount: Int = 0,
+    onSkipRecall: (EpisodeUi) -> Unit = {},
 ) {
     var adding by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -254,6 +281,22 @@ fun PodcastsContent(
             item {
                 NavRow(Icons.Rounded.Download, "Downloaded", onClick = { actions.navigate(Routes.DOWNLOADS) }, detail = downloadedCount.toString())
                 Hairline(start = 56.dp)
+            }
+        }
+        if (notesCount > 0) {
+            item {
+                NavRow(Icons.AutoMirrored.Rounded.Notes, "Notes & recall", onClick = { actions.navigate(Routes.NOTES) }, detail = notesCount.toString())
+                Hairline(start = 56.dp)
+            }
+        }
+        if (pendingRecall.isNotEmpty()) {
+            item { SectionLabel("Test your memory") }
+            items(pendingRecall, key = { "r:" + it.key }) { e ->
+                PendingRecallRow(
+                    e,
+                    onRecall = { e.episodeId?.let { actions.navigate(Routes.recall(it)) } },
+                    onSkip = { onSkipRecall(e) },
+                )
             }
         }
         if (inProgress.isNotEmpty()) {

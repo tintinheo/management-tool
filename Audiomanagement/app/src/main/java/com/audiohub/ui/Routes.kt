@@ -23,6 +23,10 @@ object Routes {
     const val DIAGNOSTICS = "diagnostics"
     /** Full-screen playing queue (pushed on the current tab, so tabs stay usable). */
     const val QUEUE = "queue"
+    /** Podcast "test your memory" page for one episode, and the list of all notes. */
+    const val RECALL = "recall/{episodeId}"
+    fun recall(episodeId: Long) = "recall/$episodeId"
+    const val NOTES = "podcast_notes"
     /** Advanced: YouTube to audio; optional prefilled link (from a share). */
     const val YOUTUBE = "youtube?url={url}"
     fun youtube(url: String = "") = "youtube?url=${Uri.encode(url)}"

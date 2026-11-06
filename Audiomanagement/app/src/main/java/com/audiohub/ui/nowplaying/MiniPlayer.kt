@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.audiohub.playback.PlayerUiState
 import com.audiohub.ui.components.Artwork
+import com.audiohub.ui.theme.ArtMotion
+import com.audiohub.ui.theme.LocalUiTokens
 
 /** Floating "now playing" card above the tab bar. */
 @Composable
@@ -51,10 +53,17 @@ fun MiniPlayer(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 9.dp, bottom = 8.dp),
                 ) {
-                    Artwork(state.artworkUri, Modifier.size(42.dp), cornerRadius = 8.dp)
+                    val tokens = LocalUiTokens.current
+                    if (tokens.motion == ArtMotion.Spin) {
+                        // The small disc spins along with the big one; other motions stay still here.
+                        AnimatedArtwork(state.artworkUri, state.isPlaying, Modifier.size(42.dp))
+                    } else {
+                        Artwork(state.artworkUri, Modifier.size(42.dp), cornerRadius = 8.dp)
+                    }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(state.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        // Scrolls only while playing; paused it's a calm ellipsis (and costs no frames).
+                        MarqueeText(state.title, style = MaterialTheme.typography.bodyMedium, animate = state.isPlaying)
                         Text(
                             state.artist,
                             style = MaterialTheme.typography.bodySmall,

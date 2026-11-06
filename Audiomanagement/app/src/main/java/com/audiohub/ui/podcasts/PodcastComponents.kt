@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Podcasts
+import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.RemoveDone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -204,6 +205,13 @@ fun EpisodeRow(
                             text = { Text(if (episode.played) "Mark as unplayed" else "Mark as played") },
                             leadingIcon = { Icon(if (episode.played) Icons.Rounded.RemoveDone else Icons.Rounded.Done, null) },
                             onClick = { menuOpen = false; actions.setPlayed(episode, !episode.played) },
+                        )
+                    }
+                    episode.episodeId?.let { id ->
+                        DropdownMenuItem(
+                            text = { Text("Recall & notes") },
+                            leadingIcon = { Icon(Icons.Rounded.Psychology, null) },
+                            onClick = { menuOpen = false; actions.navigate(com.audiohub.ui.Routes.recall(id)) },
                         )
                     }
                     if (episode.isDownloaded) {

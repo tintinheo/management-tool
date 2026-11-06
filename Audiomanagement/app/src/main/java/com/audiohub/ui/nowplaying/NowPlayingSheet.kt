@@ -206,10 +206,11 @@ fun NowPlayingContent(
     ) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f).padding(top = 8.dp)) {
             when (panel) {
-                NowPlayingPanel.Artwork -> Artwork(
+                NowPlayingPanel.Artwork -> AnimatedArtwork(
                     state.artworkUri,
-                    Modifier.fillMaxSize().shadow(28.dp, MaterialTheme.shapes.medium, spotColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f)),
-                    cornerRadius = 12.dp,
+                    isPlaying = state.isPlaying,
+                    modifier = Modifier.fillMaxSize(),
+                    elevation = 28.dp,
                     placeholder = if (isPodcast) Icons.Rounded.Podcasts else Icons.Rounded.MusicNote,
                 )
                 NowPlayingPanel.Lyrics ->
@@ -219,13 +220,12 @@ fun NowPlayingContent(
         Spacer(Modifier.height(20.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(state.title, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
+                // Long titles scroll so the whole name can be read.
+                MarqueeText(state.title, style = MaterialTheme.typography.headlineSmall)
+                MarqueeText(
                     listOf(state.artist, state.album).filter { it.isNotBlank() }.joinToString(" — "),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (canFavorite) {

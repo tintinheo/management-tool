@@ -320,14 +320,12 @@ private fun QueueRow(
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(
-                q.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isCurrent) FontWeight.SemiBold else null,
-                color = if (isCurrent) accent else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (isCurrent) {
+                // Only the playing row scrolls; the rest stay static so long lists cost no frames.
+                MarqueeText(q.title, style = MaterialTheme.typography.bodyMedium, color = accent, fontWeight = FontWeight.SemiBold)
+            } else {
+                Text(q.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             Text(
                 q.artist,
                 style = MaterialTheme.typography.bodySmall,

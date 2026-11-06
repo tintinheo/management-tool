@@ -280,6 +280,10 @@ private fun MainScaffold() {
                 }
                 composable(Routes.EQUALIZER) { EqualizerScreen() }
                 composable(Routes.QUEUE) { com.audiohub.ui.nowplaying.QueueScreen() }
+                composable(Routes.NOTES) { com.audiohub.ui.podcasts.NotesScreen() }
+                composable(Routes.RECALL, listOf(navArgument("episodeId") { type = NavType.LongType })) {
+                    com.audiohub.ui.podcasts.RecallScreen(it.arguments?.getLong("episodeId") ?: 0L)
+                }
                 composable(Routes.DIAGNOSTICS) { com.audiohub.ui.settings.DiagnosticsScreen() }
                 composable(Routes.YOUTUBE, listOf(navArgument("url") { type = NavType.StringType; defaultValue = "" })) {
                     com.audiohub.ui.settings.YoutubeScreen(it.arguments?.getString("url").orEmpty())

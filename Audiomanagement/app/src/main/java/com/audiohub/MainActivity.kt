@@ -15,7 +15,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.audiohub.ui.AppRoot
 import com.audiohub.ui.Routes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.audiohub.ui.theme.AppFonts
+import com.audiohub.ui.theme.ArtMotion
 import com.audiohub.ui.theme.AudioHubTheme
+import com.audiohub.ui.theme.UiStyle
 
 class MainActivity : ComponentActivity() {
 
@@ -24,7 +30,17 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         if (savedInstanceState == null) handleLink(intent)
         setContent {
-            AudioHubTheme {
+            val settings by appContainer.settings.settings.collectAsStateWithLifecycle(initialValue = null)
+            val s = settings
+            // Fonts are resolved once per change (asset listing is cached per process).
+            val heading = remember(s?.headingFont) { s?.headingFont?.let { AppFonts.resolve(assets, it) } }
+            val body = remember(s?.bodyFont) { s?.bodyFont?.let { AppFonts.resolve(assets, it) } }
+            AudioHubTheme(
+                style = UiStyle.fromId(s?.uiStyle.orEmpty()),
+                headingFont = heading,
+                bodyFont = body,
+                artMotion = s?.artMotion?.let(ArtMotion::fromId),
+            ) {
                 AppRoot()
             }
         }
