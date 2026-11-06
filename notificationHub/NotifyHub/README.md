@@ -80,6 +80,12 @@ references `NotifyHub`, add `<uap3:Capability Name="userNotificationListener" />
 - New notifications appear at the top within about 2 seconds.
 - Filter by app with the dropdown, or search across titles, messages and app names.
 - Selecting a notification marks it read; **Mark all read** clears the unread dots.
+- Click a notification to expand it: the full title and message are shown, along with any
+  web links in the text and two actions:
+  - **Open app** (or double-click / Enter) launches the app that sent it.
+  - **Reply or act in Windows** opens the Windows notification center (Win+N), where the
+    original notification still has its reply box and buttons, as long as it hasn't been
+    cleared from Windows yet.
 - Right-click a notification to copy its text or delete it.
 - The taskbar button shows a red badge with the unread total (99+ above 99), and the window
   title shows it too, e.g. `NotifyHub (5)`.
@@ -96,6 +102,12 @@ references `NotifyHub`, add `<uap3:Capability Name="userNotificationListener" />
 - A notification dismissed within the 2-second polling window can be missed. Lower the interval
   in `MainWindow.xaml.cs` if that matters to you.
 - Only text is captured; images and action buttons are not.
+- NotifyHub shows everything the app put in the notification, but many apps (Teams, Outlook)
+  only send a preview of long messages.
+- Windows doesn't let other apps trigger a notification's own click action or buttons, so
+  NotifyHub can't open the exact chat or email. **Open app** brings up the app itself; for
+  the exact item, use **Reply or act in Windows** while the notification is still there.
+- Web-browser notifications (e.g. Gmail or web Slack) open the browser, not the specific site.
 - The database is not encrypted. It may contain message previews from work chat and email, so
   treat it like any other local copy of that data.
 

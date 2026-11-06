@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gold lightning bolt centred in the 108dp adaptive-icon canvas (safe zone 66dp). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFE8B84A"
+        android:pathData="M58,30L38,58h14l-4,20 22,-30h-14z" />
+</vector>

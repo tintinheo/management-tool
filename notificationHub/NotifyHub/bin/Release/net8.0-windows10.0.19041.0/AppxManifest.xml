@@ -7,7 +7,7 @@
   IgnorableNamespaces="uap uap3 rescap">
 
   <!-- Change ProcessorArchitecture to arm64 if you're on an ARM PC. -->
-  <Identity Name="NotifyHub.Local" Publisher="CN=NotifyHubDev" Version="1.0.0.0" ProcessorArchitecture="x64" />
+  <Identity Name="NotifyHub.Local" Publisher="CN=NotifyHubDev" Version="1.1.0.0" ProcessorArchitecture="x64" />
 
   <Properties>
     <DisplayName>NotifyHub</DisplayName>

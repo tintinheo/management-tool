@@ -1,0 +1,103 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.roborazzi)
+}
+
+android {
+    namespace = "com.snapbrain"
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = "com.snapbrain"
+        // Android 12+: composed haptics (VibrationEffect.Composition / PRIMITIVE_THUD) need API 31.
+        minSdk = 31
+        targetSdk = 36
+        versionCode = 3
+        versionName = "1.1.0"
+    }
+
+    signingConfigs {
+        // Release key lives in keystore/ (gitignored). Falls back to the debug key so a release
+        // build always installs; keep using the same key afterwards so updates keep progress.
+        create("release") {
+            val key = rootProject.file("keystore/snapbrain.keystore")
+            storeFile = if (key.exists()) key else file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                it.jvmArgs(
+                    "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
+                    "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+                    "--add-opens=java.base/java.io=ALL-UNNAMED",
+                )
+            }
+        }
+    }
+}
+
+// APK file names carry the app name and version: SnapBrain-1.0.1-debug.apk, SnapBrain-1.0.1-release.apk
+base {
+    archivesName = "SnapBrain-${android.defaultConfig.versionName}"
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.extended)
+    debugImplementation(libs.compose.ui.tooling)
+
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.glance.appwidget)
+    implementation(libs.datastore.preferences)
+    implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
+}

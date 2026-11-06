@@ -18,6 +18,7 @@ public sealed class NotificationCaptureService : IDisposable
 {
     private readonly UserNotificationListener _listener = UserNotificationListener.Current;
     private readonly HashSet<uint> _seen = new();
+    private volatile Dictionary<uint, string> _live = new();
     private CancellationTokenSource? _cts;
 
     /// <summary>Raised on a background thread for every notification not seen before.</summary>
@@ -29,6 +30,10 @@ public sealed class NotificationCaptureService : IDisposable
     /// <summary>Must be called from the UI thread; shows the Windows consent prompt the first time.</summary>
     public async Task<UserNotificationListenerAccessStatus> RequestAccessAsync()
         => await _listener.RequestAccessAsync();
+
+    /// <summary>True while the notification is still in the Windows notification center.</summary>
+    public bool IsInNotificationCenter(CapturedNotification n) =>
+        _live.TryGetValue(n.NotificationId, out var appId) && appId == n.AppId;
 
     public void Start(TimeSpan interval)
     {
@@ -64,10 +69,12 @@ public sealed class NotificationCaptureService : IDisposable
     {
         var current = await _listener.GetNotificationsAsync(NotificationKinds.Toast);
         var currentIds = new HashSet<uint>();
+        var live = new Dictionary<uint, string>();
 
         foreach (var n in current)
         {
             currentIds.Add(n.Id);
+            live[n.Id] = TryGetAppId(n);
             if (!_seen.Add(n.Id)) continue;
 
             var captured = Map(n);
@@ -76,17 +83,28 @@ public sealed class NotificationCaptureService : IDisposable
 
         // Forget ids that left the notification center so the set doesn't grow forever.
         _seen.IntersectWith(currentIds);
+        _live = live;
+    }
+
+    private static string TryGetAppId(UserNotification n)
+    {
+        try { return n.AppInfo.AppUserModelId; }
+        catch { return ""; }
     }
 
     private static CapturedNotification? Map(UserNotification n)
     {
         try
         {
-            var binding = n.Notification?.Visual?.GetBinding(KnownNotificationBindings.ToastGeneric);
-            var texts = binding?.GetTextElements()
-                .Select(t => t.Text)
+            // Collect text from every template the app used (modern ToastGeneric and legacy ones),
+            // so the full content is kept, not just the first lines.
+            var texts = (n.Notification?.Visual?.Bindings ?? (IEnumerable<NotificationBinding>)Array.Empty<NotificationBinding>())
+                .SelectMany(b => b.GetTextElements())
+                .Select(t => t.Text?.Trim())
                 .Where(t => !string.IsNullOrWhiteSpace(t))
-                .ToList() ?? new List<string>();
+                .Select(t => t!)
+                .Distinct()
+                .ToList();
 
             string appName = "Unknown app", appId = "";
             try

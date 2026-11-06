@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SnapBrain</string>
+    <string name="widget_label">SnapBrain Đấu trường</string>
+    <string name="widget_description">Trả lời câu hỏi ôn tập ngay trên màn hình chính</string>
+</resources>

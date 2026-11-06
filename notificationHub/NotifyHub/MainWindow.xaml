@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="NotifyHub" Height="760" Width="540" MinWidth="380"
+        Icon="pack://application:,,,/Package/Assets/NotifyHub.ico"
         Background="{StaticResource Surface}"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13">
 
@@ -58,10 +59,15 @@
                      HorizontalContentAlignment="Stretch"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      VirtualizingPanel.IsVirtualizing="True"
-                     SelectionChanged="NotificationList_SelectionChanged">
+                     SelectionChanged="NotificationList_SelectionChanged"
+                     MouseDoubleClick="NotificationList_MouseDoubleClick"
+                     KeyDown="NotificationList_KeyDown">
 
                 <ListBox.ContextMenu>
                     <ContextMenu>
+                        <MenuItem Header="Open app" Click="OpenApp_Click"/>
+                        <MenuItem Header="Show in Windows notification center" Click="OpenNotificationCenter_Click"/>
+                        <Separator/>
                         <MenuItem Header="Copy text" Click="Copy_Click"/>
                         <MenuItem Header="Delete" Click="Delete_Click"/>
                     </ContextMenu>
@@ -115,35 +121,90 @@
 
                             <!-- Title -->
                             <TextBlock Text="{Binding Title}" Margin="0,4,0,0"
-                                       Foreground="{StaticResource TextPrimary}" FontSize="14"
-                                       TextTrimming="CharacterEllipsis">
+                                       Foreground="{StaticResource TextPrimary}" FontSize="14">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="TextWrapping" Value="NoWrap"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsRead}" Value="True">
                                                 <Setter Property="FontWeight" Value="Normal"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                <Setter Property="TextTrimming" Value="None"/>
+                                                <Setter Property="TextWrapping" Value="Wrap"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
 
-                            <!-- Message preview: 3 lines max -->
-                            <TextBlock Text="{Binding Body}" Margin="0,2,0,0" MaxHeight="54"
-                                       TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                       Foreground="{StaticResource TextPrimary}" Opacity="0.85"
-                                       ToolTip="{Binding Body}">
+                            <!-- Message: 3-line preview, full text when the card is selected -->
+                            <TextBlock Text="{Binding Body}" Margin="0,2,0,0"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextPrimary}" Opacity="0.85">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
+                                        <Setter Property="MaxHeight" Value="54"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasBody}" Value="False">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                <Setter Property="MaxHeight" Value="Infinity"/>
+                                                <Setter Property="TextTrimming" Value="None"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
+
+                            <!-- Links and actions: only on the selected card -->
+                            <StackPanel Margin="0,10,0,0">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+
+                                <ItemsControl ItemsSource="{Binding Links}" Margin="0,0,0,8">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasLinks}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="0,0,0,2" TextTrimming="CharacterEllipsis">
+                                                <Hyperlink Click="Link_Click" ToolTip="{Binding}"
+                                                           Foreground="{StaticResource Accent}">
+                                                    <Run Text="{Binding Mode=OneWay}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <WrapPanel>
+                                    <Button Content="Open app" Padding="12,5" Margin="0,0,8,0"
+                                            IsEnabled="{Binding CanOpenApp}" Click="OpenApp_Click"
+                                            ToolTip="Opens the app that sent this notification"/>
+                                    <Button Content="Reply or act in Windows" Padding="12,5"
+                                            Click="OpenNotificationCenter_Click"
+                                            ToolTip="Opens the Windows notification center, where the original notification keeps its buttons and reply box"/>
+                                </WrapPanel>
+                            </StackPanel>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

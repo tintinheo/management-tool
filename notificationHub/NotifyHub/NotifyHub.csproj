@@ -10,12 +10,18 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>NotifyHub</RootNamespace>
     <AssemblyName>NotifyHub</AssemblyName>
+    <ApplicationIcon>Package\Assets\NotifyHub.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- Loose-layout package files, copied next to NotifyHub.exe so the output folder can be registered. -->
   <ItemGroup>
     <None Include="Package\AppxManifest.xml" Link="AppxManifest.xml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Package\Assets\*.png" Link="Assets\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Window and title-bar icon. -->
+  <ItemGroup>
+    <Resource Include="Package\Assets\NotifyHub.ico" />
   </ItemGroup>
 
   <ItemGroup>
