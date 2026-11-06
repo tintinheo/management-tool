@@ -279,6 +279,7 @@ private fun MainScaffold() {
                     FolderDetailScreen(it.arguments?.getString("path").orEmpty())
                 }
                 composable(Routes.EQUALIZER) { EqualizerScreen() }
+                composable(Routes.QUEUE) { com.audiohub.ui.nowplaying.QueueScreen() }
                 composable(Routes.DIAGNOSTICS) { com.audiohub.ui.settings.DiagnosticsScreen() }
                 composable(Routes.YOUTUBE, listOf(navArgument("url") { type = NavType.StringType; defaultValue = "" })) {
                     com.audiohub.ui.settings.YoutubeScreen(it.arguments?.getString("url").orEmpty())
@@ -342,6 +343,10 @@ private fun MainScaffold() {
                     scope.launch { container.settings.setPodcastSpeed(next) }
                 },
                 showNotes = showNotes,
+                onOpenQueue = {
+                    showNowPlaying = false
+                    navController.navigate(Routes.QUEUE) { launchSingleTop = true }
+                },
                 onDismiss = { showNowPlaying = false },
             )
         }

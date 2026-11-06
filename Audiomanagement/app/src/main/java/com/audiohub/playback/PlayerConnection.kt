@@ -47,8 +47,11 @@ data class PlayerUiState(
     val queueIndex: Int = 0,
     val queueSize: Int = 0,
     val speed: Float = 1f,
-    /** Items that will play after the current one, in play order (respects shuffle). */
-    val upNext: List<QueueItem> = emptyList(),
+    /**
+     * Every item in the play queue, in play order (respects shuffle). The current one is the item whose
+     * [QueueItem.index] equals [queueIndex]. Same list instance until the queue itself changes.
+     */
+    val queue: List<QueueItem> = emptyList(),
     /** Wall-clock time the sleep timer pauses playback (0 = no timed sleep). */
     val sleepEndsAt: Long = 0,
     /** Sleep timer set to "end of this track/episode". */
@@ -154,16 +157,17 @@ class PlayerConnection(private val context: Context) : PlayerControls {
         }
     }
 
-    private var cachedUpNext: List<QueueItem> = emptyList()
+    private var cachedQueue: List<QueueItem> = emptyList()
 
     private fun publish(player: Player, events: Player.Events? = null) {
-        // Walking a 500-item queue is the costliest part; only redo it when the queue can have changed.
+        // Walking the queue is the costliest part; only redo it when its contents or order can have
+        // changed. Moving to another track doesn't change it (the UI highlights via queueIndex), so the
+        // same list instance is reused and StateFlow/Compose equality checks short-circuit on identity.
         if (events == null || events.containsAny(
-                Player.EVENT_TIMELINE_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION,
-                Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED, Player.EVENT_REPEAT_MODE_CHANGED,
+                Player.EVENT_TIMELINE_CHANGED, Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED,
             )
         ) {
-            cachedUpNext = upNextOf(player)
+            cachedQueue = queueOf(player)
         }
         val md = player.mediaMetadata
         val item = player.currentMediaItem
@@ -185,18 +189,19 @@ class PlayerConnection(private val context: Context) : PlayerControls {
             queueIndex = player.currentMediaItemIndex,
             queueSize = player.mediaItemCount,
             speed = player.playbackParameters.speed,
-            upNext = cachedUpNext,
+            queue = cachedQueue,
             sleepEndsAt = sleepExtras.getLong(PlaybackService.EXTRA_SLEEP_ENDS_AT, 0),
             sleepEndOfItem = sleepExtras.getBoolean(PlaybackService.EXTRA_SLEEP_END_OF_ITEM, false),
         )
     }
 
-    private fun upNextOf(player: Player): List<QueueItem> {
+    private fun queueOf(player: Player): List<QueueItem> {
         val timeline = player.currentTimeline
         if (timeline.isEmpty) return emptyList()
-        val result = ArrayList<QueueItem>()
-        var i = timeline.getNextWindowIndex(player.currentMediaItemIndex, Player.REPEAT_MODE_OFF, player.shuffleModeEnabled)
-        while (i != C.INDEX_UNSET && result.size < MAX_UP_NEXT) {
+        val shuffle = player.shuffleModeEnabled
+        val result = ArrayList<QueueItem>(minOf(timeline.windowCount, MAX_QUEUE))
+        var i = timeline.getFirstWindowIndex(shuffle)
+        while (i != C.INDEX_UNSET && result.size < MAX_QUEUE) {
             val item = player.getMediaItemAt(i)
             val md = item.mediaMetadata
             result += QueueItem(
@@ -206,7 +211,7 @@ class PlayerConnection(private val context: Context) : PlayerControls {
                 artist = md.artist?.toString().orEmpty(),
                 artworkUri = md.artworkUri,
             )
-            i = timeline.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, player.shuffleModeEnabled)
+            i = timeline.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, shuffle)
         }
         return result
     }
@@ -309,7 +314,8 @@ class PlayerConnection(private val context: Context) : PlayerControls {
     fun setSpeed(speed: Float) = withController { it.setPlaybackSpeed(speed) }
 
     private companion object {
-        const val MAX_UP_NEXT = 500
+        /** Safety cap; a library-wide "play all" fits comfortably below this. */
+        const val MAX_QUEUE = 20_000
     }
 }
 

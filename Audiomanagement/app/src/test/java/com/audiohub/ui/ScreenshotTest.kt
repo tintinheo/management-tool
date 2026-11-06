@@ -82,7 +82,7 @@ class ScreenshotTest {
         hasNext = true,
         queueIndex = 2,
         queueSize = 5,
-        upNext = tracks.drop(3).mapIndexed { i, t -> QueueItem(3 + i, "track:${t.id}", t.title, t.artist, null) },
+        queue = tracks.mapIndexed { i, t -> QueueItem(i, "track:${t.id}", t.title, t.artist, null) },
     )
 
     private val fakeControls = object : PlayerControls {
@@ -240,10 +240,19 @@ class ScreenshotTest {
     }
 
     @Test
-    fun nowPlayingQueue() = shot("now_playing_queue") {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-            NowPlayingContent(playing, fakeControls, panel = NowPlayingPanel.Queue)
+    fun playingQueue() = shot("playing_queue", manualClock = true) {
+        Column {
+            Box(Modifier.weight(1f)) {
+                com.audiohub.ui.nowplaying.QueueContent(playing.queue, playing.queueIndex, false, fakeControls, onBack = {})
+            }
+            MiniPlayer(playing, { 84_000L }, {}, {}, {})
         }
+    }
+
+    @Test
+    fun playingQueueSearch() = shot("playing_queue_search", manualClock = true) {
+        // Accent-insensitive: "lac" finds "Lạc Trôi".
+        com.audiohub.ui.nowplaying.QueueContent(playing.queue, playing.queueIndex, false, fakeControls, onBack = {}, initialQuery = "lac")
     }
 
     private val day = 24L * 60 * 60 * 1000
@@ -336,7 +345,13 @@ class ScreenshotTest {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { content() }
             }
         }
-        if (manualClock) compose.mainClock.advanceTimeBy(1_000)
+        if (manualClock) {
+            // A few steps, so work handed to background threads (e.g. queue search) can land in between.
+            repeat(5) {
+                compose.mainClock.advanceTimeBy(200)
+                Thread.sleep(50)
+            }
+        }
         compose.onRoot().captureRoboImage("build/screenshots/$name.png")
     }
 

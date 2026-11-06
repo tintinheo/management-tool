@@ -21,6 +21,8 @@ object Routes {
     const val DOWNLOADS = "downloads"
     const val EQUALIZER = "equalizer"
     const val DIAGNOSTICS = "diagnostics"
+    /** Full-screen playing queue (pushed on the current tab, so tabs stay usable). */
+    const val QUEUE = "queue"
     /** Advanced: YouTube to audio; optional prefilled link (from a share). */
     const val YOUTUBE = "youtube?url={url}"
     fun youtube(url: String = "") = "youtube?url=${Uri.encode(url)}"

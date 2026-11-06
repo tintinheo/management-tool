@@ -30,8 +30,6 @@ import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.fromHtml
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Lyrics
@@ -59,7 +57,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,12 +78,9 @@ import androidx.media3.common.Player
 import com.audiohub.data.lyrics.Lyrics
 import com.audiohub.playback.PlayerControls
 import com.audiohub.playback.PlayerUiState
-import com.audiohub.playback.QueueItem
 import com.audiohub.ui.components.Artwork
 import com.audiohub.ui.components.formatDuration
 import kotlinx.coroutines.delay
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 
 /** Position isn't pushed by Media3, so poll it while playing (and once when paused). */
 @Composable
@@ -110,7 +104,8 @@ fun rememberPolledPositionState(isPlaying: Boolean, provider: () -> Long, interv
     return position
 }
 
-enum class NowPlayingPanel { Artwork, Lyrics, Queue }
+/** What fills the square above the controls. The queue has its own full screen ([QueueScreen]). */
+enum class NowPlayingPanel { Artwork, Lyrics }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,6 +120,7 @@ fun NowPlayingSheet(
     podcastSpeed: Float,
     onCycleSpeed: () -> Unit,
     showNotes: String?,
+    onOpenQueue: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -146,6 +142,7 @@ fun NowPlayingSheet(
             NowPlayingContent(
                 state, player, isFavorite, canFavorite, onToggleFavorite, lyrics, panel, { panel = it },
                 isPodcast = isPodcast, podcastSpeed = podcastSpeed, onCycleSpeed = onCycleSpeed, showNotes = showNotes,
+                onOpenQueue = onOpenQueue,
             )
         }
     }
@@ -187,6 +184,7 @@ fun NowPlayingContent(
     podcastSpeed: Float = 1f,
     onCycleSpeed: () -> Unit = {},
     showNotes: String? = null,
+    onOpenQueue: () -> Unit = {},
 ) {
     val position = rememberPolledPosition(
         state.isPlaying,
@@ -216,7 +214,6 @@ fun NowPlayingContent(
                 )
                 NowPlayingPanel.Lyrics ->
                     if (isPodcast) NotesPanel(showNotes) else LyricsPanel(lyrics, position, onSeek = player::seekTo)
-                NowPlayingPanel.Queue -> QueuePanel(state, player)
             }
         }
         Spacer(Modifier.height(20.dp))
@@ -329,8 +326,12 @@ fun NowPlayingContent(
                 onPanelChange(if (it) NowPlayingPanel.Lyrics else NowPlayingPanel.Artwork)
             }
             SleepTimerButton(state, player)
-            PanelToggle(Icons.AutoMirrored.Rounded.QueueMusic, "Up Next", panel == NowPlayingPanel.Queue) {
-                onPanelChange(if (it) NowPlayingPanel.Queue else NowPlayingPanel.Artwork)
+            IconButton(onClick = onOpenQueue) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.QueueMusic,
+                    contentDescription = "Playing queue",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -547,93 +548,5 @@ private fun SyncedLyrics(lyrics: Lyrics.Synced, positionMs: Long, onSeek: (Long)
                 modifier = Modifier.fillMaxWidth().clickable { onSeek(line.timeMs) }.padding(vertical = 6.dp),
             )
         }
-    }
-}
-
-// ------------------------------------------------------------------ Queue
-
-@Composable
-private fun QueuePanel(state: PlayerUiState, player: PlayerControls) {
-    var items by remember(state.upNext) { mutableStateOf(state.upNext) }
-    var dragFrom by remember { mutableIntStateOf(-1) }
-    val listState = rememberLazyListState()
-    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
-        val a = items.indexOfFirst { it.index == from.key }
-        val b = items.indexOfFirst { it.index == to.key }
-        if (a >= 0 && b >= 0) items = items.toMutableList().apply { add(b, removeAt(a)) }
-    }
-    // Reordering only makes sense in list order; with shuffle on, "next" is the shuffle order.
-    val canReorder = !state.shuffleEnabled
-
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
-        if (items.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Nothing up next", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            return@Surface
-        }
-        LazyColumn(state = listState, contentPadding = PaddingValues(vertical = 8.dp)) {
-            item(key = "title") {
-                Text(
-                    if (state.shuffleEnabled) "Up Next · Shuffle" else "Up Next",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            }
-            itemsIndexed(items, key = { _, q -> q.index }) { pos, q ->
-                ReorderableItem(reorderState, key = q.index, enabled = canReorder) { isDragging ->
-                    Surface(color = if (isDragging) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.background) {
-                        QueueRow(
-                            q,
-                            onClick = { player.jumpTo(q.index) },
-                            onRemove = { player.removeAt(q.index) },
-                            handle = {
-                                if (canReorder) {
-                                    Icon(
-                                        Icons.Rounded.DragHandle,
-                                        contentDescription = "Reorder",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.draggableHandle(
-                                            onDragStarted = { dragFrom = state.upNext.indexOfFirst { it.index == q.index } },
-                                            onDragStopped = {
-                                                val newPos = items.indexOfFirst { it.index == q.index }
-                                                if (dragFrom >= 0 && newPos >= 0 && dragFrom != newPos) {
-                                                    player.move(q.index, state.upNext[newPos].index)
-                                                }
-                                                dragFrom = -1
-                                            },
-                                        ).padding(8.dp),
-                                    )
-                                }
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun QueueRow(q: QueueItem, onClick: () -> Unit, onRemove: () -> Unit, handle: @Composable () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Artwork(q.artworkUri, Modifier.size(40.dp))
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(q.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                q.artist,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        IconButton(onClick = onRemove) { Icon(Icons.Rounded.Close, contentDescription = "Remove from queue") }
-        handle()
     }
 }
