@@ -14,12 +14,18 @@ data class Card(
     val visual: Visual,
     val tf: TrueFalse,
     val mcq: Mcq,
+    /** Generated on this phone with Gemini (not part of the bundled pack). */
+    val ai: Boolean = false,
 )
 
 @Serializable
 enum class Topic(val label: String, val emoji: String) {
-    @SerialName("office") OFFICE("Mẹo công sở", "📊"),
+    @SerialName("speaking") SPEAKING("Tiếng Anh giao tiếp", "🗣️"),
     @SerialName("english") ENGLISH("Business English", "💬"),
+    @SerialName("communication") COMMUNICATION("Giao tiếp hiệu quả", "🎯"),
+    @SerialName("influence") INFLUENCE("Thuyết phục & ảnh hưởng", "🧲"),
+    @SerialName("management") MANAGEMENT("Quản lý", "🧭"),
+    @SerialName("solopreneur") SOLOPRENEUR("AI solo entrepreneur", "🚀"),
     @SerialName("ai") AI("Viết prompt AI", "🤖"),
     @SerialName("psychology") PSYCHOLOGY("Tâm lý học", "🧠"),
     @SerialName("finance") FINANCE("Tài chính cá nhân", "💰"),
@@ -52,4 +58,6 @@ object CardParser {
     private val json = Json { ignoreUnknownKeys = true }
 
     fun parse(text: String): List<Card> = json.decodeFromString(text)
+
+    fun encode(cards: List<Card>): String = json.encodeToString(cards)
 }

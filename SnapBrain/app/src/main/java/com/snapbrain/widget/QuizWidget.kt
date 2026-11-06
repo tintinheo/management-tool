@@ -55,8 +55,9 @@ class QuizWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val state = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
-        if (state[CARD_ID] == null) pickNext(context, id)
         val cards = context.appContainer.cards
+        // No question yet, or its card was removed from the pack in an update.
+        if (state[CARD_ID]?.let { cards[it] } == null) pickNext(context, id)
         provideContent {
             val prefs = currentState<Preferences>()
             val card = prefs[CARD_ID]?.let { cards[it] }

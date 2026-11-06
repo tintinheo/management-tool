@@ -15,8 +15,8 @@ android {
         // Android 12+: composed haptics (VibrationEffect.Composition / PRIMITIVE_THUD) need API 31.
         minSdk = 31
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.1.0"
+        versionCode = 5
+        versionName = "1.3.0"
     }
 
     signingConfigs {
@@ -61,7 +61,7 @@ android {
     }
 }
 
-// APK file names carry the app name and version: SnapBrain-1.0.1-debug.apk, SnapBrain-1.0.1-release.apk
+// APK file names carry the app name and version: SnapBrain-<version>-debug.apk, SnapBrain-<version>-release.apk
 base {
     archivesName = "SnapBrain-${android.defaultConfig.versionName}"
 }

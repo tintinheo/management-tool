@@ -42,6 +42,7 @@ class SettingsActions(
     val openAutostart: () -> Unit,
     val openPopups: () -> Unit,
     val openBattery: () -> Unit,
+    val openAi: () -> Unit = {},
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -123,6 +124,8 @@ fun SettingsContent(
                 }
             }
             Spacer(Modifier.height(8.dp))
+            SetupButton("✨  Tạo thẻ bằng AI (Gemini)", actions.openAi)
+            Spacer(Modifier.height(8.dp))
             ToggleRow(
                 title = "Đọc to nội dung",
                 subtitle = "Dùng giọng đọc có sẵn trên máy",
@@ -163,7 +166,8 @@ fun SettingsContent(
             Text(
                 "SnapBrain dùng quyền \"Truy cập dữ liệu sử dụng\" chỉ để biết ứng dụng nào đang mở, và quyền " +
                     "\"Hiển thị trên ứng dụng khác\" để hiện thẻ kiến thức. Nó không đọc nội dung màn hình, " +
-                    "không ghi lại thao tác và không gửi dữ liệu đi đâu. Mọi thứ nằm trên máy của bạn.",
+                    "không ghi lại thao tác. Dữ liệu học nằm trên máy của bạn. Chỉ khi bạn bấm Tạo thẻ bằng AI, " +
+                    "app gửi chủ đề bạn chọn tới Gemini của Google.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.Muted,
             )

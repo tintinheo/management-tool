@@ -1,547 +1,3023 @@
 [
   {
-    "id": "office-flashfill",
-    "topic": "office",
-    "hook": "Đừng ngồi gõ tay tách họ tên nữa!",
-    "body": ["Gõ mẫu kết quả ở dòng đầu tiên", "Nhấn Ctrl + E", "Excel tự điền cả cột theo mẫu (Flash Fill)"],
-    "visual": { "type": "keys", "items": ["Ctrl", "E"] },
-    "tf": { "statement": "Tổ hợp Ctrl + E dùng để kích hoạt Flash Fill?", "answer": true, "explain": "Ctrl+E là Flash Fill: Excel tự điền theo mẫu bạn gõ." },
-    "mcq": { "q": "Phím tắt Flash Fill trong Excel?", "options": ["Ctrl + E", "Ctrl + F", "Ctrl + D"], "correct": 0 }
+    "id": "speak-how-are-you",
+    "topic": "speaking",
+    "hook": "Đừng trả lời 'Fine, thank you, and you?' nữa",
+    "body": [
+      "Câu này đúng nhưng nghe như sách giáo khoa",
+      "Thử: Pretty good, busy week though. You?",
+      "Thêm một chi tiết nhỏ để mở chuyện"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Fine, thank you. And you?",
+        "Pretty good! Busy week though. You?"
+      ]
+    },
+    "tf": {
+      "statement": "'Fine, thank you, and you?' là câu trả lời tự nhiên nhất với người bản xứ.",
+      "answer": false,
+      "explain": "Đúng ngữ pháp nhưng cứng. Người bản xứ hay nói 'Pretty good, you?'"
+    },
+    "mcq": {
+      "q": "Trả lời 'How are you?' tự nhiên nhất?",
+      "options": [
+        "I am fine, thank you.",
+        "Pretty good, you?",
+        "Yes, I am."
+      ],
+      "correct": 1
+    }
   },
   {
-    "id": "office-freeze-panes",
-    "topic": "office",
-    "hook": "Cuộn xuống là mất dòng tiêu đề?",
-    "body": ["Chọn ô ngay dưới dòng tiêu đề", "Vào View → Freeze Panes", "Tiêu đề đứng yên khi bạn cuộn"],
-    "visual": { "type": "emoji", "items": ["🧊"] },
-    "tf": { "statement": "Freeze Panes giữ dòng tiêu đề luôn hiện khi cuộn bảng.", "answer": true, "explain": "Đúng, nó 'đóng băng' dòng hoặc cột bạn chọn." },
-    "mcq": { "q": "Tính năng giữ tiêu đề khi cuộn?", "options": ["Wrap Text", "Freeze Panes", "Merge Cells"], "correct": 1 }
+    "id": "speak-weekend",
+    "topic": "speaking",
+    "hook": "Câu mở đầu small talk không bao giờ hỏng",
+    "body": [
+      "Thứ Sáu: Any plans for the weekend?",
+      "Thứ Hai: How was your weekend?",
+      "Hỏi tiếp một câu theo câu trả lời của họ"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Any plans for the weekend?"
+      ]
+    },
+    "tf": {
+      "statement": "'Any plans for the weekend?' là câu mở đầu small talk an toàn.",
+      "answer": true,
+      "explain": "Đúng, hỏi về cuối tuần thân thiện mà không riêng tư."
+    },
+    "mcq": {
+      "q": "Sáng thứ Hai, câu small talk hợp nhất?",
+      "options": [
+        "How old are you?",
+        "How was your weekend?",
+        "How much do you earn?"
+      ],
+      "correct": 1
+    }
   },
   {
-    "id": "office-filter",
-    "topic": "office",
-    "hook": "Bật bộ lọc chỉ bằng một phím tắt",
-    "body": ["Đặt con trỏ trong bảng dữ liệu", "Nhấn Ctrl + Shift + L", "Mũi tên lọc hiện ở mọi cột tiêu đề"],
-    "visual": { "type": "keys", "items": ["Ctrl", "Shift", "L"] },
-    "tf": { "statement": "Ctrl + Shift + L dùng để sắp xếp dữ liệu A→Z.", "answer": false, "explain": "Ctrl+Shift+L bật hoặc tắt bộ lọc, không phải sắp xếp." },
-    "mcq": { "q": "Ctrl + Shift + L trong Excel làm gì?", "options": ["Khóa ô", "Bật/tắt bộ lọc", "Chèn bảng"], "correct": 1 }
+    "id": "speak-say-again",
+    "topic": "speaking",
+    "hook": "Không nghe rõ? Đừng nói 'What?'",
+    "body": [
+      "'What?' nghe cộc lốc, dễ gây khó chịu",
+      "Dùng: Sorry, could you say that again?",
+      "Hoặc: Sorry, I didn't catch that."
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "What?",
+        "Sorry, I didn't catch that. Could you say it again?"
+      ]
+    },
+    "tf": {
+      "statement": "'Sorry, could you say that again?' lịch sự hơn 'What?'.",
+      "answer": true,
+      "explain": "Đúng, 'What?' nghe cộc lốc và dễ gây khó chịu."
+    },
+    "mcq": {
+      "q": "'I didn't catch that' nghĩa là?",
+      "options": [
+        "Tôi không bắt được bóng",
+        "Tôi nghe chưa rõ",
+        "Tôi không đồng ý"
+      ],
+      "correct": 1
+    }
   },
   {
-    "id": "office-xlookup",
-    "topic": "office",
-    "hook": "VLOOKUP đã có người thay thế",
-    "body": ["XLOOKUP(giá trị, cột tìm, cột trả về)", "Không cần đếm số thứ tự cột", "Tra được cả cột nằm bên trái"],
-    "visual": { "type": "compare", "items": ["=VLOOKUP(A2, B:F, 4, FALSE)", "=XLOOKUP(A2, B:B, E:E)"] },
-    "tf": { "statement": "XLOOKUP chỉ tra được cột nằm bên phải cột tìm kiếm.", "answer": false, "explain": "Đó là giới hạn của VLOOKUP. XLOOKUP tra được mọi hướng." },
-    "mcq": { "q": "Ưu điểm của XLOOKUP so với VLOOKUP?", "options": ["Chạy được trên Excel 2007", "Tra được cột bên trái", "Chỉ dùng cho số"], "correct": 1 }
+    "id": "speak-let-me-think",
+    "topic": "speaking",
+    "hook": "Bí từ giữa chừng? Câu giờ cho khéo",
+    "body": [
+      "Let me think for a second…",
+      "That's a good question…",
+      "Nghe tự nhiên hơn im lặng hay 'ờ… ờ…'"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Hmm, that's a good question. Let me think…"
+      ]
+    },
+    "tf": {
+      "statement": "Im lặng thật lâu khi chưa nghĩ ra câu trả lời là cách tốt nhất.",
+      "answer": false,
+      "explain": "Nói 'Let me think…' giúp câu giờ tự nhiên hơn im lặng."
+    },
+    "mcq": {
+      "q": "Câu giờ tự nhiên khi bí ý?",
+      "options": [
+        "Let me think…",
+        "Stop talking.",
+        "I don't know English."
+      ],
+      "correct": 0
+    }
   },
   {
-    "id": "office-today",
-    "topic": "office",
-    "hook": "Điền ngày hôm nay trong nửa giây",
-    "body": ["Chọn ô cần ghi ngày", "Nhấn Ctrl + ; (chấm phẩy)", "Thêm Shift để chèn giờ hiện tại"],
-    "visual": { "type": "keys", "items": ["Ctrl", ";"] },
-    "tf": { "statement": "Ctrl + ; chèn ngày hiện tại vào ô đang chọn.", "answer": true, "explain": "Đúng. Ctrl+Shift+; thì chèn giờ hiện tại." },
-    "mcq": { "q": "Phím tắt chèn ngày hôm nay?", "options": ["Ctrl + ;", "Ctrl + D", "Alt + T"], "correct": 0 }
+    "id": "speak-actually",
+    "topic": "speaking",
+    "hook": "Lỗi kinh điển: 'Actually' không phải 'hiện tại'",
+    "body": [
+      "Actually = thật ra, thực tế là",
+      "Currently / at the moment = hiện tại",
+      "Ví dụ: Actually, I'm currently in Hanoi."
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Actually I work at FPT. (ý: hiện tại)",
+        "Currently I work at FPT."
+      ]
+    },
+    "tf": {
+      "statement": "'Actually' nghĩa là 'hiện tại'.",
+      "answer": false,
+      "explain": "Actually là 'thật ra'. Hiện tại là currently."
+    },
+    "mcq": {
+      "q": "'Hiện tại tôi đang ở Huế' dùng từ nào?",
+      "options": [
+        "Actually",
+        "Currently",
+        "Eventually"
+      ],
+      "correct": 1
+    }
   },
   {
-    "id": "office-word-case",
-    "topic": "office",
-    "hook": "Lỡ gõ cả đoạn bằng CAPS LOCK?",
-    "body": ["Bôi đen đoạn chữ trong Word", "Nhấn Shift + F3", "Mỗi lần nhấn đổi: thường → HOA → Hoa đầu từ"],
-    "visual": { "type": "keys", "items": ["Shift", "F3"] },
-    "tf": { "statement": "Trong Word, Shift + F3 đổi chữ hoa/thường cho đoạn đã chọn.", "answer": true, "explain": "Đúng, nhấn lặp lại để xoay vòng các kiểu chữ." },
-    "mcq": { "q": "Đổi chữ hoa/thường trong Word?", "options": ["Ctrl + U", "Shift + F3", "F7"], "correct": 1 }
+    "id": "speak-ending-sounds",
+    "topic": "speaking",
+    "hook": "Nói 'two book' người ta nghe ra gì?",
+    "body": [
+      "Người Việt hay nuốt âm cuối: s, t, k, d",
+      "Cat, cap, cab chỉ khác nhau ở âm cuối",
+      "Luyện: đọc chậm, bật rõ âm cuối từng từ"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "cat · cap · cab · can"
+      ]
+    },
+    "tf": {
+      "statement": "Bỏ âm cuối như 's', 't' khiến người nghe dễ hiểu nhầm.",
+      "answer": true,
+      "explain": "Đúng, ví dụ cat và cap chỉ khác nhau ở âm cuối."
+    },
+    "mcq": {
+      "q": "Lỗi phát âm phổ biến của người Việt?",
+      "options": [
+        "Nói quá to",
+        "Nuốt âm cuối",
+        "Nói quá chậm"
+      ],
+      "correct": 1
+    }
   },
   {
-    "id": "office-autosum",
-    "topic": "office",
-    "hook": "Tính tổng mà không gõ chữ SUM",
-    "body": ["Chọn ô ngay dưới cột số", "Nhấn Alt + =", "Excel tự chèn =SUM() cho cả cột"],
-    "visual": { "type": "keys", "items": ["Alt", "="] },
-    "tf": { "statement": "Alt + = dùng để chèn hàm AVERAGE.", "answer": false, "explain": "Alt+= chèn hàm SUM (AutoSum), không phải AVERAGE." },
-    "mcq": { "q": "Alt + = trong Excel chèn hàm nào?", "options": ["SUM", "AVERAGE", "COUNT"], "correct": 0 }
+    "id": "speak-how-about",
+    "topic": "speaking",
+    "hook": "Rủ đồng nghiệp đi cà phê bằng tiếng Anh",
+    "body": [
+      "How about grabbing a coffee?",
+      "Sau How about là động từ đuôi -ing",
+      "Grab a coffee = đi uống cà phê nhanh"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "How about grabbing a coffee after lunch?"
+      ]
+    },
+    "tf": {
+      "statement": "Sau 'How about' động từ thêm -ing.",
+      "answer": true,
+      "explain": "Đúng: How about going, How about trying…"
+    },
+    "mcq": {
+      "q": "Câu nào đúng?",
+      "options": [
+        "How about go out?",
+        "How about going out?",
+        "How about to go out?"
+      ],
+      "correct": 1
+    }
   },
   {
-    "id": "office-snip",
-    "topic": "office",
-    "hook": "Chụp đúng phần màn hình cần gửi",
-    "body": ["Nhấn Win + Shift + S", "Kéo chọn vùng muốn chụp", "Ảnh nằm sẵn trong clipboard, dán Ctrl + V"],
-    "visual": { "type": "keys", "items": ["Win", "Shift", "S"] },
-    "tf": { "statement": "Win + Shift + S chụp toàn bộ màn hình và lưu file ngay.", "answer": false, "explain": "Nó cho bạn chọn vùng và lưu ảnh vào clipboard." },
-    "mcq": { "q": "Win + Shift + S làm gì?", "options": ["Khóa máy", "Chụp một vùng màn hình", "Mở Settings"], "correct": 1 }
+    "id": "speak-borrow-lend",
+    "topic": "speaking",
+    "hook": "Mượn bút: borrow hay lend?",
+    "body": [
+      "Borrow = mượn (bạn nhận về)",
+      "Lend = cho mượn (bạn đưa đi)",
+      "Can I borrow… / Can you lend me…"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Can you borrow me your pen?",
+        "Can I borrow your pen?"
+      ]
+    },
+    "tf": {
+      "statement": "'Can you borrow me your pen?' là câu đúng.",
+      "answer": false,
+      "explain": "Phải là 'Can you lend me…' hoặc 'Can I borrow…'."
+    },
+    "mcq": {
+      "q": "'Bạn cho mình mượn sạc nhé?'",
+      "options": [
+        "Can you borrow me your charger?",
+        "Can you lend me your charger?",
+        "Can I lend your charger?"
+      ],
+      "correct": 1
+    }
   },
   {
-    "id": "office-ctrl-arrow",
-    "topic": "office",
-    "hook": "Bảng 10.000 dòng? Đừng lăn chuột",
-    "body": ["Nhấn Ctrl + ↓ để nhảy tới cuối vùng dữ liệu", "Ctrl + → để nhảy tới cột cuối", "Thêm Shift để chọn cả vùng"],
-    "visual": { "type": "keys", "items": ["Ctrl", "↓"] },
-    "tf": { "statement": "Ctrl + ↓ chỉ di chuyển xuống đúng một ô.", "answer": false, "explain": "Nó nhảy tới ô cuối cùng có dữ liệu trong cột." },
-    "mcq": { "q": "Ctrl + Shift + ↓ làm gì?", "options": ["Xóa cột", "Chọn tới cuối vùng dữ liệu", "Chèn dòng"], "correct": 1 }
+    "id": "speak-wrap-up",
+    "topic": "speaking",
+    "hook": "Kết thúc cuộc trò chuyện mà không kỳ cục",
+    "body": [
+      "Khen cuộc trò chuyện trước",
+      "It was great talking to you!",
+      "Rồi: I should get going. See you around!"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "I go now. Bye.",
+        "It was great talking to you! I should get going."
+      ]
+    },
+    "tf": {
+      "statement": "Nói 'I have to go now' rồi đi ngay là cách kết thúc lịch sự nhất.",
+      "answer": false,
+      "explain": "Nên khen cuộc trò chuyện trước: 'It was great talking to you'."
+    },
+    "mcq": {
+      "q": "'I should get going' nghĩa là?",
+      "options": [
+        "Tôi nên đi tập thể dục",
+        "Tôi phải đi rồi",
+        "Tôi sắp được thăng chức"
+      ],
+      "correct": 1
+    }
   },
   {
-    "id": "office-f4",
-    "topic": "office",
-    "hook": "Kéo công thức bị lệch ô?",
-    "body": ["Đang sửa công thức, đặt con trỏ vào A1", "Nhấn F4 để thành $A$1", "Ô này giữ nguyên khi kéo công thức"],
-    "visual": { "type": "keys", "items": ["F4"] },
-    "tf": { "statement": "Nhấn F4 khi sửa công thức sẽ chuyển A1 thành $A$1.", "answer": true, "explain": "Đúng. Nhấn tiếp để xoay vòng A$1, $A1, A1." },
-    "mcq": { "q": "$A$1 gọi là tham chiếu gì?", "options": ["Tương đối", "Tuyệt đối", "Vòng lặp"], "correct": 1 }
+    "id": "speak-intonation",
+    "topic": "speaking",
+    "hook": "Cùng một câu, hỏi hay khẳng định?",
+    "body": [
+      "Câu hỏi Yes/No: lên giọng ở cuối ↗",
+      "Câu hỏi Wh- và câu khẳng định: xuống giọng ↘",
+      "You're coming? ↗ — người nghe biết bạn đang hỏi"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Are you free tomorrow? ↗"
+      ]
+    },
+    "tf": {
+      "statement": "Câu hỏi Yes/No thường lên giọng ở cuối câu.",
+      "answer": true,
+      "explain": "Đúng, lên giọng báo hiệu bạn đang hỏi."
+    },
+    "mcq": {
+      "q": "Câu nào thường xuống giọng ở cuối?",
+      "options": [
+        "Are you ready?",
+        "Where do you live?",
+        "Is it raining?"
+      ],
+      "correct": 1
+    }
   },
-
   {
     "id": "english-walk-through",
     "topic": "english",
     "hook": "Nghe sếp nói 'walk me through'?",
-    "body": ["Walk me through = giải thích lần lượt từng bước", "Dùng khi muốn ai đó trình bày chi tiết", "Ví dụ: walk me through the budget"],
-    "visual": { "type": "quote", "items": ["Could you walk me through the numbers?"] },
-    "tf": { "statement": "'Walk me through' nghĩa là 'đi bộ cùng tôi'.", "answer": false, "explain": "Nghĩa là giải thích lần lượt từng bước cho tôi." },
-    "mcq": { "q": "'Walk me through the plan' nghĩa là?", "options": ["Giải thích kế hoạch từng bước", "Hủy kế hoạch", "Đi dạo bàn kế hoạch"], "correct": 0 }
+    "body": [
+      "Walk me through = giải thích lần lượt từng bước",
+      "Dùng khi muốn ai đó trình bày chi tiết",
+      "Ví dụ: walk me through the budget"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Could you walk me through the numbers?"
+      ]
+    },
+    "tf": {
+      "statement": "'Walk me through' nghĩa là 'đi bộ cùng tôi'.",
+      "answer": false,
+      "explain": "Nghĩa là giải thích lần lượt từng bước cho tôi."
+    },
+    "mcq": {
+      "q": "'Walk me through the plan' nghĩa là?",
+      "options": [
+        "Giải thích kế hoạch từng bước",
+        "Hủy kế hoạch",
+        "Đi dạo bàn kế hoạch"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "english-circle-back",
     "topic": "english",
     "hook": "Cuộc họp lạc đề? Dùng câu này",
-    "body": ["Let's circle back on this = bàn lại sau", "Giúp gác chủ đề mà không bỏ qua nó", "Nhớ ghi lại để quay lại thật"],
-    "visual": { "type": "quote", "items": ["Good point — let's circle back on this next week."] },
-    "tf": { "statement": "'Let's circle back on this' nghĩa là mình bàn lại chuyện này sau.", "answer": true, "explain": "Đúng, gác lại lúc này và quay lại sau." },
-    "mcq": { "q": "'Let's circle back' dùng khi nào?", "options": ["Kết thúc dự án", "Muốn bàn lại sau", "Từ chối thẳng"], "correct": 1 }
+    "body": [
+      "Let's circle back on this = bàn lại sau",
+      "Giúp gác chủ đề mà không bỏ qua nó",
+      "Nhớ ghi lại để quay lại thật"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Good point — let's circle back on this next week."
+      ]
+    },
+    "tf": {
+      "statement": "'Let's circle back on this' nghĩa là mình bàn lại chuyện này sau.",
+      "answer": true,
+      "explain": "Đúng, gác lại lúc này và quay lại sau."
+    },
+    "mcq": {
+      "q": "'Let's circle back' dùng khi nào?",
+      "options": [
+        "Kết thúc dự án",
+        "Muốn bàn lại sau",
+        "Từ chối thẳng"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "english-earliest-convenience",
     "topic": "english",
     "hook": "ASAP nghe hơi gắt với sếp",
-    "body": ["ASAP dễ bị hiểu là ra lệnh", "Thay bằng: at your earliest convenience", "Hoặc: by Friday, if possible"],
-    "visual": { "type": "compare", "items": ["Send it ASAP.", "Could you send it at your earliest convenience?"] },
-    "tf": { "statement": "'At your earliest convenience' là cách nói lịch sự hơn ASAP.", "answer": true, "explain": "Đúng, vẫn mong sớm nhưng không mang giọng ra lệnh." },
-    "mcq": { "q": "Cách nói lịch sự hơn 'ASAP'?", "options": ["Right now", "At your earliest convenience", "Hurry up"], "correct": 1 }
+    "body": [
+      "ASAP dễ bị hiểu là ra lệnh",
+      "Thay bằng: at your earliest convenience",
+      "Hoặc: by Friday, if possible"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Send it ASAP.",
+        "Could you send it at your earliest convenience?"
+      ]
+    },
+    "tf": {
+      "statement": "'At your earliest convenience' là cách nói lịch sự hơn ASAP.",
+      "answer": true,
+      "explain": "Đúng, vẫn mong sớm nhưng không mang giọng ra lệnh."
+    },
+    "mcq": {
+      "q": "Cách nói lịch sự hơn 'ASAP'?",
+      "options": [
+        "Right now",
+        "At your earliest convenience",
+        "Hurry up"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "english-im-afraid",
     "topic": "english",
     "hook": "Báo tin xấu mà không mất lòng",
-    "body": ["Mở đầu bằng I'm afraid…", "Làm mềm câu từ chối hoặc tin xấu", "Kèm phương án khác nếu có"],
-    "visual": { "type": "compare", "items": ["We can't do Monday.", "I'm afraid Monday won't work. How about Tuesday?"] },
-    "tf": { "statement": "'I'm afraid' trong email công việc nghĩa là bạn đang sợ.", "answer": false, "explain": "Nó làm mềm tin xấu, không nói về nỗi sợ." },
-    "mcq": { "q": "'I'm afraid we can't' dùng để?", "options": ["Báo tin xấu lịch sự", "Bày tỏ nỗi sợ", "Xin lỗi vì đến muộn"], "correct": 0 }
+    "body": [
+      "Mở đầu bằng I'm afraid…",
+      "Làm mềm câu từ chối hoặc tin xấu",
+      "Kèm phương án khác nếu có"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "We can't do Monday.",
+        "I'm afraid Monday won't work. How about Tuesday?"
+      ]
+    },
+    "tf": {
+      "statement": "'I'm afraid' trong email công việc nghĩa là bạn đang sợ.",
+      "answer": false,
+      "explain": "Nó làm mềm tin xấu, không nói về nỗi sợ."
+    },
+    "mcq": {
+      "q": "'I'm afraid we can't' dùng để?",
+      "options": [
+        "Báo tin xấu lịch sự",
+        "Bày tỏ nỗi sợ",
+        "Xin lỗi vì đến muộn"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "english-touch-base",
     "topic": "english",
     "hook": "Muốn hẹn trao đổi nhanh 10 phút?",
-    "body": ["Touch base = liên lạc ngắn để cập nhật", "Không cần họp dài", "Ví dụ: let's touch base on Monday"],
-    "visual": { "type": "quote", "items": ["Let's touch base after the client call."] },
-    "tf": { "statement": "'Touch base' nghĩa là liên lạc nhanh để cập nhật tình hình.", "answer": true, "explain": "Đúng, một cuộc trao đổi ngắn để nắm tiến độ." },
-    "mcq": { "q": "'Let's touch base tomorrow' nghĩa là?", "options": ["Mai gặp ở căn cứ", "Mai trao đổi nhanh", "Mai nghỉ"], "correct": 1 }
+    "body": [
+      "Touch base = liên lạc ngắn để cập nhật",
+      "Không cần họp dài",
+      "Ví dụ: let's touch base on Monday"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Let's touch base after the client call."
+      ]
+    },
+    "tf": {
+      "statement": "'Touch base' nghĩa là liên lạc nhanh để cập nhật tình hình.",
+      "answer": true,
+      "explain": "Đúng, một cuộc trao đổi ngắn để nắm tiến độ."
+    },
+    "mcq": {
+      "q": "'Let's touch base tomorrow' nghĩa là?",
+      "options": [
+        "Mai gặp ở căn cứ",
+        "Mai trao đổi nhanh",
+        "Mai nghỉ"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "english-bandwidth",
     "topic": "english",
     "hook": "Từ chối thêm việc một cách khéo",
-    "body": ["Bandwidth = sức và thời gian còn trống", "I don't have the bandwidth = không kham thêm được", "Kèm mốc khi bạn rảnh để giữ thiện chí"],
-    "visual": { "type": "quote", "items": ["I don't have the bandwidth this week, but I can help next Monday."] },
-    "tf": { "statement": "'I don't have the bandwidth' nghĩa là mạng internet đang yếu.", "answer": false, "explain": "Nghĩa là không còn thời gian hay sức để nhận thêm việc." },
-    "mcq": { "q": "'No bandwidth' trong công việc là?", "options": ["Mất mạng", "Không còn thời gian/sức", "Hết ngân sách"], "correct": 1 }
+    "body": [
+      "Bandwidth = sức và thời gian còn trống",
+      "I don't have the bandwidth = không kham thêm được",
+      "Kèm mốc khi bạn rảnh để giữ thiện chí"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "I don't have the bandwidth this week, but I can help next Monday."
+      ]
+    },
+    "tf": {
+      "statement": "'I don't have the bandwidth' nghĩa là mạng internet đang yếu.",
+      "answer": false,
+      "explain": "Nghĩa là không còn thời gian hay sức để nhận thêm việc."
+    },
+    "mcq": {
+      "q": "'No bandwidth' trong công việc là?",
+      "options": [
+        "Mất mạng",
+        "Không còn thời gian/sức",
+        "Hết ngân sách"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "english-as-discussed",
     "topic": "english",
     "hook": "Chốt lại điều đã thống nhất",
-    "body": ["As discussed = như đã trao đổi", "Dùng mở đầu email sau buổi họp", "Giúp tạo bằng chứng bằng văn bản"],
-    "visual": { "type": "quote", "items": ["As discussed, the deadline is now 15 March."] },
-    "tf": { "statement": "'As discussed' dùng để nhắc lại điều đã thống nhất trước đó.", "answer": true, "explain": "Đúng, rất hợp cho email tóm tắt sau buổi họp." },
-    "mcq": { "q": "'As discussed' đặt ở đâu hợp nhất?", "options": ["Email sau buổi họp", "Thư xin việc", "Lời chào buổi sáng"], "correct": 0 }
+    "body": [
+      "As discussed = như đã trao đổi",
+      "Dùng mở đầu email sau buổi họp",
+      "Giúp tạo bằng chứng bằng văn bản"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "As discussed, the deadline is now 15 March."
+      ]
+    },
+    "tf": {
+      "statement": "'As discussed' dùng để nhắc lại điều đã thống nhất trước đó.",
+      "answer": true,
+      "explain": "Đúng, rất hợp cho email tóm tắt sau buổi họp."
+    },
+    "mcq": {
+      "q": "'As discussed' đặt ở đâu hợp nhất?",
+      "options": [
+        "Email sau buổi họp",
+        "Thư xin việc",
+        "Lời chào buổi sáng"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "english-following-up",
     "topic": "english",
     "hook": "Email gửi 3 ngày chưa ai trả lời?",
-    "body": ["Mở đầu: Just following up on…", "Nhắc ngắn, không trách móc", "Kèm câu hỏi cụ thể để dễ trả lời"],
-    "visual": { "type": "quote", "items": ["Just following up on my email from Monday — any update?"] },
-    "tf": { "statement": "'Following up' nghĩa là bạn đang theo dõi ai đó.", "answer": false, "explain": "Nghĩa là nhắc lại, hỏi tiếp về việc đã gửi trước đó." },
-    "mcq": { "q": "Câu nhắc khéo khi chưa được trả lời?", "options": ["Why no reply?", "Just following up on…", "Answer me now."], "correct": 1 }
+    "body": [
+      "Mở đầu: Just following up on…",
+      "Nhắc ngắn, không trách móc",
+      "Kèm câu hỏi cụ thể để dễ trả lời"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Just following up on my email from Monday — any update?"
+      ]
+    },
+    "tf": {
+      "statement": "'Following up' nghĩa là bạn đang theo dõi ai đó.",
+      "answer": false,
+      "explain": "Nghĩa là nhắc lại, hỏi tiếp về việc đã gửi trước đó."
+    },
+    "mcq": {
+      "q": "Câu nhắc khéo khi chưa được trả lời?",
+      "options": [
+        "Why no reply?",
+        "Just following up on…",
+        "Answer me now."
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "english-ooo",
     "topic": "english",
     "hook": "Thấy chữ OOO trong email?",
-    "body": ["OOO = Out of Office", "Người đó đang nghỉ hoặc vắng mặt", "Thường kèm ngày quay lại và người thay"],
-    "visual": { "type": "emoji", "items": ["🏖️"] },
-    "tf": { "statement": "OOO trong email nghĩa là 'Out of order' — đang hỏng.", "answer": false, "explain": "OOO là Out of Office: đang nghỉ, không ở văn phòng." },
-    "mcq": { "q": "OOO viết tắt của?", "options": ["Out of Office", "Out of Order", "On Our Own"], "correct": 0 }
+    "body": [
+      "OOO = Out of Office",
+      "Người đó đang nghỉ hoặc vắng mặt",
+      "Thường kèm ngày quay lại và người thay"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🏖️"
+      ]
+    },
+    "tf": {
+      "statement": "OOO trong email nghĩa là 'Out of order' — đang hỏng.",
+      "answer": false,
+      "explain": "OOO là Out of Office: đang nghỉ, không ở văn phòng."
+    },
+    "mcq": {
+      "q": "OOO viết tắt của?",
+      "options": [
+        "Out of Office",
+        "Out of Order",
+        "On Our Own"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "english-disagree",
     "topic": "english",
     "hook": "Phản đối sếp mà vẫn giữ hòa khí",
-    "body": ["Ghi nhận ý người kia trước", "Rồi mới đưa góc nhìn khác", "Dạng câu hỏi nghe mềm hơn câu khẳng định"],
-    "visual": { "type": "compare", "items": ["You're wrong.", "I see your point, but have we considered the cost?"] },
-    "tf": { "statement": "'I see your point, but…' là cách phản đối lịch sự.", "answer": true, "explain": "Đúng, ghi nhận trước rồi mới phản biện." },
-    "mcq": { "q": "Cách phản đối lịch sự nhất?", "options": ["That's nonsense.", "I see your point, but…", "No way."], "correct": 1 }
+    "body": [
+      "Ghi nhận ý người kia trước",
+      "Rồi mới đưa góc nhìn khác",
+      "Dạng câu hỏi nghe mềm hơn câu khẳng định"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "You're wrong.",
+        "I see your point, but have we considered the cost?"
+      ]
+    },
+    "tf": {
+      "statement": "'I see your point, but…' là cách phản đối lịch sự.",
+      "answer": true,
+      "explain": "Đúng, ghi nhận trước rồi mới phản biện."
+    },
+    "mcq": {
+      "q": "Cách phản đối lịch sự nhất?",
+      "options": [
+        "That's nonsense.",
+        "I see your point, but…",
+        "No way."
+      ],
+      "correct": 1
+    }
   },
-
+  {
+    "id": "comm-bluf",
+    "topic": "communication",
+    "hook": "Sếp chỉ có 30 giây cho bạn",
+    "body": [
+      "Nói kết luận trước: cần gì, quyết gì",
+      "Sau đó mới đến lý do và chi tiết",
+      "Gọi là BLUF: Bottom Line Up Front"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Hôm qua em gặp khách, rồi… (5 phút sau) …nên cần anh duyệt.",
+        "Em cần anh duyệt giảm giá 5% trước 3h. Lý do là…"
+      ]
+    },
+    "tf": {
+      "statement": "Khi báo cáo sếp, nên nói kết luận trước rồi mới đến chi tiết.",
+      "answer": true,
+      "explain": "Đúng, gọi là BLUF: Bottom Line Up Front."
+    },
+    "mcq": {
+      "q": "BLUF nghĩa là?",
+      "options": [
+        "Kết luận trước",
+        "Kể chuyện trước",
+        "Hỏi trước"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "comm-active-listening",
+    "topic": "communication",
+    "hook": "Lắng nghe không chỉ là im lặng",
+    "body": [
+      "Nhắc lại ý chính bằng lời của bạn",
+      "Hỏi: Ý bạn là… đúng không?",
+      "Người nói thấy được hiểu, bạn tránh hiểu sai"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Vậy ý anh là deadline có thể lùi, miễn bản demo xong trước, đúng không?"
+      ]
+    },
+    "tf": {
+      "statement": "Lắng nghe chủ động là im lặng cho đến khi người kia nói xong.",
+      "answer": false,
+      "explain": "Còn phải hỏi lại và tóm tắt ý để xác nhận đã hiểu."
+    },
+    "mcq": {
+      "q": "Dấu hiệu của lắng nghe chủ động?",
+      "options": [
+        "Xem điện thoại",
+        "Tóm tắt lại ý người nói",
+        "Nghĩ câu đáp trả"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "comm-i-statement",
+    "topic": "communication",
+    "hook": "Một chữ khiến cuộc nói chuyện thành cãi nhau",
+    "body": [
+      "'Bạn luôn…' khiến người nghe phòng thủ",
+      "Thay bằng: 'Mình thấy lo khi…'",
+      "Nói về cảm nhận, không buộc tội"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Bạn lúc nào cũng trễ hạn!",
+        "Mình thấy lo khi báo cáo trễ, vì khách đang chờ."
+      ]
+    },
+    "tf": {
+      "statement": "Câu bắt đầu bằng 'Mình cảm thấy…' ít gây phòng thủ hơn 'Bạn luôn…'.",
+      "answer": true,
+      "explain": "Đúng, nói về cảm nhận của mình thay vì buộc tội."
+    },
+    "mcq": {
+      "q": "Câu nào ít gây phòng thủ nhất?",
+      "options": [
+        "Bạn chẳng bao giờ nghe",
+        "Mình thấy chưa được nghe hết ý",
+        "Bạn sai rồi"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "comm-rule-of-three",
+    "topic": "communication",
+    "hook": "Trình bày 10 ý, người nghe nhớ 0",
+    "body": [
+      "Gom nội dung thành 3 ý chính",
+      "Mở bài: Có 3 điều tôi muốn nói",
+      "Kết bài: nhắc lại đúng 3 ý đó"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "3️⃣"
+      ]
+    },
+    "tf": {
+      "statement": "Trình bày càng nhiều ý thì người nghe càng nhớ nhiều.",
+      "answer": false,
+      "explain": "Người nghe nhớ tốt nhất khoảng 3 ý chính."
+    },
+    "mcq": {
+      "q": "Bài nói ngắn nên có mấy ý chính?",
+      "options": [
+        "Khoảng 3",
+        "Khoảng 10",
+        "Càng nhiều càng tốt"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "comm-pause",
+    "topic": "communication",
+    "hook": "Vũ khí bí mật của người nói hay",
+    "body": [
+      "Ngừng 1–2 giây trước ý quan trọng",
+      "Người nghe tự động tập trung lại",
+      "Khoảng lặng nghe tự tin hơn 'ờ… à…'"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "⏸️"
+      ]
+    },
+    "tf": {
+      "statement": "Ngừng một nhịp trước ý quan trọng giúp người nghe chú ý hơn.",
+      "answer": true,
+      "explain": "Đúng, khoảng lặng ngắn tạo điểm nhấn tự nhiên."
+    },
+    "mcq": {
+      "q": "Thay vì 'ờ… à…', người nói giỏi?",
+      "options": [
+        "Nói nhanh hơn",
+        "Ngừng ngắn một nhịp",
+        "Nói to hơn"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "comm-mehrabian",
+    "topic": "communication",
+    "hook": "'93% là ngôn ngữ cơ thể'? Hiểu sai rồi",
+    "body": [
+      "Mehrabian nghiên cứu lời nói về cảm xúc",
+      "Khi lời nói và giọng điệu mâu thuẫn",
+      "Không áp dụng cho mọi cuộc trò chuyện"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "7% lời · 38% giọng · 55% cơ thể — chỉ trong một tình huống rất hẹp"
+      ]
+    },
+    "tf": {
+      "statement": "93% ý nghĩa của mọi cuộc trò chuyện đến từ giọng nói và ngôn ngữ cơ thể.",
+      "answer": false,
+      "explain": "Nghiên cứu Mehrabian chỉ đúng khi lời nói và cảm xúc mâu thuẫn."
+    },
+    "mcq": {
+      "q": "Con số 7-38-55 của Mehrabian áp dụng khi?",
+      "options": [
+        "Mọi cuộc trò chuyện",
+        "Nói về cảm xúc, lời và giọng mâu thuẫn",
+        "Thuyết trình"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "comm-email-subject",
+    "topic": "communication",
+    "hook": "Email của bạn bị bỏ qua vì tiêu đề",
+    "body": [
+      "Tiêu đề = việc cần làm + hạn chót",
+      "[Cần duyệt trước T6] Báo giá dự án A",
+      "Người nhận biết ngay có cần mở không"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Báo giá",
+        "[Cần duyệt trước T6] Báo giá dự án A"
+      ]
+    },
+    "tf": {
+      "statement": "Tiêu đề email nên nói rõ việc cần làm và hạn chót.",
+      "answer": true,
+      "explain": "Đúng, người nhận biết ngay mức độ ưu tiên."
+    },
+    "mcq": {
+      "q": "Tiêu đề email nào tốt nhất?",
+      "options": [
+        "Hi",
+        "Gửi anh",
+        "[Cần phản hồi trước 15h] Lịch họp quý"
+      ],
+      "correct": 2
+    }
+  },
+  {
+    "id": "comm-why-question",
+    "topic": "communication",
+    "hook": "Câu hỏi 'tại sao' nghe như đang trách",
+    "body": [
+      "'Tại sao bạn làm vậy?' dễ gây phòng thủ",
+      "Thử: 'Điều gì khiến bạn chọn cách này?'",
+      "Cùng ý, nhưng nghe tò mò thay vì phán xét"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Tại sao em làm vậy?",
+        "Điều gì khiến em chọn cách này?"
+      ]
+    },
+    "tf": {
+      "statement": "Hỏi 'Tại sao bạn làm vậy?' là cách tốt nhất để hiểu người khác.",
+      "answer": false,
+      "explain": "'Tại sao' dễ nghe như trách. Thử hỏi 'Điều gì khiến bạn…?'"
+    },
+    "mcq": {
+      "q": "Câu hỏi nào ít gây phòng thủ nhất?",
+      "options": [
+        "Tại sao lại trễ?",
+        "Điều gì làm việc này bị chậm?",
+        "Lại trễ à?"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "comm-names",
+    "topic": "communication",
+    "hook": "Âm thanh dễ chịu nhất với mỗi người",
+    "body": [
+      "Là tên của chính họ",
+      "Gọi tên khi chào và khi cảm ơn",
+      "Lần đầu gặp: nhắc lại tên ngay để nhớ"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Cảm ơn chị Lan, phần số liệu của chị rất rõ."
+      ]
+    },
+    "tf": {
+      "statement": "Gọi tên người đối diện giúp cuộc trò chuyện thân thiện hơn.",
+      "answer": true,
+      "explain": "Đúng, nghe tên mình khiến người ta thấy được ghi nhận."
+    },
+    "mcq": {
+      "q": "Mẹo nhớ tên người mới gặp?",
+      "options": [
+        "Nhắc lại tên ngay khi nghe",
+        "Hỏi lại sau 1 tuần",
+        "Gọi là 'bạn ơi'"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "comm-yes-and",
+    "topic": "communication",
+    "hook": "Đổi 'nhưng' thành 'và', họp vui hơn hẳn",
+    "body": [
+      "'Đúng, nhưng…' xóa ý của người trước",
+      "'Đúng, và…' xây tiếp trên ý đó",
+      "Kỹ thuật lấy từ kịch ứng tác (improv)"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Ý hay, nhưng tốn tiền quá.",
+        "Ý hay, và mình có thể thử bản nhỏ trước để tiết kiệm."
+      ]
+    },
+    "tf": {
+      "statement": "'Đúng, nhưng…' là cách hay nhất để phát triển ý của người khác.",
+      "answer": false,
+      "explain": "'Nhưng' xóa ý trước. Dùng 'Đúng, và…' để cùng xây ý."
+    },
+    "mcq": {
+      "q": "Kỹ thuật 'Yes, and' đến từ?",
+      "options": [
+        "Kịch ứng tác",
+        "Luật pháp",
+        "Kế toán"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "inf-reciprocity",
+    "topic": "influence",
+    "hook": "Muốn được giúp? Giúp người ta trước",
+    "body": [
+      "Con người có xu hướng đáp lại ân huệ",
+      "Chia sẻ tài liệu, giới thiệu mối quan hệ",
+      "Cho đi thật lòng, không tính toán ngay"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🎁"
+      ]
+    },
+    "tf": {
+      "statement": "Giúp người khác trước khiến họ dễ giúp lại bạn hơn.",
+      "answer": true,
+      "explain": "Đúng, đó là nguyên tắc có đi có lại (reciprocity)."
+    },
+    "mcq": {
+      "q": "Nguyên tắc 'có đi có lại' là?",
+      "options": [
+        "Reciprocity",
+        "Scarcity",
+        "Authority"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "inf-social-proof",
+    "topic": "influence",
+    "hook": "Vì sao quán đông lại càng đông?",
+    "body": [
+      "Không chắc chắn, ta nhìn người khác làm gì",
+      "Gọi là bằng chứng xã hội",
+      "Dùng: số khách hàng, đánh giá, câu chuyện thật"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "👥"
+      ]
+    },
+    "tf": {
+      "statement": "Câu '90% khách hàng chọn gói này' hầu như không ảnh hưởng quyết định.",
+      "answer": false,
+      "explain": "Bằng chứng xã hội khiến ta dễ làm theo số đông."
+    },
+    "mcq": {
+      "q": "Ví dụ của bằng chứng xã hội?",
+      "options": [
+        "Chỉ còn 2 suất",
+        "10.000 người đã đăng ký",
+        "Giám đốc khuyên dùng"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "inf-because",
+    "topic": "influence",
+    "hook": "Từ thần kỳ khi nhờ vả: 'vì'",
+    "body": [
+      "Thí nghiệm xếp hàng máy photocopy (Langer)",
+      "Nhờ kèm lý do 'vì…', nhiều người đồng ý hơn hẳn",
+      "Kèm lý do thật để nhờ vả dễ được chấp nhận"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Cho mình dùng máy trước nhé?",
+        "Cho mình dùng máy trước nhé, vì mình sắp trễ họp?"
+      ]
+    },
+    "tf": {
+      "statement": "Thêm lý do 'vì…' khi nhờ vả làm người khác dễ đồng ý hơn.",
+      "answer": true,
+      "explain": "Đúng, thí nghiệm của Ellen Langer cho thấy điều đó."
+    },
+    "mcq": {
+      "q": "Thí nghiệm của Langer dùng?",
+      "options": [
+        "Máy photocopy",
+        "Thang máy",
+        "Máy bán hàng"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "inf-foot-in-door",
+    "topic": "influence",
+    "hook": "Muốn xin việc lớn, bắt đầu từ việc nhỏ",
+    "body": [
+      "Nhờ một việc nhỏ, dễ đồng ý trước",
+      "Người ta muốn nhất quán với lần đồng ý đó",
+      "Gọi là kỹ thuật 'bước chân vào cửa'"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🚪"
+      ]
+    },
+    "tf": {
+      "statement": "Muốn được giúp việc lớn, nên đề nghị việc lớn ngay từ đầu.",
+      "answer": false,
+      "explain": "Đồng ý việc nhỏ trước khiến người ta dễ nhận việc lớn sau."
+    },
+    "mcq": {
+      "q": "Kỹ thuật 'foot in the door' là?",
+      "options": [
+        "Xin việc nhỏ trước",
+        "Xin việc lớn trước",
+        "Không xin gì"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "inf-liking",
+    "topic": "influence",
+    "hook": "Ta dễ nói 'có' với người mình thích",
+    "body": [
+      "Tìm điểm chung thật: quê, sở thích, trường",
+      "Khen cụ thể, chân thành",
+      "Thiện cảm mở đường cho thuyết phục"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🤝"
+      ]
+    },
+    "tf": {
+      "statement": "Người ta dễ bị thuyết phục bởi người họ thấy có điểm chung.",
+      "answer": true,
+      "explain": "Đúng, đó là nguyên tắc thiện cảm (liking) của Cialdini."
+    },
+    "mcq": {
+      "q": "Cách tạo thiện cảm nhanh?",
+      "options": [
+        "Tìm điểm chung thật",
+        "Nói thật nhiều về mình",
+        "Tranh luận thắng"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "inf-scarcity",
+    "topic": "influence",
+    "hook": "'Chỉ còn 3 suất' tác động thế nào?",
+    "body": [
+      "Thứ khan hiếm có vẻ giá trị hơn",
+      "Dùng trung thực: hạn đăng ký, số chỗ thật",
+      "Khan hiếm giả sẽ làm mất uy tín"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "⏳"
+      ]
+    },
+    "tf": {
+      "statement": "Nói 'chỉ còn 3 suất' không làm món hàng hấp dẫn hơn.",
+      "answer": false,
+      "explain": "Sự khan hiếm khiến ta đánh giá món đồ cao hơn."
+    },
+    "mcq": {
+      "q": "'Ưu đãi kết thúc tối nay' dùng nguyên tắc?",
+      "options": [
+        "Khan hiếm",
+        "Có đi có lại",
+        "Thiện cảm"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "inf-listen-first",
+    "topic": "influence",
+    "hook": "Muốn được nghe, hãy nghe trước",
+    "body": [
+      "Hỏi và tóm tắt quan điểm của họ trước",
+      "Người thấy được hiểu sẽ bớt phòng thủ",
+      "Lúc đó ý của bạn mới lọt tai"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Hãy tìm cách hiểu trước, rồi mới mong được hiểu."
+      ]
+    },
+    "tf": {
+      "statement": "Người cảm thấy được lắng nghe sẽ cởi mở hơn với ý kiến của bạn.",
+      "answer": true,
+      "explain": "Đúng, hãy hiểu họ trước rồi mới mong được hiểu."
+    },
+    "mcq": {
+      "q": "Trước khi thuyết phục, nên?",
+      "options": [
+        "Nói ngay ý mình",
+        "Hiểu quan điểm của họ",
+        "Đưa thật nhiều số liệu"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "inf-story",
+    "topic": "influence",
+    "hook": "Số liệu thuyết phục lý trí, câu chuyện lay động",
+    "body": [
+      "Mở bằng một câu chuyện có người thật",
+      "Rồi dùng số liệu để chứng minh",
+      "Người nghe nhớ câu chuyện lâu hơn con số"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "📖"
+      ]
+    },
+    "tf": {
+      "statement": "Số liệu khô khan luôn thuyết phục hơn một câu chuyện.",
+      "answer": false,
+      "explain": "Câu chuyện dễ nhớ và chạm cảm xúc hơn số liệu đơn thuần."
+    },
+    "mcq": {
+      "q": "Cách trình bày thuyết phục nhất?",
+      "options": [
+        "Chỉ số liệu",
+        "Câu chuyện kèm số liệu",
+        "Chỉ cảm xúc"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "inf-questions",
+    "topic": "influence",
+    "hook": "Thắng tranh luận, thua mối quan hệ",
+    "body": [
+      "Tranh luận khiến người kia cố thủ",
+      "Đặt câu hỏi để họ tự nhìn ra vấn đề",
+      "Kết luận tự rút ra thì người ta giữ lâu hơn"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Nếu làm theo cách này, anh nghĩ rủi ro lớn nhất là gì?"
+      ]
+    },
+    "tf": {
+      "statement": "Muốn thuyết phục, cách tốt nhất là tranh luận đến khi đối phương nhận sai.",
+      "answer": false,
+      "explain": "Đặt câu hỏi để họ tự đi đến kết luận hiệu quả hơn."
+    },
+    "mcq": {
+      "q": "Thay vì tranh luận, nên?",
+      "options": [
+        "Nói to hơn",
+        "Đặt câu hỏi gợi mở",
+        "Bỏ đi"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "inf-consistency",
+    "topic": "influence",
+    "hook": "Nói ra miệng, người ta sẽ cố làm",
+    "body": [
+      "Ai đã cam kết công khai sẽ muốn giữ lời",
+      "Cuối buổi họp, hỏi: 'Anh sẽ gửi khi nào?'",
+      "Ghi lại cam kết trong email tóm tắt"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "✍️"
+      ]
+    },
+    "tf": {
+      "statement": "Khi đã cam kết công khai, người ta có xu hướng giữ lời.",
+      "answer": true,
+      "explain": "Đúng, đó là nguyên tắc nhất quán (consistency) của Cialdini."
+    },
+    "mcq": {
+      "q": "Cách giúp đồng nghiệp giữ cam kết?",
+      "options": [
+        "Để họ tự nhớ",
+        "Hỏi mốc thời gian và ghi lại",
+        "Nhắc mỗi giờ"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "mgmt-one-on-one",
+    "topic": "management",
+    "hook": "Buổi 1:1 không phải để báo cáo tiến độ",
+    "body": [
+      "1:1 là thời gian của nhân viên",
+      "Hỏi: điều gì đang cản trở bạn?",
+      "Tiến độ thì xem trên công cụ quản lý việc"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Tuần này điều gì đang làm bạn chậm lại?"
+      ]
+    },
+    "tf": {
+      "statement": "Buổi 1:1 là lúc sếp giao việc và kiểm tra tiến độ.",
+      "answer": false,
+      "explain": "1:1 là thời gian của nhân viên: vướng mắc, phát triển, cảm xúc."
+    },
+    "mcq": {
+      "q": "Câu hỏi hay cho buổi 1:1?",
+      "options": [
+        "Sao chưa xong việc?",
+        "Điều gì đang cản trở bạn?",
+        "Ai làm chậm nhất nhóm?"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "mgmt-smart",
+    "topic": "management",
+    "hook": "'Tăng doanh số' chưa phải là mục tiêu",
+    "body": [
+      "SMART: Cụ thể, Đo được, Khả thi",
+      "Liên quan, và có Thời hạn",
+      "Tăng doanh số 15% trước 30/6 mới là mục tiêu"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Tăng doanh số.",
+        "Tăng doanh số online 15% trước 30/6."
+      ]
+    },
+    "tf": {
+      "statement": "Mục tiêu SMART phải có thời hạn rõ ràng.",
+      "answer": true,
+      "explain": "Đúng, chữ T trong SMART là Time-bound."
+    },
+    "mcq": {
+      "q": "Mục tiêu nào đạt chuẩn SMART?",
+      "options": [
+        "Làm tốt hơn",
+        "Giảm 10% chi phí kho trước quý 3",
+        "Cố gắng hết sức"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "mgmt-delegate-outcome",
+    "topic": "management",
+    "hook": "Giao việc kiểu này, nhân viên lớn nhanh",
+    "body": [
+      "Nói rõ kết quả cần đạt và hạn chót",
+      "Để họ tự chọn cách làm",
+      "Hẹn mốc kiểm tra thay vì đứng sau lưng"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Làm bước 1, rồi bước 2, rồi bước 3…",
+        "Thứ Sáu cần bản đề xuất 1 trang, ngân sách dưới 50 triệu."
+      ]
+    },
+    "tf": {
+      "statement": "Khi giao việc, nên nói rõ kết quả mong muốn hơn là từng bước làm.",
+      "answer": true,
+      "explain": "Đúng, giao kết quả giúp nhân viên chủ động và trưởng thành."
+    },
+    "mcq": {
+      "q": "Giao việc hiệu quả là giao?",
+      "options": [
+        "Từng bước chi tiết",
+        "Kết quả và hạn chót",
+        "Chỉ tên công việc"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "mgmt-praise-public",
+    "topic": "management",
+    "hook": "Khen ở đâu, góp ý ở đâu?",
+    "body": [
+      "Khen trước cả nhóm",
+      "Góp ý riêng, trong phòng kín",
+      "Giữ thể diện thì giữ được lòng tin"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🏆"
+      ]
+    },
+    "tf": {
+      "statement": "Nên góp ý lỗi của nhân viên ngay trước cả nhóm để mọi người cùng rút kinh nghiệm.",
+      "answer": false,
+      "explain": "Khen công khai, góp ý riêng để giữ thể diện và lòng tin."
+    },
+    "mcq": {
+      "q": "Nguyên tắc khen và góp ý?",
+      "options": [
+        "Khen riêng, chê công khai",
+        "Khen công khai, góp ý riêng",
+        "Không khen không chê"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "mgmt-sbi",
+    "topic": "management",
+    "hook": "Góp ý mà không làm người nghe tự ái",
+    "body": [
+      "S - Tình huống: trong buổi họp sáng nay",
+      "B - Hành vi: bạn ngắt lời khách 3 lần",
+      "I - Tác động: khách có vẻ khó chịu"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Situation → Behavior → Impact"
+      ]
+    },
+    "tf": {
+      "statement": "Mô hình góp ý SBI gồm Tình huống, Hành vi và Tác động.",
+      "answer": true,
+      "explain": "Đúng: Situation, Behavior, Impact. Góp ý cụ thể, không phán xét."
+    },
+    "mcq": {
+      "q": "Câu nào là 'Behavior' trong SBI?",
+      "options": [
+        "Bạn thật thiếu chuyên nghiệp",
+        "Bạn gửi báo cáo trễ 2 ngày",
+        "Bạn luôn như vậy"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "mgmt-eisenhower",
+    "topic": "management",
+    "hook": "Bận cả ngày mà chẳng xong việc chính?",
+    "body": [
+      "Chia việc theo: Quan trọng × Khẩn cấp",
+      "Quan trọng, chưa gấp: lên lịch làm trước",
+      "Gấp nhưng không quan trọng: giao cho người khác"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🗂️"
+      ]
+    },
+    "tf": {
+      "statement": "Việc khẩn cấp luôn là việc quan trọng nhất.",
+      "answer": false,
+      "explain": "Khẩn cấp chưa chắc quan trọng. Ưu tiên việc quan trọng chưa gấp."
+    },
+    "mcq": {
+      "q": "Việc gấp nhưng không quan trọng, nên?",
+      "options": [
+        "Tự làm ngay",
+        "Giao cho người khác",
+        "Làm vào cuối tuần"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "mgmt-agenda",
+    "topic": "management",
+    "hook": "Không có agenda? Hủy cuộc họp",
+    "body": [
+      "Gửi mục tiêu và agenda trước ít nhất 1 ngày",
+      "Chỉ mời người cần ra quyết định",
+      "Kết thúc bằng: ai làm gì, khi nào"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "📋"
+      ]
+    },
+    "tf": {
+      "statement": "Cuộc họp nên có mục tiêu và agenda gửi trước.",
+      "answer": true,
+      "explain": "Đúng, không có agenda thì họp dễ lan man."
+    },
+    "mcq": {
+      "q": "Cuộc họp nên kết thúc bằng?",
+      "options": [
+        "Ai làm gì, khi nào",
+        "Lời cảm ơn chung chung",
+        "Hẹn họp tiếp"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "mgmt-micromanage",
+    "topic": "management",
+    "hook": "Sếp hỏi tiến độ mỗi 30 phút?",
+    "body": [
+      "Quản lý vi mô làm nhân viên mất tự chủ",
+      "Người giỏi sẽ rời đi trước",
+      "Thay bằng mốc kiểm tra đã thống nhất"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🔬"
+      ]
+    },
+    "tf": {
+      "statement": "Kiểm tra từng chi tiết công việc của nhân viên giúp họ có động lực hơn.",
+      "answer": false,
+      "explain": "Quản lý vi mô làm mất tự chủ và giảm động lực."
+    },
+    "mcq": {
+      "q": "Thay cho quản lý vi mô, nên?",
+      "options": [
+        "Hỏi tiến độ mỗi giờ",
+        "Thống nhất mốc kiểm tra",
+        "Không hỏi gì cả"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "mgmt-raci",
+    "topic": "management",
+    "hook": "Việc nhiều người lo, cuối cùng không ai lo",
+    "body": [
+      "RACI: Làm - Chịu trách nhiệm - Hỏi ý kiến - Được báo",
+      "Mỗi việc chỉ một người Accountable",
+      "Dán bảng RACI ngay khi bắt đầu dự án"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Responsible · Accountable · Consulted · Informed"
+      ]
+    },
+    "tf": {
+      "statement": "Trong RACI, một việc có thể có nhiều người Accountable.",
+      "answer": false,
+      "explain": "Chỉ một người Accountable, để rõ ai chịu trách nhiệm cuối."
+    },
+    "mcq": {
+      "q": "Mỗi việc trong RACI có mấy người Accountable?",
+      "options": [
+        "Đúng 1",
+        "Ít nhất 2",
+        "Cả nhóm"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "mgmt-psych-safety",
+    "topic": "management",
+    "hook": "Google tìm ra bí mật của nhóm giỏi",
+    "body": [
+      "Dự án Aristotle nghiên cứu hơn 180 nhóm",
+      "Yếu tố số 1: an toàn tâm lý",
+      "Thành viên dám hỏi, dám nhận sai mà không sợ bị phạt"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🛡️"
+      ]
+    },
+    "tf": {
+      "statement": "Theo Google, an toàn tâm lý là yếu tố hàng đầu của nhóm hiệu quả.",
+      "answer": true,
+      "explain": "Đúng, đó là kết luận của dự án Project Aristotle."
+    },
+    "mcq": {
+      "q": "An toàn tâm lý trong nhóm nghĩa là?",
+      "options": [
+        "Không ai bị góp ý",
+        "Dám hỏi, dám nhận sai",
+        "Lương cao, ổn định"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "solo-validate",
+    "topic": "solopreneur",
+    "hook": "Đừng code 6 tháng cho sản phẩm không ai mua",
+    "body": [
+      "Làm một landing page mô tả sản phẩm",
+      "Đo xem có người để lại email hay đặt trước không",
+      "Có người trả tiền rồi mới xây thật"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🧪"
+      ]
+    },
+    "tf": {
+      "statement": "Nên xây sản phẩm hoàn chỉnh rồi mới đi tìm khách hàng.",
+      "answer": false,
+      "explain": "Hãy kiểm chứng nhu cầu trước bằng landing page hoặc đặt trước."
+    },
+    "mcq": {
+      "q": "Cách kiểm chứng ý tưởng nhanh nhất?",
+      "options": [
+        "Xây app hoàn chỉnh",
+        "Landing page + đặt trước",
+        "Thuê văn phòng"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "solo-niche",
+    "topic": "solopreneur",
+    "hook": "Làm một mình? Đừng bán cho tất cả mọi người",
+    "body": [
+      "Chọn một nhóm khách rất cụ thể",
+      "VD: kế toán tự do cần tự động hóa báo cáo",
+      "Ngách hẹp: ít đối thủ, dễ được giới thiệu"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "App ghi chú cho mọi người",
+        "Mẫu ghi chú AI cho bác sĩ nha khoa"
+      ]
+    },
+    "tf": {
+      "statement": "Với người làm một mình, chọn thị trường ngách hẹp thường dễ thắng hơn.",
+      "answer": true,
+      "explain": "Đúng, ngách hẹp ít cạnh tranh và dễ tiếp cận khách."
+    },
+    "mcq": {
+      "q": "Ngách nào phù hợp solopreneur nhất?",
+      "options": [
+        "Mạng xã hội cho mọi người",
+        "Công cụ báo giá cho thợ điện",
+        "Ngân hàng số"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "solo-mvp",
+    "topic": "solopreneur",
+    "hook": "Bản thử sản phẩm trong một cuối tuần",
+    "body": [
+      "AI viết code, nội dung và thiết kế nháp",
+      "Công cụ no-code ghép thành sản phẩm chạy được",
+      "Mục tiêu: kiểm chứng, không phải hoàn hảo"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🛠️"
+      ]
+    },
+    "tf": {
+      "statement": "Nhờ AI và no-code, một người có thể làm bản thử sản phẩm trong vài ngày.",
+      "answer": true,
+      "explain": "Đúng, MVP chỉ cần đủ để kiểm chứng ý tưởng."
+    },
+    "mcq": {
+      "q": "Mục tiêu của MVP là?",
+      "options": [
+        "Hoàn hảo mọi tính năng",
+        "Kiểm chứng ý tưởng nhanh",
+        "Gọi vốn ngay"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "solo-1000-fans",
+    "topic": "solopreneur",
+    "hook": "Bạn không cần một triệu người theo dõi",
+    "body": [
+      "Kevin Kelly: 1.000 fan thật sự là đủ",
+      "Mỗi fan chi khoảng 100 USD mỗi năm",
+      "1.000 × 100 USD = 100.000 USD/năm"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "1.000 true fans"
+      ]
+    },
+    "tf": {
+      "statement": "Theo Kevin Kelly, cần hàng triệu người theo dõi mới sống được bằng nghề sáng tạo.",
+      "answer": false,
+      "explain": "Chỉ cần khoảng 1.000 fan thật sự trung thành."
+    },
+    "mcq": {
+      "q": "Học thuyết '1.000 true fans' của ai?",
+      "options": [
+        "Kevin Kelly",
+        "Elon Musk",
+        "Warren Buffett"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "solo-automate",
+    "topic": "solopreneur",
+    "hook": "Việc gì làm 3 lần, hãy tự động hóa",
+    "body": [
+      "Ghi lại việc lặp lại mỗi tuần",
+      "Dùng AI + công cụ tự động: email, hóa đơn, báo cáo",
+      "Giờ tiết kiệm được dành cho bán hàng và sản phẩm"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "⚙️"
+      ]
+    },
+    "tf": {
+      "statement": "Việc lặp lại hằng tuần là ứng viên tốt để tự động hóa bằng AI.",
+      "answer": true,
+      "explain": "Đúng, tự động việc lặp để dành thời gian tạo giá trị."
+    },
+    "mcq": {
+      "q": "Nên tự động hóa việc nào trước?",
+      "options": [
+        "Việc lặp lại mỗi tuần",
+        "Việc làm một lần",
+        "Nói chuyện với khách VIP"
+      ],
+      "correct": 0
+    }
+  },
+  {
+    "id": "solo-pricing",
+    "topic": "solopreneur",
+    "hook": "Bán rẻ nhất không phải chiến lược",
+    "body": [
+      "Giá rẻ hút khách khó tính, ít trung thành",
+      "Định giá theo giá trị khách nhận được",
+      "Tăng giá về sau khó hơn giảm giá"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🏷️"
+      ]
+    },
+    "tf": {
+      "statement": "Người mới nên luôn bán rẻ nhất thị trường để có khách.",
+      "answer": false,
+      "explain": "Giá quá rẻ hút khách khó tính và khó tăng giá về sau."
+    },
+    "mcq": {
+      "q": "Nên định giá dựa trên?",
+      "options": [
+        "Giá rẻ nhất thị trường",
+        "Giá trị khách nhận được",
+        "Cảm tính"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "solo-build-in-public",
+    "topic": "solopreneur",
+    "hook": "Có khách hàng trước khi có sản phẩm",
+    "body": [
+      "Chia sẻ hành trình xây sản phẩm mỗi tuần",
+      "Số liệu thật, bài học thật, cả thất bại",
+      "Người theo dõi thành khách hàng đầu tiên"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "📣"
+      ]
+    },
+    "tf": {
+      "statement": "Build in public giúp có khán giả ngay cả khi sản phẩm chưa ra mắt.",
+      "answer": true,
+      "explain": "Đúng, chia sẻ hành trình tạo niềm tin và khách hàng sớm."
+    },
+    "mcq": {
+      "q": "'Build in public' là?",
+      "options": [
+        "Làm việc ở quán cà phê",
+        "Chia sẻ công khai hành trình làm sản phẩm",
+        "Mã nguồn mở bắt buộc"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "solo-ai-review",
+    "topic": "solopreneur",
+    "hook": "AI làm nhanh, nhưng ai chịu trách nhiệm?",
+    "body": [
+      "AI có thể sai số liệu, sai giọng thương hiệu",
+      "Luôn đọc lại trước khi gửi khách",
+      "Tạo checklist kiểm tra cho từng loại nội dung"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🧐"
+      ]
+    },
+    "tf": {
+      "statement": "Nội dung AI viết có thể gửi thẳng cho khách mà không cần kiểm tra.",
+      "answer": false,
+      "explain": "AI có thể sai. Bạn chịu trách nhiệm cuối cùng với khách hàng."
+    },
+    "mcq": {
+      "q": "Trước khi gửi nội dung AI cho khách?",
+      "options": [
+        "Gửi ngay",
+        "Đọc lại và kiểm tra",
+        "Thêm emoji"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "solo-recurring",
+    "topic": "solopreneur",
+    "hook": "Ngủ dậy vẫn có doanh thu",
+    "body": [
+      "Bán một lần: tháng nào cũng phải tìm khách mới",
+      "Thuê bao hằng tháng: doanh thu cộng dồn",
+      "Ví dụ: gói mẫu, cộng đồng, công cụ trả phí"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🔁"
+      ]
+    },
+    "tf": {
+      "statement": "Doanh thu định kỳ (thuê bao) giúp thu nhập ổn định hơn bán một lần.",
+      "answer": true,
+      "explain": "Đúng, thu nhập dự đoán được giúp bạn yên tâm phát triển."
+    },
+    "mcq": {
+      "q": "Mô hình doanh thu định kỳ là?",
+      "options": [
+        "Bán đứt một lần",
+        "Thuê bao hằng tháng",
+        "Quyên góp"
+      ],
+      "correct": 1
+    }
+  },
+  {
+    "id": "solo-distribution",
+    "topic": "solopreneur",
+    "hook": "Sản phẩm tốt chưa đủ để có khách",
+    "body": [
+      "Dành ít nhất nửa thời gian cho phân phối",
+      "Chọn 1–2 kênh: SEO, cộng đồng, mạng xã hội",
+      "Đi đến nơi khách hàng đang có mặt"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "📦"
+      ]
+    },
+    "tf": {
+      "statement": "Sản phẩm đủ tốt thì khách hàng sẽ tự tìm đến.",
+      "answer": false,
+      "explain": "Không ai biết thì không ai mua. Phân phối quan trọng như sản phẩm."
+    },
+    "mcq": {
+      "q": "Solopreneur nên dành thời gian cho phân phối?",
+      "options": [
+        "Gần như không",
+        "Khoảng một nửa",
+        "Chỉ sau khi hoàn hảo"
+      ],
+      "correct": 1
+    }
+  },
   {
     "id": "ai-role",
     "topic": "ai",
     "hook": "Câu trả lời AI chung chung quá?",
-    "body": ["Gán vai trò: Bạn là kế toán trưởng 10 năm", "AI chọn đúng thuật ngữ và giọng văn", "Kết quả sát nhu cầu hơn hẳn"],
-    "visual": { "type": "quote", "items": ["Bạn là chuyên gia tuyển dụng. Hãy góp ý CV này…"] },
-    "tf": { "statement": "Gán vai trò cho AI giúp câu trả lời đúng giọng và chuyên môn hơn.", "answer": true, "explain": "Đúng, vai trò cho AI biết nên trả lời ở góc nhìn nào." },
-    "mcq": { "q": "'Bạn là luật sư…' là kỹ thuật gì?", "options": ["Gán vai trò", "Đặt giới hạn độ dài", "Đưa ví dụ"], "correct": 0 }
+    "body": [
+      "Gán vai trò: Bạn là kế toán trưởng 10 năm",
+      "AI chọn đúng thuật ngữ và giọng văn",
+      "Kết quả sát nhu cầu hơn hẳn"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Bạn là chuyên gia tuyển dụng. Hãy góp ý CV này…"
+      ]
+    },
+    "tf": {
+      "statement": "Gán vai trò cho AI giúp câu trả lời đúng giọng và chuyên môn hơn.",
+      "answer": true,
+      "explain": "Đúng, vai trò cho AI biết nên trả lời ở góc nhìn nào."
+    },
+    "mcq": {
+      "q": "'Bạn là luật sư…' là kỹ thuật gì?",
+      "options": [
+        "Gán vai trò",
+        "Đặt giới hạn độ dài",
+        "Đưa ví dụ"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "ai-few-shot",
     "topic": "ai",
     "hook": "Muốn AI viết đúng kiểu của bạn?",
-    "body": ["Dán 1–2 ví dụ mẫu bạn thích", "Nói: viết tiếp theo đúng phong cách này", "AI bắt chước định dạng rất tốt"],
-    "visual": { "type": "emoji", "items": ["📝"] },
-    "tf": { "statement": "Đưa 1–2 ví dụ mẫu giúp AI trả lời đúng định dạng mong muốn.", "answer": true, "explain": "Đúng, kỹ thuật này gọi là few-shot prompting." },
-    "mcq": { "q": "Đưa ví dụ mẫu trong prompt gọi là?", "options": ["Few-shot", "Zero-day", "Fine-tune"], "correct": 0 }
+    "body": [
+      "Dán 1–2 ví dụ mẫu bạn thích",
+      "Nói: viết tiếp theo đúng phong cách này",
+      "AI bắt chước định dạng rất tốt"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "📝"
+      ]
+    },
+    "tf": {
+      "statement": "Đưa 1–2 ví dụ mẫu giúp AI trả lời đúng định dạng mong muốn.",
+      "answer": true,
+      "explain": "Đúng, kỹ thuật này gọi là few-shot prompting."
+    },
+    "mcq": {
+      "q": "Đưa ví dụ mẫu trong prompt gọi là?",
+      "options": [
+        "Few-shot",
+        "Zero-day",
+        "Fine-tune"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "ai-format",
     "topic": "ai",
     "hook": "Nói rõ bạn muốn nhận cái gì",
-    "body": ["Chỉ định định dạng: bảng, gạch đầu dòng, JSON", "Chỉ định độ dài: tối đa 100 chữ", "Kết quả ổn định, khỏi sửa lại"],
-    "visual": { "type": "compare", "items": ["So sánh 3 laptop.", "So sánh 3 laptop dạng bảng: giá, pin, cân nặng."] },
-    "tf": { "statement": "AI tự đoán được định dạng bạn muốn nên không cần nói rõ.", "answer": false, "explain": "Nói rõ định dạng và độ dài cho kết quả ổn định hơn." },
-    "mcq": { "q": "Prompt nào cho kết quả dễ dùng nhất?", "options": ["Nói về laptop", "So sánh laptop dạng bảng 3 cột", "Laptop?"], "correct": 1 }
+    "body": [
+      "Chỉ định định dạng: bảng, gạch đầu dòng, JSON",
+      "Chỉ định độ dài: tối đa 100 chữ",
+      "Kết quả ổn định, khỏi sửa lại"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "So sánh 3 laptop.",
+        "So sánh 3 laptop dạng bảng: giá, pin, cân nặng."
+      ]
+    },
+    "tf": {
+      "statement": "AI tự đoán được định dạng bạn muốn nên không cần nói rõ.",
+      "answer": false,
+      "explain": "Nói rõ định dạng và độ dài cho kết quả ổn định hơn."
+    },
+    "mcq": {
+      "q": "Prompt nào cho kết quả dễ dùng nhất?",
+      "options": [
+        "Nói về laptop",
+        "So sánh laptop dạng bảng 3 cột",
+        "Laptop?"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "ai-ask-first",
     "topic": "ai",
     "hook": "Mẹo khiến AI hiểu bạn hơn",
-    "body": ["Thêm câu: hỏi tôi 3 câu trước khi làm", "AI hỏi lại những gì nó còn thiếu", "Bạn trả lời xong, kết quả trúng ý hơn"],
-    "visual": { "type": "quote", "items": ["Trước khi viết, hãy hỏi tôi 3 câu để hiểu rõ yêu cầu."] },
-    "tf": { "statement": "Yêu cầu AI hỏi lại trước khi làm giúp nó hiểu yêu cầu rõ hơn.", "answer": true, "explain": "Đúng, AI tự tìm ra thông tin còn thiếu thay vì đoán." },
-    "mcq": { "q": "Khi yêu cầu còn mơ hồ, nên?", "options": ["Bắt AI đoán", "Bảo AI hỏi lại trước", "Bỏ cuộc"], "correct": 1 }
+    "body": [
+      "Thêm câu: hỏi tôi 3 câu trước khi làm",
+      "AI hỏi lại những gì nó còn thiếu",
+      "Bạn trả lời xong, kết quả trúng ý hơn"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Trước khi viết, hãy hỏi tôi 3 câu để hiểu rõ yêu cầu."
+      ]
+    },
+    "tf": {
+      "statement": "Yêu cầu AI hỏi lại trước khi làm giúp nó hiểu yêu cầu rõ hơn.",
+      "answer": true,
+      "explain": "Đúng, AI tự tìm ra thông tin còn thiếu thay vì đoán."
+    },
+    "mcq": {
+      "q": "Khi yêu cầu còn mơ hồ, nên?",
+      "options": [
+        "Bắt AI đoán",
+        "Bảo AI hỏi lại trước",
+        "Bỏ cuộc"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "ai-context",
     "topic": "ai",
     "hook": "Prompt ngắn chưa chắc đã tốt",
-    "body": ["Cho AI biết: ai đọc, mục đích, giọng văn", "Thêm giới hạn: độ dài, thời hạn", "Ngắn mà đủ bối cảnh mới là tốt"],
-    "visual": { "type": "compare", "items": ["Viết email xin nghỉ.", "Viết email xin nghỉ 2 ngày gửi sếp, lịch sự, dưới 80 chữ."] },
-    "tf": { "statement": "Prompt càng ngắn thì kết quả càng chính xác.", "answer": false, "explain": "Thiếu bối cảnh thì AI phải đoán. Cần ngắn mà đủ ý." },
-    "mcq": { "q": "Thông tin nào nên có trong prompt?", "options": ["Người đọc và mục đích", "Chỉ một từ khóa", "Không cần gì"], "correct": 0 }
+    "body": [
+      "Cho AI biết: ai đọc, mục đích, giọng văn",
+      "Thêm giới hạn: độ dài, thời hạn",
+      "Ngắn mà đủ bối cảnh mới là tốt"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Viết email xin nghỉ.",
+        "Viết email xin nghỉ 2 ngày gửi sếp, lịch sự, dưới 80 chữ."
+      ]
+    },
+    "tf": {
+      "statement": "Prompt càng ngắn thì kết quả càng chính xác.",
+      "answer": false,
+      "explain": "Thiếu bối cảnh thì AI phải đoán. Cần ngắn mà đủ ý."
+    },
+    "mcq": {
+      "q": "Thông tin nào nên có trong prompt?",
+      "options": [
+        "Người đọc và mục đích",
+        "Chỉ một từ khóa",
+        "Không cần gì"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "ai-hallucination",
     "topic": "ai",
     "hook": "AI trích nguồn nghe rất thật…",
-    "body": ["AI có thể bịa tên sách, link, số liệu", "Hiện tượng này gọi là hallucination", "Luôn tự mở link và kiểm tra lại"],
-    "visual": { "type": "emoji", "items": ["🔍"] },
-    "tf": { "statement": "Khi AI trích nguồn thì nguồn đó chắc chắn có thật.", "answer": false, "explain": "AI có thể bịa nguồn. Luôn tự kiểm tra link và số liệu." },
-    "mcq": { "q": "AI bịa thông tin gọi là?", "options": ["Hallucination", "Overfitting", "Caching"], "correct": 0 }
+    "body": [
+      "AI có thể bịa tên sách, link, số liệu",
+      "Hiện tượng này gọi là hallucination",
+      "Luôn tự mở link và kiểm tra lại"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🔍"
+      ]
+    },
+    "tf": {
+      "statement": "Khi AI trích nguồn thì nguồn đó chắc chắn có thật.",
+      "answer": false,
+      "explain": "AI có thể bịa nguồn. Luôn tự kiểm tra link và số liệu."
+    },
+    "mcq": {
+      "q": "AI bịa thông tin gọi là?",
+      "options": [
+        "Hallucination",
+        "Overfitting",
+        "Caching"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "ai-iterate",
     "topic": "ai",
     "hook": "Kết quả chưa ưng? Đừng viết lại từ đầu",
-    "body": ["Trả lời ngay trong cùng cuộc chat", "Ví dụ: ngắn lại 50%, giọng thân thiện hơn", "AI giữ bối cảnh và chỉ sửa phần cần"],
-    "visual": { "type": "quote", "items": ["Ngắn lại một nửa và bỏ thuật ngữ chuyên môn."] },
-    "tf": { "statement": "Có thể yêu cầu AI sửa tiếp kết quả thay vì viết lại prompt từ đầu.", "answer": true, "explain": "Đúng, sửa lặp trong cùng cuộc chat thường nhanh hơn." },
-    "mcq": { "q": "Kết quả AI dài quá, nên?", "options": ["Xóa chat làm lại", "Bảo AI rút ngắn", "Tự gõ lại hết"], "correct": 1 }
+    "body": [
+      "Trả lời ngay trong cùng cuộc chat",
+      "Ví dụ: ngắn lại 50%, giọng thân thiện hơn",
+      "AI giữ bối cảnh và chỉ sửa phần cần"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "Ngắn lại một nửa và bỏ thuật ngữ chuyên môn."
+      ]
+    },
+    "tf": {
+      "statement": "Có thể yêu cầu AI sửa tiếp kết quả thay vì viết lại prompt từ đầu.",
+      "answer": true,
+      "explain": "Đúng, sửa lặp trong cùng cuộc chat thường nhanh hơn."
+    },
+    "mcq": {
+      "q": "Kết quả AI dài quá, nên?",
+      "options": [
+        "Xóa chat làm lại",
+        "Bảo AI rút ngắn",
+        "Tự gõ lại hết"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "ai-step-by-step",
     "topic": "ai",
     "hook": "Bài toán khó? Bảo AI chậm lại",
-    "body": ["Thêm: hãy suy luận từng bước", "AI trình bày cách giải trước khi chốt", "Bạn dễ thấy chỗ sai để sửa"],
-    "visual": { "type": "emoji", "items": ["🪜"] },
-    "tf": { "statement": "Bảo AI 'suy luận từng bước' chỉ làm câu trả lời dài hơn, không chính xác hơn.", "answer": false, "explain": "Với toán và logic, nó thường giúp giảm lỗi suy luận." },
-    "mcq": { "q": "Với bài logic khó, nên thêm?", "options": ["Trả lời thật nhanh", "Suy luận từng bước", "Dùng emoji"], "correct": 1 }
+    "body": [
+      "Thêm: hãy suy luận từng bước",
+      "AI trình bày cách giải trước khi chốt",
+      "Bạn dễ thấy chỗ sai để sửa"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🪜"
+      ]
+    },
+    "tf": {
+      "statement": "Bảo AI 'suy luận từng bước' chỉ làm câu trả lời dài hơn, không chính xác hơn.",
+      "answer": false,
+      "explain": "Với toán và logic, nó thường giúp giảm lỗi suy luận."
+    },
+    "mcq": {
+      "q": "Với bài logic khó, nên thêm?",
+      "options": [
+        "Trả lời thật nhanh",
+        "Suy luận từng bước",
+        "Dùng emoji"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "ai-positive-constraints",
     "topic": "ai",
     "hook": "Nói điều cần làm, đừng chỉ cấm",
-    "body": ["'Đừng viết dài' rất mơ hồ", "'Tối đa 3 câu' thì đo được", "Giới hạn cụ thể cho kết quả cụ thể"],
-    "visual": { "type": "compare", "items": ["Đừng viết dài.", "Viết tối đa 3 câu."] },
-    "tf": { "statement": "Nói 'tối đa 3 câu' rõ ràng hơn nói 'đừng viết dài'.", "answer": true, "explain": "Đúng, con số cụ thể dễ làm theo hơn lời cấm chung chung." },
-    "mcq": { "q": "Giới hạn nào rõ ràng nhất?", "options": ["Viết ngắn thôi", "Đừng dài dòng", "Tối đa 50 chữ"], "correct": 2 }
+    "body": [
+      "'Đừng viết dài' rất mơ hồ",
+      "'Tối đa 3 câu' thì đo được",
+      "Giới hạn cụ thể cho kết quả cụ thể"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Đừng viết dài.",
+        "Viết tối đa 3 câu."
+      ]
+    },
+    "tf": {
+      "statement": "Nói 'tối đa 3 câu' rõ ràng hơn nói 'đừng viết dài'.",
+      "answer": true,
+      "explain": "Đúng, con số cụ thể dễ làm theo hơn lời cấm chung chung."
+    },
+    "mcq": {
+      "q": "Giới hạn nào rõ ràng nhất?",
+      "options": [
+        "Viết ngắn thôi",
+        "Đừng dài dòng",
+        "Tối đa 50 chữ"
+      ],
+      "correct": 2
+    }
   },
   {
     "id": "ai-privacy",
     "topic": "ai",
     "hook": "Dán gì vào chatbot cũng được?",
-    "body": ["Dữ liệu bạn dán có thể được lưu lại", "Xóa tên, số tài khoản, thông tin khách hàng", "Dùng bản AI doanh nghiệp cho tài liệu mật"],
-    "visual": { "type": "emoji", "items": ["🔒"] },
-    "tf": { "statement": "Dán hợp đồng mật của công ty vào chatbot công cộng là an toàn.", "answer": false, "explain": "Dữ liệu có thể bị lưu. Xóa thông tin nhạy cảm trước." },
-    "mcq": { "q": "Trước khi dán tài liệu vào AI, nên?", "options": ["Xóa thông tin nhạy cảm", "Thêm mật khẩu vào", "Không cần làm gì"], "correct": 0 }
+    "body": [
+      "Dữ liệu bạn dán có thể được lưu lại",
+      "Xóa tên, số tài khoản, thông tin khách hàng",
+      "Dùng bản AI doanh nghiệp cho tài liệu mật"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🔒"
+      ]
+    },
+    "tf": {
+      "statement": "Dán hợp đồng mật của công ty vào chatbot công cộng là an toàn.",
+      "answer": false,
+      "explain": "Dữ liệu có thể bị lưu. Xóa thông tin nhạy cảm trước."
+    },
+    "mcq": {
+      "q": "Trước khi dán tài liệu vào AI, nên?",
+      "options": [
+        "Xóa thông tin nhạy cảm",
+        "Thêm mật khẩu vào",
+        "Không cần làm gì"
+      ],
+      "correct": 0
+    }
   },
-
   {
     "id": "psy-zeigarnik",
     "topic": "psychology",
     "hook": "Vì sao việc dở dang cứ lởn vởn?",
-    "body": ["Não nhớ việc chưa xong lâu hơn việc đã xong", "Gọi là hiệu ứng Zeigarnik", "Mẹo: bắt đầu 5 phút, não sẽ thúc bạn làm tiếp"],
-    "visual": { "type": "emoji", "items": ["⏳"] },
-    "tf": { "statement": "Ta thường nhớ việc dở dang lâu hơn việc đã hoàn thành.", "answer": true, "explain": "Đúng, đó là hiệu ứng Zeigarnik." },
-    "mcq": { "q": "Hiệu ứng Zeigarnik nói về?", "options": ["Việc dở dang dễ nhớ", "Màu sắc ảnh hưởng tâm trạng", "Sợ đám đông"], "correct": 0 }
+    "body": [
+      "Não nhớ việc chưa xong lâu hơn việc đã xong",
+      "Gọi là hiệu ứng Zeigarnik",
+      "Mẹo: bắt đầu 5 phút, não sẽ thúc bạn làm tiếp"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "⏳"
+      ]
+    },
+    "tf": {
+      "statement": "Ta thường nhớ việc dở dang lâu hơn việc đã hoàn thành.",
+      "answer": true,
+      "explain": "Đúng, đó là hiệu ứng Zeigarnik."
+    },
+    "mcq": {
+      "q": "Hiệu ứng Zeigarnik nói về?",
+      "options": [
+        "Việc dở dang dễ nhớ",
+        "Màu sắc ảnh hưởng tâm trạng",
+        "Sợ đám đông"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "psy-anchoring",
     "topic": "psychology",
     "hook": "Con số đầu tiên luôn thắng",
-    "body": ["Giá đầu tiên bạn nghe trở thành mỏ neo", "Mọi so sánh sau đều xoay quanh nó", "Khi đàm phán, hãy là người ra giá trước"],
-    "visual": { "type": "emoji", "items": ["⚓"] },
-    "tf": { "statement": "Con số đầu tiên nghe được ảnh hưởng tới cảm nhận về mức giá hợp lý.", "answer": true, "explain": "Đúng, đó là hiệu ứng mỏ neo (anchoring)." },
-    "mcq": { "q": "'Giá gốc 2 triệu, nay còn 990k' khai thác?", "options": ["Hiệu ứng mỏ neo", "Hiệu ứng Zeigarnik", "Hiệu ứng spotlight"], "correct": 0 }
+    "body": [
+      "Giá đầu tiên bạn nghe trở thành mỏ neo",
+      "Mọi so sánh sau đều xoay quanh nó",
+      "Khi đàm phán, hãy là người ra giá trước"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "⚓"
+      ]
+    },
+    "tf": {
+      "statement": "Con số đầu tiên nghe được ảnh hưởng tới cảm nhận về mức giá hợp lý.",
+      "answer": true,
+      "explain": "Đúng, đó là hiệu ứng mỏ neo (anchoring)."
+    },
+    "mcq": {
+      "q": "'Giá gốc 2 triệu, nay còn 990k' khai thác?",
+      "options": [
+        "Hiệu ứng mỏ neo",
+        "Hiệu ứng Zeigarnik",
+        "Hiệu ứng spotlight"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "psy-dunning-kruger",
     "topic": "psychology",
     "hook": "Biết một chút là thấy mình giỏi?",
-    "body": ["Người mới học hay đánh giá quá cao bản thân", "Càng học sâu càng thấy mình còn thiếu", "Gọi là hiệu ứng Dunning–Kruger"],
-    "visual": { "type": "emoji", "items": ["📈"] },
-    "tf": { "statement": "Theo Dunning–Kruger, người giỏi nhất thường tự tin quá mức.", "answer": false, "explain": "Ngược lại, người biết ít hay đánh giá quá cao bản thân." },
-    "mcq": { "q": "Ai dễ tự tin quá mức nhất?", "options": ["Chuyên gia lâu năm", "Người mới biết chút ít", "Giáo viên"], "correct": 1 }
+    "body": [
+      "Người mới học hay đánh giá quá cao bản thân",
+      "Càng học sâu càng thấy mình còn thiếu",
+      "Gọi là hiệu ứng Dunning–Kruger"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "📈"
+      ]
+    },
+    "tf": {
+      "statement": "Theo Dunning–Kruger, người giỏi nhất thường tự tin quá mức.",
+      "answer": false,
+      "explain": "Ngược lại, người biết ít hay đánh giá quá cao bản thân."
+    },
+    "mcq": {
+      "q": "Ai dễ tự tin quá mức nhất?",
+      "options": [
+        "Chuyên gia lâu năm",
+        "Người mới biết chút ít",
+        "Giáo viên"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "psy-variable-reward",
     "topic": "psychology",
     "hook": "Vì sao lướt TikTok khó dừng?",
-    "body": ["Mỗi video là một phần thưởng không đoán trước", "Giống máy đánh bạc: lần sau có thể hay hơn", "Não tiết dopamine vì chờ đợi, không phải vì vui"],
-    "visual": { "type": "emoji", "items": ["🎰"] },
-    "tf": { "statement": "Phần thưởng ngẫu nhiên khiến ta lướt lâu hơn phần thưởng cố định.", "answer": true, "explain": "Đúng, phần thưởng khó đoán giữ chân ta lâu nhất." },
-    "mcq": { "q": "Cơ chế giữ chân của feed vô tận?", "options": ["Phần thưởng ngẫu nhiên", "Phạt khi thoát", "Âm thanh lớn"], "correct": 0 }
+    "body": [
+      "Mỗi video là một phần thưởng không đoán trước",
+      "Giống máy đánh bạc: lần sau có thể hay hơn",
+      "Não tiết dopamine vì chờ đợi, không phải vì vui"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🎰"
+      ]
+    },
+    "tf": {
+      "statement": "Phần thưởng ngẫu nhiên khiến ta lướt lâu hơn phần thưởng cố định.",
+      "answer": true,
+      "explain": "Đúng, phần thưởng khó đoán giữ chân ta lâu nhất."
+    },
+    "mcq": {
+      "q": "Cơ chế giữ chân của feed vô tận?",
+      "options": [
+        "Phần thưởng ngẫu nhiên",
+        "Phạt khi thoát",
+        "Âm thanh lớn"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "psy-two-minute",
     "topic": "psychology",
     "hook": "Quy tắc 2 phút dọn sạch việc vặt",
-    "body": ["Việc gì làm xong dưới 2 phút, làm luôn", "Ghi nó vào danh sách còn tốn công hơn", "Việc vặt không chồng chất trong đầu"],
-    "visual": { "type": "emoji", "items": ["⏱️"] },
-    "tf": { "statement": "Quy tắc 2 phút: việc dưới 2 phút thì ghi vào danh sách để làm sau.", "answer": false, "explain": "Ngược lại, dưới 2 phút thì làm ngay, ghi lại tốn hơn." },
-    "mcq": { "q": "Việc trả lời 1 tin nhắn 30 giây, nên?", "options": ["Ghi vào sổ", "Làm ngay", "Để cuối tuần"], "correct": 1 }
+    "body": [
+      "Việc gì làm xong dưới 2 phút, làm luôn",
+      "Ghi nó vào danh sách còn tốn công hơn",
+      "Việc vặt không chồng chất trong đầu"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "⏱️"
+      ]
+    },
+    "tf": {
+      "statement": "Quy tắc 2 phút: việc dưới 2 phút thì ghi vào danh sách để làm sau.",
+      "answer": false,
+      "explain": "Ngược lại, dưới 2 phút thì làm ngay, ghi lại tốn hơn."
+    },
+    "mcq": {
+      "q": "Việc trả lời 1 tin nhắn 30 giây, nên?",
+      "options": [
+        "Ghi vào sổ",
+        "Làm ngay",
+        "Để cuối tuần"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "psy-spacing",
     "topic": "psychology",
     "hook": "Học dồn đêm trước thi: quên rất nhanh",
-    "body": ["Ôn ngắt quãng: hôm nay, 3 ngày, 1 tuần", "Mỗi lần nhớ lại, trí nhớ chắc thêm", "SnapBrain đưa thẻ sai quay lại đúng lúc"],
-    "visual": { "type": "emoji", "items": ["🗓️"] },
-    "tf": { "statement": "Học dồn một buổi dài nhớ lâu hơn ôn nhiều buổi ngắn ngắt quãng.", "answer": false, "explain": "Ôn ngắt quãng nhớ lâu hơn. SnapBrain cũng dùng cách này." },
-    "mcq": { "q": "Cách ôn giúp nhớ lâu nhất?", "options": ["Học dồn 1 đêm", "Ôn ngắt quãng nhiều ngày", "Đọc lại thật nhanh"], "correct": 1 }
+    "body": [
+      "Ôn ngắt quãng: hôm nay, 3 ngày, 1 tuần",
+      "Mỗi lần nhớ lại, trí nhớ chắc thêm",
+      "SnapBrain đưa thẻ sai quay lại đúng lúc"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🗓️"
+      ]
+    },
+    "tf": {
+      "statement": "Học dồn một buổi dài nhớ lâu hơn ôn nhiều buổi ngắn ngắt quãng.",
+      "answer": false,
+      "explain": "Ôn ngắt quãng nhớ lâu hơn. SnapBrain cũng dùng cách này."
+    },
+    "mcq": {
+      "q": "Cách ôn giúp nhớ lâu nhất?",
+      "options": [
+        "Học dồn 1 đêm",
+        "Ôn ngắt quãng nhiều ngày",
+        "Đọc lại thật nhanh"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "psy-spotlight",
     "topic": "psychology",
     "hook": "Lỡ nói vấp trong họp? Không ai nhớ đâu",
-    "body": ["Ta nghĩ mọi người đang soi mình", "Thực tế ai cũng bận lo cho bản thân", "Gọi là hiệu ứng spotlight"],
-    "visual": { "type": "emoji", "items": ["🔦"] },
-    "tf": { "statement": "Người khác để ý lỗi của bạn nhiều hơn bạn nghĩ.", "answer": false, "explain": "Ngược lại, họ để ý ít hơn nhiều so với bạn tưởng." },
-    "mcq": { "q": "Hiệu ứng spotlight là gì?", "options": ["Nghĩ mình bị chú ý quá mức", "Sợ bóng tối", "Thích đứng sân khấu"], "correct": 0 }
+    "body": [
+      "Ta nghĩ mọi người đang soi mình",
+      "Thực tế ai cũng bận lo cho bản thân",
+      "Gọi là hiệu ứng spotlight"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🔦"
+      ]
+    },
+    "tf": {
+      "statement": "Người khác để ý lỗi của bạn nhiều hơn bạn nghĩ.",
+      "answer": false,
+      "explain": "Ngược lại, họ để ý ít hơn nhiều so với bạn tưởng."
+    },
+    "mcq": {
+      "q": "Hiệu ứng spotlight là gì?",
+      "options": [
+        "Nghĩ mình bị chú ý quá mức",
+        "Sợ bóng tối",
+        "Thích đứng sân khấu"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "psy-testing-effect",
     "topic": "psychology",
     "hook": "Đọc lại ghi chú 3 lần vẫn quên?",
-    "body": ["Tự kiểm tra buộc não phải nhớ lại", "Mỗi lần nhớ lại, ký ức mạnh hơn", "Vì vậy mỗi thẻ đều kết thúc bằng quiz"],
-    "visual": { "type": "emoji", "items": ["✅"] },
-    "tf": { "statement": "Tự làm quiz giúp nhớ lâu hơn đọc lại ghi chú.", "answer": true, "explain": "Đúng, đó là hiệu ứng kiểm tra (testing effect)." },
-    "mcq": { "q": "Cách học nào hiệu quả hơn?", "options": ["Tô màu ghi chú", "Tự đặt câu hỏi và trả lời", "Đọc lại nhiều lần"], "correct": 1 }
+    "body": [
+      "Tự kiểm tra buộc não phải nhớ lại",
+      "Mỗi lần nhớ lại, ký ức mạnh hơn",
+      "Vì vậy mỗi thẻ đều kết thúc bằng quiz"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "✅"
+      ]
+    },
+    "tf": {
+      "statement": "Tự làm quiz giúp nhớ lâu hơn đọc lại ghi chú.",
+      "answer": true,
+      "explain": "Đúng, đó là hiệu ứng kiểm tra (testing effect)."
+    },
+    "mcq": {
+      "q": "Cách học nào hiệu quả hơn?",
+      "options": [
+        "Tô màu ghi chú",
+        "Tự đặt câu hỏi và trả lời",
+        "Đọc lại nhiều lần"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "psy-decision-fatigue",
     "topic": "psychology",
     "hook": "Vì sao chiều tối hay mua linh tinh?",
-    "body": ["Sau nhiều lựa chọn, ta dễ chọn theo mặc định", "Hoặc chọn cái dễ nhất trước mắt", "Mẹo: quyết việc quan trọng vào buổi sáng"],
-    "visual": { "type": "emoji", "items": ["🪫"] },
-    "tf": { "statement": "Càng ra nhiều quyết định trong ngày, ta càng quyết định tốt hơn.", "answer": false, "explain": "Ngược lại, ta mệt dần và dễ chọn theo lối tắt." },
-    "mcq": { "q": "Nên quyết việc quan trọng lúc nào?", "options": ["Nửa đêm", "Buổi sáng, đầu óc tỉnh", "Sau 10 cuộc họp"], "correct": 1 }
+    "body": [
+      "Sau nhiều lựa chọn, ta dễ chọn theo mặc định",
+      "Hoặc chọn cái dễ nhất trước mắt",
+      "Mẹo: quyết việc quan trọng vào buổi sáng"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🪫"
+      ]
+    },
+    "tf": {
+      "statement": "Càng ra nhiều quyết định trong ngày, ta càng quyết định tốt hơn.",
+      "answer": false,
+      "explain": "Ngược lại, ta mệt dần và dễ chọn theo lối tắt."
+    },
+    "mcq": {
+      "q": "Nên quyết việc quan trọng lúc nào?",
+      "options": [
+        "Nửa đêm",
+        "Buổi sáng, đầu óc tỉnh",
+        "Sau 10 cuộc họp"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "psy-loss-aversion",
     "topic": "psychology",
     "hook": "Mất tiền đau hơn được tiền",
-    "body": ["Mất 100 nghìn buồn hơn được 100 nghìn vui", "Gọi là tâm lý sợ mất mát", "Vì thế 'sắp hết hạn' khiến ta vội mua"],
-    "visual": { "type": "emoji", "items": ["💸"] },
-    "tf": { "statement": "Với đa số người, mất 100 nghìn gây cảm giác mạnh hơn được 100 nghìn.", "answer": true, "explain": "Đúng, đó là tâm lý sợ mất mát (loss aversion)." },
-    "mcq": { "q": "'Chỉ còn 2 giờ!' khai thác điều gì?", "options": ["Sợ mất mát", "Hiệu ứng mỏ neo", "Quy tắc 2 phút"], "correct": 0 }
+    "body": [
+      "Mất 100 nghìn buồn hơn được 100 nghìn vui",
+      "Gọi là tâm lý sợ mất mát",
+      "Vì thế 'sắp hết hạn' khiến ta vội mua"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "💸"
+      ]
+    },
+    "tf": {
+      "statement": "Với đa số người, mất 100 nghìn gây cảm giác mạnh hơn được 100 nghìn.",
+      "answer": true,
+      "explain": "Đúng, đó là tâm lý sợ mất mát (loss aversion)."
+    },
+    "mcq": {
+      "q": "'Chỉ còn 2 giờ!' khai thác điều gì?",
+      "options": [
+        "Sợ mất mát",
+        "Hiệu ứng mỏ neo",
+        "Quy tắc 2 phút"
+      ],
+      "correct": 0
+    }
   },
-
   {
     "id": "fin-50-30-20",
     "topic": "finance",
     "hook": "Lương về là tiêu hết?",
-    "body": ["50% cho nhu cầu: nhà, ăn, đi lại", "30% cho mong muốn: cà phê, du lịch", "20% tiết kiệm và đầu tư"],
-    "visual": { "type": "emoji", "items": ["🥧"] },
-    "tf": { "statement": "Quy tắc 50/30/20: 50% nhu cầu, 30% mong muốn, 20% tiết kiệm.", "answer": true, "explain": "Đúng, một cách chia lương đơn giản để bắt đầu." },
-    "mcq": { "q": "Trong 50/30/20, tiết kiệm chiếm?", "options": ["50%", "30%", "20%"], "correct": 2 }
+    "body": [
+      "50% cho nhu cầu: nhà, ăn, đi lại",
+      "30% cho mong muốn: cà phê, du lịch",
+      "20% tiết kiệm và đầu tư"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🥧"
+      ]
+    },
+    "tf": {
+      "statement": "Quy tắc 50/30/20: 50% nhu cầu, 30% mong muốn, 20% tiết kiệm.",
+      "answer": true,
+      "explain": "Đúng, một cách chia lương đơn giản để bắt đầu."
+    },
+    "mcq": {
+      "q": "Trong 50/30/20, tiết kiệm chiếm?",
+      "options": [
+        "50%",
+        "30%",
+        "20%"
+      ],
+      "correct": 2
+    }
   },
   {
     "id": "fin-rule-72",
     "topic": "finance",
     "hook": "Bao lâu thì tiền gấp đôi?",
-    "body": ["Lấy 72 chia cho lãi suất mỗi năm", "Lãi 6%: 72 ÷ 6 = 12 năm", "Gọi là quy tắc 72"],
-    "visual": { "type": "quote", "items": ["72 ÷ lãi suất = số năm để tiền gấp đôi"] },
-    "tf": { "statement": "Lãi 8%/năm thì khoảng 9 năm tiền sẽ gấp đôi.", "answer": true, "explain": "Đúng, 72 ÷ 8 = 9 năm theo quy tắc 72." },
-    "mcq": { "q": "Lãi 12%/năm, tiền gấp đôi sau khoảng?", "options": ["6 năm", "12 năm", "3 năm"], "correct": 0 }
+    "body": [
+      "Lấy 72 chia cho lãi suất mỗi năm",
+      "Lãi 6%: 72 ÷ 6 = 12 năm",
+      "Gọi là quy tắc 72"
+    ],
+    "visual": {
+      "type": "quote",
+      "items": [
+        "72 ÷ lãi suất = số năm để tiền gấp đôi"
+      ]
+    },
+    "tf": {
+      "statement": "Lãi 8%/năm thì khoảng 9 năm tiền sẽ gấp đôi.",
+      "answer": true,
+      "explain": "Đúng, 72 ÷ 8 = 9 năm theo quy tắc 72."
+    },
+    "mcq": {
+      "q": "Lãi 12%/năm, tiền gấp đôi sau khoảng?",
+      "options": [
+        "6 năm",
+        "12 năm",
+        "3 năm"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "fin-emergency-fund",
     "topic": "finance",
     "hook": "Mất việc ngày mai, bạn trụ được bao lâu?",
-    "body": ["Quỹ khẩn cấp = 3–6 tháng chi tiêu", "Để nơi an toàn, rút được ngay", "Không đem đi đầu tư rủi ro"],
-    "visual": { "type": "emoji", "items": ["🛟"] },
-    "tf": { "statement": "Quỹ khẩn cấp nên đầu tư hết vào cổ phiếu để sinh lời.", "answer": false, "explain": "Quỹ khẩn cấp cần an toàn và rút được ngay." },
-    "mcq": { "q": "Quỹ khẩn cấp nên bằng khoảng?", "options": ["1 tuần chi tiêu", "3–6 tháng chi tiêu", "5 năm lương"], "correct": 1 }
+    "body": [
+      "Quỹ khẩn cấp = 3–6 tháng chi tiêu",
+      "Để nơi an toàn, rút được ngay",
+      "Không đem đi đầu tư rủi ro"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🛟"
+      ]
+    },
+    "tf": {
+      "statement": "Quỹ khẩn cấp nên đầu tư hết vào cổ phiếu để sinh lời.",
+      "answer": false,
+      "explain": "Quỹ khẩn cấp cần an toàn và rút được ngay."
+    },
+    "mcq": {
+      "q": "Quỹ khẩn cấp nên bằng khoảng?",
+      "options": [
+        "1 tuần chi tiêu",
+        "3–6 tháng chi tiêu",
+        "5 năm lương"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "fin-inflation",
     "topic": "finance",
     "hook": "Tiền để két vẫn đang 'bốc hơi'",
-    "body": ["Lạm phát làm giá cả tăng mỗi năm", "Cùng số tiền, mua được ít hàng hơn", "Tiết kiệm cần lãi ít nhất bằng lạm phát"],
-    "visual": { "type": "emoji", "items": ["🎈"] },
-    "tf": { "statement": "Giữ tiền mặt trong két thì sức mua luôn được bảo toàn.", "answer": false, "explain": "Lạm phát làm sức mua giảm dần mỗi năm." },
-    "mcq": { "q": "Lạm phát làm gì với tiền mặt?", "options": ["Tăng sức mua", "Giảm sức mua", "Không ảnh hưởng"], "correct": 1 }
+    "body": [
+      "Lạm phát làm giá cả tăng mỗi năm",
+      "Cùng số tiền, mua được ít hàng hơn",
+      "Tiết kiệm cần lãi ít nhất bằng lạm phát"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🎈"
+      ]
+    },
+    "tf": {
+      "statement": "Giữ tiền mặt trong két thì sức mua luôn được bảo toàn.",
+      "answer": false,
+      "explain": "Lạm phát làm sức mua giảm dần mỗi năm."
+    },
+    "mcq": {
+      "q": "Lạm phát làm gì với tiền mặt?",
+      "options": [
+        "Tăng sức mua",
+        "Giảm sức mua",
+        "Không ảnh hưởng"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "fin-pay-yourself-first",
     "topic": "finance",
     "hook": "Cuối tháng chẳng còn gì để tiết kiệm?",
-    "body": ["Trích tiết kiệm ngay khi lương về", "Cài chuyển khoản tự động", "Tiêu phần còn lại thoải mái"],
-    "visual": { "type": "compare", "items": ["Thu nhập − Chi tiêu = Tiết kiệm", "Thu nhập − Tiết kiệm = Chi tiêu"] },
-    "tf": { "statement": "'Trả cho mình trước' nghĩa là tiết kiệm phần còn dư cuối tháng.", "answer": false, "explain": "Ngược lại, trích tiết kiệm ngay khi nhận lương rồi mới tiêu." },
-    "mcq": { "q": "'Pay yourself first' nghĩa là?", "options": ["Tiết kiệm trước khi tiêu", "Tự thưởng trước", "Trả nợ cuối tháng"], "correct": 0 }
+    "body": [
+      "Trích tiết kiệm ngay khi lương về",
+      "Cài chuyển khoản tự động",
+      "Tiêu phần còn lại thoải mái"
+    ],
+    "visual": {
+      "type": "compare",
+      "items": [
+        "Thu nhập − Chi tiêu = Tiết kiệm",
+        "Thu nhập − Tiết kiệm = Chi tiêu"
+      ]
+    },
+    "tf": {
+      "statement": "'Trả cho mình trước' nghĩa là tiết kiệm phần còn dư cuối tháng.",
+      "answer": false,
+      "explain": "Ngược lại, trích tiết kiệm ngay khi nhận lương rồi mới tiêu."
+    },
+    "mcq": {
+      "q": "'Pay yourself first' nghĩa là?",
+      "options": [
+        "Tiết kiệm trước khi tiêu",
+        "Tự thưởng trước",
+        "Trả nợ cuối tháng"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "fin-minimum-payment",
     "topic": "finance",
     "hook": "Bẫy 'thanh toán tối thiểu' thẻ tín dụng",
-    "body": ["Trả tối thiểu chỉ giúp không bị phạt trễ hạn", "Dư nợ còn lại vẫn bị tính lãi rất cao", "Trả đủ dư nợ để không mất lãi"],
-    "visual": { "type": "emoji", "items": ["💳"] },
-    "tf": { "statement": "Chỉ trả mức tối thiểu thẻ tín dụng thì không bị tính lãi.", "answer": false, "explain": "Dư nợ còn lại vẫn bị tính lãi, thường rất cao." },
-    "mcq": { "q": "Cách dùng thẻ tín dụng không mất lãi?", "options": ["Trả tối thiểu", "Trả đủ dư nợ đúng hạn", "Trả trễ 1 tuần"], "correct": 1 }
+    "body": [
+      "Trả tối thiểu chỉ giúp không bị phạt trễ hạn",
+      "Dư nợ còn lại vẫn bị tính lãi rất cao",
+      "Trả đủ dư nợ để không mất lãi"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "💳"
+      ]
+    },
+    "tf": {
+      "statement": "Chỉ trả mức tối thiểu thẻ tín dụng thì không bị tính lãi.",
+      "answer": false,
+      "explain": "Dư nợ còn lại vẫn bị tính lãi, thường rất cao."
+    },
+    "mcq": {
+      "q": "Cách dùng thẻ tín dụng không mất lãi?",
+      "options": [
+        "Trả tối thiểu",
+        "Trả đủ dư nợ đúng hạn",
+        "Trả trễ 1 tuần"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "fin-diversify",
     "topic": "finance",
     "hook": "Đừng bỏ hết trứng vào một giỏ",
-    "body": ["Chia tiền vào nhiều loại tài sản", "Một khoản lỗ không kéo sập tất cả", "Quỹ chỉ số là cách đa dạng hóa dễ nhất"],
-    "visual": { "type": "emoji", "items": ["🧺"] },
-    "tf": { "statement": "Đa dạng hóa giúp giảm rủi ro khi một khoản đầu tư thua lỗ.", "answer": true, "explain": "Đúng, khoản lỗ được bù bởi các khoản khác." },
-    "mcq": { "q": "Đa dạng hóa giúp gì?", "options": ["Chắc chắn có lãi", "Giảm rủi ro", "Tránh thuế"], "correct": 1 }
+    "body": [
+      "Chia tiền vào nhiều loại tài sản",
+      "Một khoản lỗ không kéo sập tất cả",
+      "Quỹ chỉ số là cách đa dạng hóa dễ nhất"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🧺"
+      ]
+    },
+    "tf": {
+      "statement": "Đa dạng hóa giúp giảm rủi ro khi một khoản đầu tư thua lỗ.",
+      "answer": true,
+      "explain": "Đúng, khoản lỗ được bù bởi các khoản khác."
+    },
+    "mcq": {
+      "q": "Đa dạng hóa giúp gì?",
+      "options": [
+        "Chắc chắn có lãi",
+        "Giảm rủi ro",
+        "Tránh thuế"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "fin-latte-factor",
     "topic": "finance",
     "hook": "Ly trà sữa mỗi ngày đáng giá bao nhiêu?",
-    "body": ["50 nghìn × 365 ngày ≈ 18 triệu/năm", "Khoản nhỏ lặp lại mới là khoản lớn", "Không cần cắt hết, chỉ cần biết con số"],
-    "visual": { "type": "emoji", "items": ["🧋"] },
-    "tf": { "statement": "50 nghìn mỗi ngày cộng lại khoảng 18 triệu một năm.", "answer": true, "explain": "Đúng, 50.000 × 365 = 18,25 triệu đồng." },
-    "mcq": { "q": "100 nghìn/ngày trong 1 năm ≈?", "options": ["3,6 triệu", "36,5 triệu", "365 triệu"], "correct": 1 }
+    "body": [
+      "50 nghìn × 365 ngày ≈ 18 triệu/năm",
+      "Khoản nhỏ lặp lại mới là khoản lớn",
+      "Không cần cắt hết, chỉ cần biết con số"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🧋"
+      ]
+    },
+    "tf": {
+      "statement": "50 nghìn mỗi ngày cộng lại khoảng 18 triệu một năm.",
+      "answer": true,
+      "explain": "Đúng, 50.000 × 365 = 18,25 triệu đồng."
+    },
+    "mcq": {
+      "q": "100 nghìn/ngày trong 1 năm ≈?",
+      "options": [
+        "3,6 triệu",
+        "36,5 triệu",
+        "365 triệu"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "fin-opportunity-cost",
     "topic": "finance",
     "hook": "Cái giá thật của mọi lựa chọn",
-    "body": ["Chọn A thì bỏ lỡ B", "Giá trị của B gọi là chi phí cơ hội", "Áp dụng cả cho thời gian, không chỉ tiền"],
-    "visual": { "type": "emoji", "items": ["⚖️"] },
-    "tf": { "statement": "Chi phí cơ hội là số tiền bạn đã trả cho món hàng.", "answer": false, "explain": "Đó là giá trị của lựa chọn tốt nhất bạn đã bỏ qua." },
-    "mcq": { "q": "2 giờ lướt TikTok có chi phí cơ hội là?", "options": ["0 đồng", "Việc khác bạn có thể làm trong 2 giờ", "Tiền 4G"], "correct": 1 }
+    "body": [
+      "Chọn A thì bỏ lỡ B",
+      "Giá trị của B gọi là chi phí cơ hội",
+      "Áp dụng cả cho thời gian, không chỉ tiền"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "⚖️"
+      ]
+    },
+    "tf": {
+      "statement": "Chi phí cơ hội là số tiền bạn đã trả cho món hàng.",
+      "answer": false,
+      "explain": "Đó là giá trị của lựa chọn tốt nhất bạn đã bỏ qua."
+    },
+    "mcq": {
+      "q": "2 giờ lướt TikTok có chi phí cơ hội là?",
+      "options": [
+        "0 đồng",
+        "Việc khác bạn có thể làm trong 2 giờ",
+        "Tiền 4G"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "fin-24h-rule",
     "topic": "finance",
     "hook": "Giỏ hàng đầy lúc nửa đêm?",
-    "body": ["Thêm vào giỏ nhưng đừng bấm mua", "Đợi 24 giờ rồi xem lại", "Phần lớn món bốc đồng sẽ hết hấp dẫn"],
-    "visual": { "type": "emoji", "items": ["🛒"] },
-    "tf": { "statement": "Chờ 24 giờ trước khi mua đồ không cần thiết giúp giảm mua bốc đồng.", "answer": true, "explain": "Đúng, cơn hứng mua thường nguội đi sau một ngày." },
-    "mcq": { "q": "Quy tắc 24 giờ dùng để?", "options": ["Giảm mua bốc đồng", "Giao hàng nhanh", "Đổi trả hàng"], "correct": 0 }
+    "body": [
+      "Thêm vào giỏ nhưng đừng bấm mua",
+      "Đợi 24 giờ rồi xem lại",
+      "Phần lớn món bốc đồng sẽ hết hấp dẫn"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🛒"
+      ]
+    },
+    "tf": {
+      "statement": "Chờ 24 giờ trước khi mua đồ không cần thiết giúp giảm mua bốc đồng.",
+      "answer": true,
+      "explain": "Đúng, cơn hứng mua thường nguội đi sau một ngày."
+    },
+    "mcq": {
+      "q": "Quy tắc 24 giờ dùng để?",
+      "options": [
+        "Giảm mua bốc đồng",
+        "Giao hàng nhanh",
+        "Đổi trả hàng"
+      ],
+      "correct": 0
+    }
   },
-
   {
     "id": "sci-octopus",
     "topic": "science",
     "hook": "Con vật này có 3 trái tim",
-    "body": ["Bạch tuộc có 3 tim: 2 cho mang, 1 cho cơ thể", "Máu của nó màu xanh lam", "Vì chứa đồng thay vì sắt"],
-    "visual": { "type": "emoji", "items": ["🐙"] },
-    "tf": { "statement": "Bạch tuộc có 3 trái tim.", "answer": true, "explain": "Đúng, và máu của nó màu xanh lam." },
-    "mcq": { "q": "Máu bạch tuộc màu gì?", "options": ["Đỏ", "Xanh lam", "Trong suốt"], "correct": 1 }
+    "body": [
+      "Bạch tuộc có 3 tim: 2 cho mang, 1 cho cơ thể",
+      "Máu của nó màu xanh lam",
+      "Vì chứa đồng thay vì sắt"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🐙"
+      ]
+    },
+    "tf": {
+      "statement": "Bạch tuộc có 3 trái tim.",
+      "answer": true,
+      "explain": "Đúng, và máu của nó màu xanh lam."
+    },
+    "mcq": {
+      "q": "Máu bạch tuộc màu gì?",
+      "options": [
+        "Đỏ",
+        "Xanh lam",
+        "Trong suốt"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "sci-honey",
     "topic": "science",
     "hook": "Thực phẩm gần như không bao giờ hỏng",
-    "body": ["Mật ong rất ít nước và có tính axit", "Vi khuẩn gần như không sống nổi", "Mật ong hàng nghìn năm tuổi từng được tìm thấy"],
-    "visual": { "type": "emoji", "items": ["🍯"] },
-    "tf": { "statement": "Mật ong đậy kín có thể bảo quản hàng nghìn năm.", "answer": true, "explain": "Đúng, ít nước và tính axit ngăn vi khuẩn phát triển." },
-    "mcq": { "q": "Vì sao mật ong khó hỏng?", "options": ["Nhiều nước", "Ít nước, có tính axit", "Có cồn"], "correct": 1 }
+    "body": [
+      "Mật ong rất ít nước và có tính axit",
+      "Vi khuẩn gần như không sống nổi",
+      "Mật ong hàng nghìn năm tuổi từng được tìm thấy"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🍯"
+      ]
+    },
+    "tf": {
+      "statement": "Mật ong đậy kín có thể bảo quản hàng nghìn năm.",
+      "answer": true,
+      "explain": "Đúng, ít nước và tính axit ngăn vi khuẩn phát triển."
+    },
+    "mcq": {
+      "q": "Vì sao mật ong khó hỏng?",
+      "options": [
+        "Nhiều nước",
+        "Ít nước, có tính axit",
+        "Có cồn"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "sci-great-wall",
     "topic": "science",
     "hook": "Huyền thoại về Vạn Lý Trường Thành",
-    "body": ["Tường rộng chỉ khoảng 5–9 mét", "Màu gần giống đất xung quanh", "Từ Mặt Trăng không thể thấy bằng mắt thường"],
-    "visual": { "type": "emoji", "items": ["🌕"] },
-    "tf": { "statement": "Có thể nhìn thấy Vạn Lý Trường Thành từ Mặt Trăng bằng mắt thường.", "answer": false, "explain": "Tường quá hẹp. Từ quỹ đạo thấp cũng rất khó thấy." },
-    "mcq": { "q": "Từ Mặt Trăng, mắt thường thấy được?", "options": ["Vạn Lý Trường Thành", "Các lục địa và mây", "Đường cao tốc"], "correct": 1 }
+    "body": [
+      "Tường rộng chỉ khoảng 5–9 mét",
+      "Màu gần giống đất xung quanh",
+      "Từ Mặt Trăng không thể thấy bằng mắt thường"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🌕"
+      ]
+    },
+    "tf": {
+      "statement": "Có thể nhìn thấy Vạn Lý Trường Thành từ Mặt Trăng bằng mắt thường.",
+      "answer": false,
+      "explain": "Tường quá hẹp. Từ quỹ đạo thấp cũng rất khó thấy."
+    },
+    "mcq": {
+      "q": "Từ Mặt Trăng, mắt thường thấy được?",
+      "options": [
+        "Vạn Lý Trường Thành",
+        "Các lục địa và mây",
+        "Đường cao tốc"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "sci-sunlight",
     "topic": "science",
     "hook": "Mặt Trời bạn thấy là của quá khứ",
-    "body": ["Ánh sáng đi khoảng 300.000 km mỗi giây", "Mặt Trời cách ta khoảng 150 triệu km", "Ánh sáng mất khoảng 8 phút để tới nơi"],
-    "visual": { "type": "emoji", "items": ["☀️"] },
-    "tf": { "statement": "Ánh sáng Mặt Trời mất khoảng 8 phút để đến Trái Đất.", "answer": true, "explain": "Đúng, khoảng 8 phút 20 giây." },
-    "mcq": { "q": "Ánh sáng Mặt Trời tới Trái Đất mất?", "options": ["8 giây", "8 phút", "8 giờ"], "correct": 1 }
+    "body": [
+      "Ánh sáng đi khoảng 300.000 km mỗi giây",
+      "Mặt Trời cách ta khoảng 150 triệu km",
+      "Ánh sáng mất khoảng 8 phút để tới nơi"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "☀️"
+      ]
+    },
+    "tf": {
+      "statement": "Ánh sáng Mặt Trời mất khoảng 8 phút để đến Trái Đất.",
+      "answer": true,
+      "explain": "Đúng, khoảng 8 phút 20 giây."
+    },
+    "mcq": {
+      "q": "Ánh sáng Mặt Trời tới Trái Đất mất?",
+      "options": [
+        "8 giây",
+        "8 phút",
+        "8 giờ"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "sci-banana-berry",
     "topic": "science",
     "hook": "Chuối là quả mọng, dâu tây thì không",
-    "body": ["Quả mọng: phát triển từ một bầu nhụy, hạt nằm bên trong", "Chuối, nho, cà chua đều đạt chuẩn", "Hạt dâu tây nằm bên ngoài nên bị loại"],
-    "visual": { "type": "emoji", "items": ["🍌"] },
-    "tf": { "statement": "Về thực vật học, dâu tây là quả mọng còn chuối thì không.", "answer": false, "explain": "Ngược lại, chuối là quả mọng còn dâu tây thì không." },
-    "mcq": { "q": "Loại nào là quả mọng (berry)?", "options": ["Dâu tây", "Chuối", "Mâm xôi"], "correct": 1 }
+    "body": [
+      "Quả mọng: phát triển từ một bầu nhụy, hạt nằm bên trong",
+      "Chuối, nho, cà chua đều đạt chuẩn",
+      "Hạt dâu tây nằm bên ngoài nên bị loại"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🍌"
+      ]
+    },
+    "tf": {
+      "statement": "Về thực vật học, dâu tây là quả mọng còn chuối thì không.",
+      "answer": false,
+      "explain": "Ngược lại, chuối là quả mọng còn dâu tây thì không."
+    },
+    "mcq": {
+      "q": "Loại nào là quả mọng (berry)?",
+      "options": [
+        "Dâu tây",
+        "Chuối",
+        "Mâm xôi"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "sci-cleopatra",
     "topic": "science",
     "hook": "Dòng thời gian kỳ lạ của Cleopatra",
-    "body": ["Kim tự tháp Giza xây khoảng năm 2560 TCN", "Cleopatra sống khoảng năm 69–30 TCN", "Người lên Mặt Trăng năm 1969"],
-    "visual": { "type": "emoji", "items": ["🏺"] },
-    "tf": { "statement": "Cleopatra sống gần thời người lên Mặt Trăng hơn thời xây Kim tự tháp Giza.", "answer": true, "explain": "Đúng, cách Giza khoảng 2.500 năm, cách 1969 khoảng 2.000 năm." },
-    "mcq": { "q": "Kim tự tháp Giza xây khoảng?", "options": ["2560 TCN", "30 TCN", "500 SCN"], "correct": 0 }
+    "body": [
+      "Kim tự tháp Giza xây khoảng năm 2560 TCN",
+      "Cleopatra sống khoảng năm 69–30 TCN",
+      "Người lên Mặt Trăng năm 1969"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🏺"
+      ]
+    },
+    "tf": {
+      "statement": "Cleopatra sống gần thời người lên Mặt Trăng hơn thời xây Kim tự tháp Giza.",
+      "answer": true,
+      "explain": "Đúng, cách Giza khoảng 2.500 năm, cách 1969 khoảng 2.000 năm."
+    },
+    "mcq": {
+      "q": "Kim tự tháp Giza xây khoảng?",
+      "options": [
+        "2560 TCN",
+        "30 TCN",
+        "500 SCN"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "sci-hai-ba-trung",
     "topic": "science",
     "hook": "Cuộc khởi nghĩa đầu tiên được ghi chép",
-    "body": ["Năm 40, Hai Bà Trưng khởi nghĩa ở Mê Linh", "Đánh đuổi Tô Định, giành 65 thành trì", "Trưng Trắc lên ngôi, xưng Trưng Vương"],
-    "visual": { "type": "emoji", "items": ["🐘"] },
-    "tf": { "statement": "Khởi nghĩa Hai Bà Trưng nổ ra năm 938.", "answer": false, "explain": "Năm 40. Năm 938 là trận Bạch Đằng của Ngô Quyền." },
-    "mcq": { "q": "Hai Bà Trưng khởi nghĩa năm?", "options": ["40", "938", "1288"], "correct": 0 }
+    "body": [
+      "Năm 40, Hai Bà Trưng khởi nghĩa ở Mê Linh",
+      "Đánh đuổi Tô Định, giành 65 thành trì",
+      "Trưng Trắc lên ngôi, xưng Trưng Vương"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🐘"
+      ]
+    },
+    "tf": {
+      "statement": "Khởi nghĩa Hai Bà Trưng nổ ra năm 938.",
+      "answer": false,
+      "explain": "Năm 40. Năm 938 là trận Bạch Đằng của Ngô Quyền."
+    },
+    "mcq": {
+      "q": "Hai Bà Trưng khởi nghĩa năm?",
+      "options": [
+        "40",
+        "938",
+        "1288"
+      ],
+      "correct": 0
+    }
   },
   {
     "id": "sci-goldfish",
     "topic": "science",
     "hook": "Cá vàng chỉ nhớ 3 giây? Sai rồi",
-    "body": ["Cá vàng học được tín hiệu giờ cho ăn", "Thí nghiệm cho thấy chúng nhớ hàng tháng", "'3 giây' chỉ là chuyện truyền miệng"],
-    "visual": { "type": "emoji", "items": ["🐠"] },
-    "tf": { "statement": "Cá vàng chỉ nhớ được khoảng 3 giây.", "answer": false, "explain": "Thí nghiệm cho thấy cá vàng nhớ được nhiều tháng." },
-    "mcq": { "q": "Trí nhớ cá vàng kéo dài khoảng?", "options": ["3 giây", "Nhiều tháng", "1 phút"], "correct": 1 }
+    "body": [
+      "Cá vàng học được tín hiệu giờ cho ăn",
+      "Thí nghiệm cho thấy chúng nhớ hàng tháng",
+      "'3 giây' chỉ là chuyện truyền miệng"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🐠"
+      ]
+    },
+    "tf": {
+      "statement": "Cá vàng chỉ nhớ được khoảng 3 giây.",
+      "answer": false,
+      "explain": "Thí nghiệm cho thấy cá vàng nhớ được nhiều tháng."
+    },
+    "mcq": {
+      "q": "Trí nhớ cá vàng kéo dài khoảng?",
+      "options": [
+        "3 giây",
+        "Nhiều tháng",
+        "1 phút"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "sci-baby-bones",
     "topic": "science",
     "hook": "Trẻ sơ sinh có nhiều xương hơn bạn",
-    "body": ["Trẻ mới sinh có khoảng 270–300 xương", "Nhiều xương dần dính lại khi lớn", "Người trưởng thành còn 206 xương"],
-    "visual": { "type": "emoji", "items": ["🦴"] },
-    "tf": { "statement": "Trẻ sơ sinh có ít xương hơn người lớn.", "answer": false, "explain": "Ngược lại, trẻ có khoảng 300 xương, sau dính lại còn 206." },
-    "mcq": { "q": "Người trưởng thành có bao nhiêu xương?", "options": ["106", "206", "306"], "correct": 1 }
+    "body": [
+      "Trẻ mới sinh có khoảng 270–300 xương",
+      "Nhiều xương dần dính lại khi lớn",
+      "Người trưởng thành còn 206 xương"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "🦴"
+      ]
+    },
+    "tf": {
+      "statement": "Trẻ sơ sinh có ít xương hơn người lớn.",
+      "answer": false,
+      "explain": "Ngược lại, trẻ có khoảng 300 xương, sau dính lại còn 206."
+    },
+    "mcq": {
+      "q": "Người trưởng thành có bao nhiêu xương?",
+      "options": [
+        "106",
+        "206",
+        "306"
+      ],
+      "correct": 1
+    }
   },
   {
     "id": "sci-lightning",
     "topic": "science",
     "hook": "Tia sét nóng hơn cả Mặt Trời",
-    "body": ["Bề mặt Mặt Trời khoảng 5.500°C", "Tia sét có thể đạt khoảng 30.000°C", "Không khí nở đột ngột tạo ra tiếng sấm"],
-    "visual": { "type": "emoji", "items": ["⚡"] },
-    "tf": { "statement": "Tia sét có thể nóng hơn bề mặt Mặt Trời.", "answer": true, "explain": "Đúng, nóng gấp khoảng 5 lần bề mặt Mặt Trời." },
-    "mcq": { "q": "Tiếng sấm sinh ra do?", "options": ["Mây va nhau", "Không khí nở đột ngột", "Mưa rơi"], "correct": 1 }
+    "body": [
+      "Bề mặt Mặt Trời khoảng 5.500°C",
+      "Tia sét có thể đạt khoảng 30.000°C",
+      "Không khí nở đột ngột tạo ra tiếng sấm"
+    ],
+    "visual": {
+      "type": "emoji",
+      "items": [
+        "⚡"
+      ]
+    },
+    "tf": {
+      "statement": "Tia sét có thể nóng hơn bề mặt Mặt Trời.",
+      "answer": true,
+      "explain": "Đúng, nóng gấp khoảng 5 lần bề mặt Mặt Trời."
+    },
+    "mcq": {
+      "q": "Tiếng sấm sinh ra do?",
+      "options": [
+        "Mây va nhau",
+        "Không khí nở đột ngột",
+        "Mưa rơi"
+      ],
+      "correct": 1
+    }
   }
 ]

@@ -11,7 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.snapbrain.ai.AiStudio
 import com.snapbrain.data.DayStats
+import com.snapbrain.data.content.Topic
+import com.snapbrain.ui.ai.AiActions
+import com.snapbrain.ui.ai.AiContent
 import com.snapbrain.data.Settings
 import com.snapbrain.data.content.CardParser
 import com.snapbrain.domain.Streak
@@ -48,7 +52,7 @@ class ScreenshotTest {
     val compose = createComposeRule()
 
     private val cards = CardParser.parse(File("src/main/assets/cards.json").readText())
-    private val flashFill = cards.first { it.id == "office-flashfill" }
+    private val bluf = cards.first { it.id == "comm-bluf" }
     private val english = cards.first { it.id == "english-earliest-convenience" }
 
     private fun shot(name: String, content: @Composable () -> Unit) {
@@ -60,20 +64,20 @@ class ScreenshotTest {
     }
 
     @Test
-    fun card_hook() = shot("card_1_hook") { CardContent(flashFill, Phase.HOOK, 0, null, {}, {}, {}) }
+    fun card_hook() = shot("card_1_hook") { CardContent(bluf, Phase.HOOK, 0, null, {}, {}, {}) }
 
     @Test
-    fun card_body() = shot("card_2_body") { CardContent(flashFill, Phase.BODY, 3, null, {}, {}, {}) }
+    fun card_body() = shot("card_2_body") { CardContent(bluf, Phase.BODY, 3, null, {}, {}, {}) }
 
     @Test
     fun card_bodyCompare() = shot("card_2b_body_versus") { CardContent(english, Phase.BODY, 2, null, {}, {}, {}) }
 
     @Test
-    fun card_quiz() = shot("card_3_quiz") { CardContent(flashFill, Phase.QUIZ, 3, null, {}, {}, {}) }
+    fun card_quiz() = shot("card_3_quiz") { CardContent(bluf, Phase.QUIZ, 3, null, {}, {}, {}) }
 
     @Test
     fun card_right() = shot("card_4_right") {
-        CardContent(flashFill, Phase.RESULT, 3, QuizOutcome(correct = true, points = 1), {}, {}, {})
+        CardContent(bluf, Phase.RESULT, 3, QuizOutcome(correct = true, points = 1), {}, {}, {})
     }
 
     @Test
@@ -156,6 +160,24 @@ class ScreenshotTest {
             compose.onRoot().captureRoboImage("build/screenshots/onboarding_$i.png")
         }
     }
+
+    @Test
+    fun ai_noKey() = shot("ai_1_no_key") {
+        AiContent(false, "", AiStudio.Status.Idle, emptyMap(), aiActions)
+    }
+
+    @Test
+    fun ai_done() = shot("ai_2_done") {
+        AiContent(
+            true, "x9Q2", AiStudio.Status.Done(Topic.MANAGEMENT, 10),
+            mapOf(Topic.MANAGEMENT to 10, Topic.SPEAKING to 15), aiActions,
+        )
+    }
+
+    @Test
+    fun card_ai() = shot("card_ai") { CardContent(bluf.copy(ai = true), Phase.BODY, 0, null, {}, {}, {}) }
+
+    private val aiActions = AiActions({}, {}, {}, { _, _, _ -> }, {}, {}, {})
 
     @Test
     fun settings() = shot("settings") {

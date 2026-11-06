@@ -37,7 +37,7 @@ class StudyRepositoryTest {
         val app = RuntimeEnvironment.getApplication()
         db = Room.inMemoryDatabaseBuilder(app, AppDatabase::class.java).allowMainThreadQueries().build()
         settings = SettingsStore(app.getSharedPreferences("test", Context.MODE_PRIVATE).also { it.edit().clear().commit() })
-        val cards = CardRepository { File("src/main/assets/cards.json").readText() }
+        val cards = CardRepository({ File("src/main/assets/cards.json").readText() })
         repo = StudyRepository(db.studyDao(), cards, clock, settings)
     }
 

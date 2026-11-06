@@ -170,7 +170,7 @@ fun CardContent(
 private fun Header(card: Card, phase: Phase) {
     Column {
         Text(
-            "${card.topic.emoji}  ${card.topic.label.uppercase()}",
+            "${card.topic.emoji}  ${card.topic.label.uppercase()}" + if (card.ai) "  ·  ✨ AI" else "",
             style = MaterialTheme.typography.labelMedium,
             color = Palette.Accent,
         )

@@ -96,17 +96,17 @@ class RulesTest {
     fun feed_dueFirst_thenNewMixed_thenRest() {
         val cards = Topic.entries.flatMap { t -> (1..3).map { card("${t.name}$it", t) } }
         val progress = mapOf(
-            "OFFICE1" to progress("OFFICE1", box = 0, due = 9),
-            "OFFICE2" to progress("OFFICE2", box = 2, due = 5),
+            "SPEAKING1" to progress("SPEAKING1", box = 0, due = 9),
+            "SPEAKING2" to progress("SPEAKING2", box = 2, due = 5),
             "AI1" to progress("AI1", box = 3, due = 20),
         )
         val plan = FeedPlanner.plan(cards, progress, today = 10, favorites = emptySet(), limit = 100, random = Random(1))
-        assertEquals(listOf("OFFICE2", "OFFICE1"), plan.take(2).map { it.id })
+        assertEquals(listOf("SPEAKING2", "SPEAKING1"), plan.take(2).map { it.id })
         assertEquals("AI1", plan.last().id)
         assertEquals(cards.size, plan.size)
         // New cards: no two neighbours share a topic while several topics remain.
-        val fresh = plan.subList(2, 2 + 6)
-        assertEquals(6, fresh.map { it.topic }.toSet().size)
+        val fresh = plan.subList(2, 2 + Topic.entries.size)
+        assertEquals(Topic.entries.size, fresh.map { it.topic }.toSet().size)
     }
 
     @Test

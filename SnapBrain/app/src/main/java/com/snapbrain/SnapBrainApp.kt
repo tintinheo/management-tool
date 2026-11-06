@@ -2,6 +2,13 @@ package com.snapbrain
 
 import android.app.Application
 import android.content.Context
+import com.snapbrain.ai.AiKeyStore
+import com.snapbrain.ai.AiStudio
+import com.snapbrain.ai.CardGenerator
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.snapbrain.data.AppClock
 import com.snapbrain.data.SettingsStore
 import com.snapbrain.data.StudyRepository
@@ -28,6 +35,10 @@ class AppContainer(context: Context) {
     val cards = CardRepository(context)
     val study: StudyRepository by lazy { StudyRepository(database.studyDao(), cards, clock, settings) }
     val haptics = HapticsKit(context)
+    val aiKey: AiKeyStore by lazy { AiKeyStore(File(context.noBackupFilesDir, "gemini_key")) }
+    val ai: AiStudio by lazy {
+        AiStudio(cards, aiKey, CardGenerator(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
+    }
 }
 
 val Context.appContainer: AppContainer get() = (applicationContext as SnapBrainApp).container

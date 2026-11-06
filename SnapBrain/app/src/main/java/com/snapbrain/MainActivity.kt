@@ -44,6 +44,7 @@ import com.snapbrain.intercept.GuardPermissions
 import com.snapbrain.intercept.GuardService
 import com.snapbrain.intercept.PhoneSetup
 import com.snapbrain.ui.Speaker
+import com.snapbrain.ui.ai.AiScreen
 import com.snapbrain.ui.feed.FeedScreen
 import com.snapbrain.ui.home.HomeContent
 import com.snapbrain.ui.home.HomeState
@@ -140,6 +141,17 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        if (screen == Screen.AI) {
+            BackHandler { screen = Screen.SETTINGS }
+            AiScreen(
+                container,
+                onBack = { screen = Screen.SETTINGS },
+                onOpenFeed = { screen = Screen.FEED },
+                modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+            )
+            return
+        }
+
         BackHandler(screen != Screen.HOME) { screen = Screen.HOME }
         Scaffold(
             containerColor = Palette.Ink,
@@ -166,6 +178,7 @@ class MainActivity : ComponentActivity() {
                             openAutostart = { PhoneSetup.openAutostart(context) },
                             openPopups = { PhoneSetup.openOtherPermissions(context) },
                             openBattery = { PhoneSetup.openBattery(context) },
+                            openAi = { screen = Screen.AI },
                         ),
                     )
                 }
@@ -221,7 +234,7 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    enum class Screen { HOME, FEED, SETTINGS, SAVER }
+    enum class Screen { HOME, FEED, SETTINGS, SAVER, AI }
 
     companion object {
         const val EXTRA_OPEN = "open"
