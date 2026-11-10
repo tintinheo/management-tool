@@ -1,0 +1,2678 @@
+{
+ "weeks": [
+  {
+   "number": 1,
+   "title": "Làm quen cây đàn",
+   "goal": "Ngồi đúng tư thế, biết tên 6 dây, tự lên dây bằng tuner, bấm nốt sạch và gảy được hai hợp âm đầu tiên: Em và Am.",
+   "test": [
+    {
+     "type": "tuned",
+     "text": "Lên đủ 6 dây trong tuner"
+    },
+    {
+     "type": "chord",
+     "chord": "Em",
+     "text": "Em được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "chord",
+     "chord": "Am",
+     "text": "Am được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "quiz",
+     "min": 7,
+     "text": "Đố nốt: đúng ít nhất 7/10"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "w1s1",
+     "title": "Cây đàn và 6 dây",
+     "goal": "Biết cầm đàn, gọi tên 6 dây và lên dây lần đầu.",
+     "steps": [
+      {
+       "minutes": 4,
+       "title": "Tư thế ngồi",
+       "text": "Ngồi ghế không tay vịn, lưng thẳng. Eo đàn đặt lên đùi phải, mặt đàn thẳng đứng (đừng ngửa đàn lên để nhìn). Cánh tay phải gác lên cạnh thùng đàn, cổ tay trái thả lỏng, ngón cái trái đặt sau cần đàn khoảng giữa."
+      },
+      {
+       "minutes": 5,
+       "title": "Tên 6 dây",
+       "tool": "NOTES",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Dây được đánh số từ dưới lên: dây 1 mảnh nhất nằm gần sàn, dây 6 to nhất nằm gần mặt bạn. Chạm vào từng dây trên hình để nghe. Đọc to: dây 6 E (Mi), 5 A (La), 4 D (Rê), 3 G (Sol), 2 B (Si), 1 E (Mi)."
+      },
+      {
+       "minutes": 8,
+       "title": "Lên dây lần đầu",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Mở tuner, gảy dây 6 và để ngân. Kim lệch trái (thấp) thì vặn căng dây, lệch phải (cao) thì vặn chùng. Vặn từng chút một — dây mới rất dễ đứt nếu vặn quá tay. Làm lần lượt cả 6 dây, sau đó kiểm tra lại một lượt vì dây kéo cần đàn làm các dây khác lệch theo."
+      },
+      {
+       "minutes": 6,
+       "title": "Gảy dây buông theo nhịp",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Mỗi click gảy xuống một dây, đi từ dây 6 tới dây 1 rồi quay lại, vừa gảy vừa đọc tên dây. Dùng ngón cái hoặc phím gảy, cổ tay thả lỏng như phẩy nước.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Bạn có lên được cả 6 dây không? Tuần đầu, mỗi buổi đều lên dây — dần dần bạn sẽ nghe ra khi đàn lệch."
+      }
+     ]
+    },
+    {
+     "id": "w1s2",
+     "title": "Bấm phím đúng cách",
+     "goal": "Bấm một nốt kêu trong, không rè; biết các nốt trên dây 1 và 2.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 6,
+       "title": "Đặt ngón ở đâu?",
+       "tool": "NOTES",
+       "visual": {
+        "type": "press"
+       },
+       "text": "Ngón bấm đặt sát thanh phím kim loại (phía thùng đàn), không đè lên nó và không đặt giữa ô. Dùng đầu ngón, ngón cong, móng tay trái cắt ngắn. Thử bấm dây 1 ngăn 3 ở ba chỗ như hình để nghe khác biệt."
+      },
+      {
+       "minutes": 6,
+       "title": "Khởi động ngón 1-2-3-4",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Đặt ngón trỏ ở ngăn 1 dây 6, gảy; thêm ngón giữa ngăn 2, gảy; áp út ngăn 3; út ngăn 4. Mỗi click một nốt, rồi chuyển sang dây 5… đến dây 1. Giữ các ngón cũ trên dây nếu được.",
+       "visual": {
+        "type": "fretboard",
+        "frets": 4,
+        "dots": [
+         {
+          "s": 6,
+          "f": 1,
+          "label": "1"
+         },
+         {
+          "s": 6,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "3"
+         },
+         {
+          "s": 6,
+          "f": 4,
+          "label": "4"
+         }
+        ],
+        "caption": "Số trên chấm là ngón tay: 1 trỏ · 2 giữa · 3 áp út · 4 út. Mỗi ngón phụ trách một ngăn."
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "Nốt trên dây 1 và 2",
+       "tool": "NOTES",
+       "visual": {
+        "type": "notes",
+        "frets": 3,
+        "strings": [
+         1,
+         2
+        ]
+       },
+       "text": "Dây 1: buông = E, ngăn 1 = F, ngăn 3 = G. Dây 2: buông = B, ngăn 1 = C, ngăn 3 = D. Ngăn 1 dùng ngón trỏ, ngăn 3 dùng ngón áp út. Chạm vào hình để nghe, rồi đánh lại trên đàn và nói tên nốt."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Nốt có bị rè không? Rè thường do ngón xa thanh phím hoặc ấn bằng bụng ngón."
+      }
+     ]
+    },
+    {
+     "id": "w1s3",
+     "title": "Hợp âm Em",
+     "goal": "Bấm Em sạch cả 6 dây và quạt xuống đều theo metronome.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 8,
+       "title": "Hợp âm Em",
+       "tool": "CHORD_CHECK",
+       "chord": "Em",
+       "visual": {
+        "type": "chord",
+        "chord": "Em"
+       },
+       "text": "Ngón giữa ngăn 2 dây 5, ngón áp út ngăn 2 dây 4. Hai ngón đứng thẳng để không chạm dây 3 bên dưới. Gảy chậm từng dây từ 6 xuống 1 — dây nào câm hay rè thì chỉnh ngón rồi gảy lại. Sau đó quạt cả 6 dây và nhờ micro chấm."
+      },
+      {
+       "minutes": 8,
+       "title": "Quạt xuống 4 phách",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Giữ Em, mỗi click quạt xuống một lần. Đếm to \"1 2 3 4\". Quạt từ cổ tay, không vung cả cánh tay. Đến phách 4, nhấc tay trái khỏi dây rồi đặt lại Em — tập cho tay nhớ hình.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Khởi động ngón 1-2-3-4",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Đặt ngón trỏ ở ngăn 1 dây 6, gảy; thêm ngón giữa ngăn 2, gảy; áp út ngăn 3; út ngăn 4. Mỗi click một nốt, rồi chuyển sang dây 5… đến dây 1. Giữ các ngón cũ trên dây nếu được.",
+       "visual": {
+        "type": "fretboard",
+        "frets": 4,
+        "dots": [
+         {
+          "s": 6,
+          "f": 1,
+          "label": "1"
+         },
+         {
+          "s": 6,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "3"
+         },
+         {
+          "s": 6,
+          "f": 4,
+          "label": "4"
+         }
+        ],
+        "caption": "Số trên chấm là ngón tay: 1 trỏ · 2 giữa · 3 áp út · 4 út. Mỗi ngón phụ trách một ngăn."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w1s4",
+     "title": "Hợp âm Am",
+     "goal": "Bấm Am, chuyển chậm giữa Em và Am không dừng nhịp.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 7,
+       "title": "Hợp âm Am",
+       "tool": "CHORD_CHECK",
+       "chord": "Am",
+       "visual": {
+        "type": "chord",
+        "chord": "Am"
+       },
+       "text": "Am giống hình Em dời xuống một dây (ngón giữa dây 4, áp út dây 3), thêm ngón trỏ ngăn 1 dây 2. Không gảy dây 6 — bắt đầu quạt từ dây 5 (A, nốt bass của Am)."
+      },
+      {
+       "minutes": 6,
+       "title": "Chuyển Em ↔ Am",
+       "tool": "CHANGES",
+       "chord": "Em",
+       "chordB": "Am",
+       "text": "Ngón giữa và áp út giữ nguyên hình, chỉ trượt cùng nhau xuống một dây; ngón trỏ đặt thêm vào. Tập chậm: đổi, gảy, kiểm tra, đổi lại. Đừng nhìn số lần — chỉ cần đúng.",
+       "visual": {
+        "type": "chord",
+        "chord": "Am"
+       }
+      },
+      {
+       "minutes": 7,
+       "title": "Em – Am theo nhịp",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Em 4 phách, Am 4 phách, lặp lại. Nếu chưa kịp đổi, cứ quạt dây buông ở phách 1 — tay phải không bao giờ dừng.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w1s5",
+     "title": "Ôn tuần 1 & kiểm tra",
+     "goal": "Đạt các mục kiểm tra để mở tuần 2.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn. Hôm nay tuner sẽ ghi nhận khi bạn lên đủ 6 dây."
+      },
+      {
+       "minutes": 4,
+       "title": "Hợp âm Em",
+       "tool": "CHORD_CHECK",
+       "chord": "Em",
+       "visual": {
+        "type": "chord",
+        "chord": "Em"
+       },
+       "text": "Quạt chậm, để ngân, quạt lại. Cần 3 lần liền được chấm đúng."
+      },
+      {
+       "minutes": 4,
+       "title": "Hợp âm Am",
+       "tool": "CHORD_CHECK",
+       "chord": "Am",
+       "visual": {
+        "type": "chord",
+        "chord": "Am"
+       },
+       "text": "Nhớ không gảy dây 6. Cần 3 lần liền được chấm đúng."
+      },
+      {
+       "minutes": 6,
+       "title": "Đố nốt",
+       "tool": "QUIZ",
+       "visual": {
+        "type": "notes",
+        "frets": 3,
+        "strings": [
+         1,
+         2,
+         6
+        ]
+       },
+       "text": "10 câu: app hỏi một nốt, bạn chạm đúng vị trí hoặc đánh nốt đó trên đàn. Ôn lại hình trước khi bắt đầu: dây 6 giống dây 1 (E F G), chỉ trầm hơn hai quãng tám."
+      },
+      {
+       "minutes": 5,
+       "title": "Em – Am liền mạch",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Chạy Em–Am 8 lượt không dừng nhịp.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Mở thẻ \"Tuần 1\" ở màn Hôm nay để xem bạn đã đạt những mục nào."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "number": 2,
+   "title": "C, G và giữ nhịp",
+   "goal": "Thêm C và G — bốn hợp âm đủ đệm hàng trăm bài. Chuyển hợp âm trong lúc tay phải vẫn giữ nhịp 60 BPM.",
+   "test": [
+    {
+     "type": "chord",
+     "chord": "C",
+     "text": "C được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "chord",
+     "chord": "G",
+     "text": "G được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "changes",
+     "chord": "C",
+     "chordB": "G",
+     "min": 20,
+     "text": "Chuyển C ↔ G: ít nhất 20 lần trong 1 phút"
+    },
+    {
+     "type": "self",
+     "text": "Chạy Em–Am–C–G mỗi hợp âm 4 phách ở 60 BPM, 4 vòng không dừng nhịp"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "w2s1",
+     "title": "Hợp âm C",
+     "goal": "Bấm C sạch, nghe rõ dây 3 và dây 1 buông.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Khởi động ngón 1-2-3-4",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Đặt ngón trỏ ở ngăn 1 dây 6, gảy; thêm ngón giữa ngăn 2, gảy; áp út ngăn 3; út ngăn 4. Mỗi click một nốt, rồi chuyển sang dây 5… đến dây 1. Giữ các ngón cũ trên dây nếu được.",
+       "visual": {
+        "type": "fretboard",
+        "frets": 4,
+        "dots": [
+         {
+          "s": 6,
+          "f": 1,
+          "label": "1"
+         },
+         {
+          "s": 6,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "3"
+         },
+         {
+          "s": 6,
+          "f": 4,
+          "label": "4"
+         }
+        ],
+        "caption": "Số trên chấm là ngón tay: 1 trỏ · 2 giữa · 3 áp út · 4 út. Mỗi ngón phụ trách một ngăn."
+       }
+      },
+      {
+       "minutes": 8,
+       "title": "Hợp âm C",
+       "tool": "CHORD_CHECK",
+       "chord": "C",
+       "visual": {
+        "type": "chord",
+        "chord": "C"
+       },
+       "text": "Áp út ngăn 3 dây 5 (nốt C — bass), giữa ngăn 2 dây 4, trỏ ngăn 1 dây 2. Ngón phải cong cao để dây 3 và dây 1 buông vẫn kêu. Gảy từ dây 5."
+      },
+      {
+       "minutes": 6,
+       "title": "Chuyển Am ↔ C",
+       "tool": "CHANGES",
+       "chord": "Am",
+       "chordB": "C",
+       "text": "Mẹo: ngón trỏ (dây 2 ngăn 1) và ngón giữa (dây 4 ngăn 2) KHÔNG nhấc lên — chỉ có ngón áp út di chuyển từ dây 3 sang dây 5 ngăn 3. Chuyển Am↔C là cặp dễ nhất.",
+       "visual": {
+        "type": "chord",
+        "chord": "C"
+       }
+      },
+      {
+       "minutes": 5,
+       "title": "Quạt C và Am",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Am 4 phách – C 4 phách. Đếm to, đổi đúng ở số 1.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w2s2",
+     "title": "Hợp âm G",
+     "goal": "Bấm G với dây 6 làm bass; chuyển Em ↔ G.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Khởi động ngón 1-2-3-4",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Đặt ngón trỏ ở ngăn 1 dây 6, gảy; thêm ngón giữa ngăn 2, gảy; áp út ngăn 3; út ngăn 4. Mỗi click một nốt, rồi chuyển sang dây 5… đến dây 1. Giữ các ngón cũ trên dây nếu được.",
+       "visual": {
+        "type": "fretboard",
+        "frets": 4,
+        "dots": [
+         {
+          "s": 6,
+          "f": 1,
+          "label": "1"
+         },
+         {
+          "s": 6,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "3"
+         },
+         {
+          "s": 6,
+          "f": 4,
+          "label": "4"
+         }
+        ],
+        "caption": "Số trên chấm là ngón tay: 1 trỏ · 2 giữa · 3 áp út · 4 út. Mỗi ngón phụ trách một ngăn."
+       }
+      },
+      {
+       "minutes": 8,
+       "title": "Hợp âm G",
+       "tool": "CHORD_CHECK",
+       "chord": "G",
+       "visual": {
+        "type": "chord",
+        "chord": "G"
+       },
+       "text": "Giữa ngăn 3 dây 6 (G — bass), trỏ ngăn 2 dây 5, áp út ngăn 3 dây 1. Dây 4, 3, 2 buông phải kêu — đầu ngón đứng thẳng. Quạt cả 6 dây."
+      },
+      {
+       "minutes": 6,
+       "title": "Chuyển Em ↔ G",
+       "tool": "CHANGES",
+       "chord": "Em",
+       "chordB": "G",
+       "text": "Ngón giữa của Em (dây 5 ngăn 2) đổi thành ngón trỏ ở G. Tập đặt cả ba ngón cùng lúc, như in con dấu.",
+       "visual": {
+        "type": "chord",
+        "chord": "G"
+       }
+      },
+      {
+       "minutes": 5,
+       "title": "Quạt G – Em",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "G 4 phách – Em 4 phách, lặp lại.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w2s3",
+     "title": "Chuyển C ↔ G",
+     "goal": "Bắt đầu đo one-minute changes cho cặp khó nhất tuần.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 4,
+       "title": "Xem hai hình cạnh nhau",
+       "visual": {
+        "type": "chord",
+        "chord": "G"
+       },
+       "text": "So sánh: C dùng dây 5 làm bass, G dùng dây 6. Khi đổi, nhấc cả bàn tay một chút, giữ hình ngón \"lơ lửng\" và hạ xuống cùng lúc — không đặt từng ngón một."
+      },
+      {
+       "minutes": 8,
+       "title": "Chuyển C ↔ G",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "G",
+       "text": "Ba vòng 1 phút. Ghi lại số lần — mục tiêu tuần này là 20. Sạch quan trọng hơn nhanh: micro chỉ đếm khi nghe ra đúng hợp âm.",
+       "visual": {
+        "type": "chord",
+        "chord": "C"
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "C – G theo nhịp",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "C 4 phách, G 4 phách. Phách 4 là lúc tay trái bắt đầu rời đi — chấp nhận phách 4 hơi đục.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w2s4",
+     "title": "Giữ nhịp khi đổi hợp âm",
+     "goal": "Bài đầu tiên với hai hợp âm C và G.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 8,
+       "title": "Vòng Em – Am – C – G",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Mỗi hợp âm 4 phách. Bí quyết của người đệm hát: tay phải là đồng hồ, không bao giờ chờ tay trái. Chưa kịp bấm thì vẫn quạt (dây buông) đúng phách.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 8,
+       "title": "Bài Bắc Kim Thang",
+       "tool": "SONG",
+       "song": "03_bac_kim_thang.cho",
+       "text": "Chỉ có C và G, đổi hợp âm ở chữ cuối câu. Lần đầu chỉ đàn, lần hai đọc lời theo, lần ba thử hát nhỏ. Bấm ▶ để lời tự cuộn.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU"
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Chuyển C ↔ G",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "G",
+       "text": "Một vòng 1 phút để so với hôm trước."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w2s5",
+     "title": "Ôn tuần 2 & kiểm tra",
+     "goal": "Đạt các mục kiểm tra để mở tuần 3.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Hợp âm C",
+       "tool": "CHORD_CHECK",
+       "chord": "C",
+       "visual": {
+        "type": "chord",
+        "chord": "C"
+       },
+       "text": "3 lần liền đúng."
+      },
+      {
+       "minutes": 3,
+       "title": "Hợp âm G",
+       "tool": "CHORD_CHECK",
+       "chord": "G",
+       "visual": {
+        "type": "chord",
+        "chord": "G"
+       },
+       "text": "3 lần liền đúng."
+      },
+      {
+       "minutes": 6,
+       "title": "Chuyển C ↔ G",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "G",
+       "text": "Làm vài vòng, lấy kết quả tốt nhất. Mục tiêu 20 lần."
+      },
+      {
+       "minutes": 6,
+       "title": "Vòng 4 hợp âm",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Em–Am–C–G, 4 vòng liền không dừng. Làm được thì đánh dấu mục tự kiểm tra.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "number": 3,
+   "title": "D và quạt xuống–lên",
+   "goal": "Hợp âm D, nhịp quạt xuống–lên đều tay, vòng G–D–Em–C, và biết nốt bass của từng hợp âm nằm ở dây nào.",
+   "test": [
+    {
+     "type": "chord",
+     "chord": "D",
+     "text": "D được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "changes",
+     "chord": "G",
+     "chordB": "D",
+     "min": 20,
+     "text": "Chuyển G ↔ D: ít nhất 20 lần trong 1 phút"
+    },
+    {
+     "type": "quiz",
+     "min": 8,
+     "text": "Đố nốt: đúng ít nhất 8/10"
+    },
+    {
+     "type": "rhythm",
+     "pattern": "DUDUDUDU",
+     "bpm": 70,
+     "maxMs": 60,
+     "text": "Chấm nhịp: quạt xuống–lên ở 70 BPM, lệch trung bình ≤ 60 ms"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "w3s1",
+     "title": "Hợp âm D",
+     "goal": "Bấm D trên 4 dây mỏng, gảy từ dây 4.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Khởi động ngón 1-2-3-4",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "DOWN_4",
+       "text": "Đặt ngón trỏ ở ngăn 1 dây 6, gảy; thêm ngón giữa ngăn 2, gảy; áp út ngăn 3; út ngăn 4. Mỗi click một nốt, rồi chuyển sang dây 5… đến dây 1. Giữ các ngón cũ trên dây nếu được.",
+       "visual": {
+        "type": "fretboard",
+        "frets": 4,
+        "dots": [
+         {
+          "s": 6,
+          "f": 1,
+          "label": "1"
+         },
+         {
+          "s": 6,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "3"
+         },
+         {
+          "s": 6,
+          "f": 4,
+          "label": "4"
+         }
+        ],
+        "caption": "Số trên chấm là ngón tay: 1 trỏ · 2 giữa · 3 áp út · 4 út. Mỗi ngón phụ trách một ngăn."
+       }
+      },
+      {
+       "minutes": 8,
+       "title": "Hợp âm D",
+       "tool": "CHORD_CHECK",
+       "chord": "D",
+       "visual": {
+        "type": "chord",
+        "chord": "D"
+       },
+       "text": "Hình tam giác: trỏ ngăn 2 dây 3, áp út ngăn 3 dây 2, giữa ngăn 2 dây 1. Chỉ gảy từ dây 4 (D buông — nốt bass). Dây 1 hay bị câm: cong ngón giữa hơn."
+      },
+      {
+       "minutes": 7,
+       "title": "Chuyển G ↔ D",
+       "tool": "CHANGES",
+       "chord": "G",
+       "chordB": "D",
+       "text": "Ngón áp út là \"ngón neo\": ở G nó ở dây 1 ngăn 3, ở D nó ở dây 2 ngăn 3 — chỉ trượt một dây. Đổi xung quanh ngón đó.",
+       "visual": {
+        "type": "chord",
+        "chord": "D"
+       }
+      },
+      {
+       "minutes": 5,
+       "title": "Quạt D – G",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "D 4 phách, G 4 phách. Nhớ: D gảy từ dây 4, G từ dây 6 — tay phải cũng phải đổi chỗ bắt đầu.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w3s2",
+     "title": "Quạt xuống – lên",
+     "goal": "Tay phải đi như con lắc: xuống ở số, lên ở \"&\".",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Quạt DU trên dây câm",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_UP",
+       "text": "Tay trái đặt nhẹ lên dây cho câm tiếng. Quạt xuống ở số, lên ở \"&\": 1 & 2 & 3 & 4 &. Chỉ nghe tiếng \"chách\" đều — đây là luyện tay phải thuần tuý.",
+       "visual": {
+        "type": "strum",
+        "pattern": "DUDUDUDU"
+       }
+      },
+      {
+       "minutes": 7,
+       "title": "Quạt DU trên Em",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_UP",
+       "text": "Giữ Em. Cú lên nhẹ hơn, chỉ cần chạm 3–4 dây mỏng. Tay không dừng giữa các cú.",
+       "visual": {
+        "type": "strum",
+        "pattern": "DUDUDUDU"
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "Chấm nhịp lần đầu",
+       "tool": "RHYTHM",
+       "bpm": 60,
+       "pattern": "DOWN_UP",
+       "text": "Mở Chấm nhịp quạt. Lần đầu bấm \"Đo ngay\" để đo độ trễ (quạt đúng 12 tiếng click, khoảng 20 giây). Sau đó chấm 8 ô nhịp ở 60 BPM: ô sáng xanh là đúng phách, vàng là hơi lệch, đỏ là lệch nhiều.",
+       "visual": {
+        "type": "strum",
+        "pattern": "DUDUDUDU"
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Chuyển Em ↔ C",
+       "tool": "CHANGES",
+       "chord": "Em",
+       "chordB": "C",
+       "text": "Một vòng để giữ tay trái."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w3s3",
+     "title": "Vòng G – D – Em – C",
+     "goal": "Vòng 4 hợp âm phổ biến nhất trong nhạc pop.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Chuyển Em ↔ C",
+       "tool": "CHANGES",
+       "chord": "Em",
+       "chordB": "C",
+       "text": "Cặp còn thiếu trong vòng. Ngón giữa dời từ dây 5 sang dây 4 (vẫn ngăn 2), áp út sang dây 5 ngăn 3, ngón trỏ đặt thêm vào dây 2 ngăn 1. Tập chậm."
+      },
+      {
+       "minutes": 10,
+       "title": "Bài luyện vòng 4 hợp âm",
+       "tool": "SONG",
+       "song": "01_vong_4_hop_am.cho",
+       "text": "Mỗi hợp âm 1 ô nhịp (đếm 1 2 3 4). Bật nhịp ở thanh dưới (biểu tượng đồng hồ) để có click. Vòng 1–4 quạt xuống, vòng 5–8 thử xuống–lên.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "Vòng với quạt DU",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_UP",
+       "text": "G–D–Em–C mỗi hợp âm 8 cú DU.",
+       "visual": {
+        "type": "strum",
+        "pattern": "DUDUDUDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w3s4",
+     "title": "Nốt bass của mỗi hợp âm",
+     "goal": "Biết nốt trên dây 4–5–6 và dây nào là bass của từng hợp âm.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 6,
+       "title": "Nốt trên dây 6, 5, 4",
+       "tool": "NOTES",
+       "visual": {
+        "type": "notes",
+        "frets": 3,
+        "strings": [
+         4,
+         5,
+         6
+        ]
+       },
+       "text": "Dây 6: E (buông) F (1) G (3). Dây 5: A (buông) B (2) C (3). Dây 4: D (buông) E (2) F (3). Quy tắc nhớ: giữa B–C và E–F chỉ cách 1 ngăn, các nốt khác cách 2 ngăn."
+      },
+      {
+       "minutes": 6,
+       "title": "Bass nằm ở đâu?",
+       "tool": "NOTES",
+       "visual": {
+        "type": "fretboard",
+        "frets": 3,
+        "dots": [
+         {
+          "s": 6,
+          "f": 0,
+          "label": "Em",
+          "root": true
+         },
+         {
+          "s": 5,
+          "f": 0,
+          "label": "Am",
+          "root": true
+         },
+         {
+          "s": 5,
+          "f": 3,
+          "label": "C",
+          "root": true
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "G",
+          "root": true
+         },
+         {
+          "s": 4,
+          "f": 0,
+          "label": "D",
+          "root": true
+         }
+        ],
+        "caption": "Mỗi chấm là nốt bass (nốt gốc) của hợp âm: Em = dây 6 buông, Am = dây 5 buông, C = dây 5 ngăn 3, G = dây 6 ngăn 3, D = dây 4 buông."
+       },
+       "text": "Nốt bass là nốt thấp nhất của hợp âm và thường trùng tên hợp âm. Gảy riêng nốt bass rồi quạt phần còn lại — tiếng đàn sẽ \"có đáy\" hơn nhiều. Chạm vào từng chấm để nghe."
+      },
+      {
+       "minutes": 6,
+       "title": "Đố nốt",
+       "tool": "QUIZ",
+       "visual": {
+        "type": "notes",
+        "frets": 3
+       },
+       "text": "10 câu trên cả 6 dây. Mục tiêu tuần này: 8/10."
+      },
+      {
+       "minutes": 4,
+       "title": "Bass rồi quạt",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "DOWN_4",
+       "text": "Mỗi hợp âm trong G–D–Em–C: phách 1 gảy riêng nốt bass, phách 2–3–4 quạt xuống.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w3s5",
+     "title": "Ôn tuần 3 & kiểm tra",
+     "goal": "Đạt các mục kiểm tra để mở tuần 4.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Hợp âm D",
+       "tool": "CHORD_CHECK",
+       "chord": "D",
+       "visual": {
+        "type": "chord",
+        "chord": "D"
+       },
+       "text": "3 lần liền đúng."
+      },
+      {
+       "minutes": 6,
+       "title": "Chuyển G ↔ D",
+       "tool": "CHANGES",
+       "chord": "G",
+       "chordB": "D",
+       "text": "Mục tiêu 20 lần."
+      },
+      {
+       "minutes": 5,
+       "title": "Đố nốt",
+       "tool": "QUIZ",
+       "text": "Mục tiêu 8/10."
+      },
+      {
+       "minutes": 6,
+       "title": "Kiểm tra: chấm nhịp 70 BPM",
+       "tool": "RHYTHM",
+       "bpm": 70,
+       "pattern": "DOWN_UP",
+       "text": "Giữ một hợp âm, quạt xuống–lên 8 ô nhịp. Đạt khi lệch trung bình ≤ 60 ms và micro nghe được ít nhất 80% cú quạt. Không đạt thì giảm còn 60, rồi thử lại 70.",
+       "visual": {
+        "type": "strum",
+        "pattern": "DUDUDUDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "number": 4,
+   "title": "Mẫu quạt Ballad, bài đầu tiên",
+   "goal": "Mẫu quạt D - D U - U D U của rất nhiều bài, và đàn trọn những bài mẫu đầu tiên (chưa cần hát).",
+   "test": [
+    {
+     "type": "changes",
+     "chord": "Em",
+     "chordB": "C",
+     "min": 20,
+     "text": "Chuyển Em ↔ C: ít nhất 20 lần trong 1 phút"
+    },
+    {
+     "type": "rhythm",
+     "pattern": "D.DU.UDU",
+     "bpm": 70,
+     "maxMs": 60,
+     "text": "Chấm nhịp: mẫu Ballad ở 70 BPM, lệch trung bình ≤ 60 ms"
+    },
+    {
+     "type": "self",
+     "text": "Chạy vòng G–D–Em–C 8 lần với mẫu Ballad ở 70 BPM không dừng nhịp"
+    },
+    {
+     "type": "self",
+     "text": "Đàn hết bài Twinkle Twinkle không dừng"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "w4s1",
+     "title": "Mẫu quạt Ballad",
+     "goal": "Thuộc mẫu D . D U . U D U trên một hợp âm.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 6,
+       "title": "Nửa đầu: D . D U",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "BALLAD",
+       "text": "Tay vẫn đi xuống–lên liên tục như tuần 3, chỉ \"trượt\" (không chạm dây) ở chỗ có dấu chấm. Tập nửa đầu ô nhịp: xuống, (trượt lên), xuống, lên.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 8,
+       "title": "Cả mẫu trên G",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "BALLAD",
+       "text": "Đọc to: \"xuống – xuống lên – lên xuống lên\". Chỗ khó là phách 3: tay đi xuống nhưng không chạm dây.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "Ballad trên Em và C",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "BALLAD",
+       "text": "Mỗi hợp âm 1 ô nhịp. Đổi hợp âm trong lúc tay trượt ở cuối ô.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w4s2",
+     "title": "Ballad với vòng hợp âm",
+     "goal": "Áp mẫu Ballad lên vòng 4 hợp âm.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Chuyển Em ↔ C",
+       "tool": "CHANGES",
+       "chord": "Em",
+       "chordB": "C",
+       "text": "Cặp còn chậm nhất trong vòng — một vòng 1 phút."
+      },
+      {
+       "minutes": 10,
+       "title": "Vòng 4 hợp âm với Ballad",
+       "tool": "SONG",
+       "song": "01_vong_4_hop_am.cho",
+       "text": "Đặt nhịp 60 BPM, dùng mẫu Ballad cho mọi ô nhịp. Lên 70 khi đã chạy được 4 vòng liền.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "Ballad 70 BPM",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "BALLAD",
+       "text": "Thử tốc độ của bài kiểm tra.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w4s3",
+     "title": "Bài Twinkle Twinkle",
+     "goal": "Đàn trọn bài với G, C, D (chưa hát).",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Chuyển G ↔ C",
+       "tool": "CHANGES",
+       "chord": "G",
+       "chordB": "C",
+       "text": "Twinkle đổi G↔C nhiều nhất."
+      },
+      {
+       "minutes": 12,
+       "title": "Twinkle, Twinkle, Little Star",
+       "tool": "SONG",
+       "song": "04_twinkle.cho",
+       "text": "Quạt xuống mỗi phách, đổi hợp âm đúng ở chữ có hợp âm. Lần đầu để cuộn chậm 0.7×. Ngân nga giai điệu trong đầu khi đàn.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D.D."
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Quạt Twinkle với Ballad",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "BALLAD",
+       "text": "Thử thay quạt xuống bằng mẫu Ballad cho bài Twinkle.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w4s4",
+     "title": "Nhịp 3/4: Happy Birthday",
+     "goal": "Biết đếm 3 phách và quạt bài 3/4.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 4,
+       "title": "Nhịp 3/4 là gì?",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D."
+       },
+       "text": "Một số bài đếm 1 2 3 thay vì 1 2 3 4 (điệu valse). Nhấn mạnh phách 1, hai phách sau nhẹ hơn: MẠNH – nhẹ – nhẹ."
+      },
+      {
+       "minutes": 10,
+       "title": "Happy Birthday",
+       "tool": "SONG",
+       "song": "05_happy_birthday.cho",
+       "text": "Bài đổi hợp âm ở chữ \"birthday\" và \"you\". Bắt đầu hát ở phách 3 (\"Happy\") trước hợp âm G.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.D.D."
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Chuyển G ↔ D",
+       "tool": "CHANGES",
+       "chord": "G",
+       "chordB": "D",
+       "text": "Một vòng giữ tay."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w4s5",
+     "title": "Ôn tuần 4 & kiểm tra",
+     "goal": "Đạt các mục kiểm tra để mở tuần 5.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Chuyển Em ↔ C",
+       "tool": "CHANGES",
+       "chord": "Em",
+       "chordB": "C",
+       "text": "Mục tiêu 20 lần."
+      },
+      {
+       "minutes": 4,
+       "title": "Kiểm tra: chấm mẫu Ballad",
+       "tool": "RHYTHM",
+       "bpm": 70,
+       "pattern": "BALLAD",
+       "text": "Chấm 8 ô nhịp mẫu Ballad ở 70 BPM. Chỗ \"·\" tay vẫn đưa nhưng không chạm dây — chạm vào đó sẽ bị tính là cú thừa.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "Kiểm tra: vòng 8 lần với Ballad",
+       "tool": "SONG",
+       "song": "01_vong_4_hop_am.cho",
+       "text": "Đặt 70 BPM, chạy 8 vòng G–D–Em–C không dừng nhịp.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "Kiểm tra: Twinkle trọn bài",
+       "tool": "SONG",
+       "song": "04_twinkle.cho",
+       "text": "Đàn hết bài không dừng — sai hợp âm cũng được, miễn tay phải không dừng."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Đã đạt thì vào thẻ Tuần 4 để đánh dấu các mục tự kiểm tra."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "number": 5,
+   "title": "Ghép hát · A và E",
+   "goal": "Vừa đàn vừa hát — kỹ năng cốt lõi của đệm hát — và thêm hai hợp âm A, E.",
+   "test": [
+    {
+     "type": "chord",
+     "chord": "A",
+     "text": "A được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "chord",
+     "chord": "E",
+     "text": "E được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "changes",
+     "chord": "D",
+     "chordB": "A",
+     "min": 20,
+     "text": "Chuyển D ↔ A: ít nhất 20 lần trong 1 phút"
+    },
+    {
+     "type": "self",
+     "text": "Vừa đàn vừa hát trọn 1 bài mẫu ở tốc độ chậm"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "w5s1",
+     "title": "Cách ghép hát",
+     "goal": "Bốn bước ghép giọng hát vào tiếng đàn.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 4,
+       "title": "Bốn bước",
+       "text": "1) Đàn trọn bài, không hát. 2) Đàn và đọc lời theo nhịp (không cần giai điệu). 3) Mỗi hợp âm chỉ quạt MỘT cú ở phách 1, rồi hát — tay chỉ cần đúng lúc đổi. 4) Quạt đủ mẫu và hát. Kẹt ở bước nào thì quay lại bước trước."
+      },
+      {
+       "minutes": 12,
+       "title": "Kumbaya — ghép hát",
+       "tool": "SONG",
+       "song": "06_kumbaya.cho",
+       "text": "Bài chậm, lời lặp lại, rất hợp để tập. Làm lần lượt 4 bước trên điệp khúc. Đổi tông ở nút Tông nếu bài cao/thấp so với giọng bạn.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Chuyển C ↔ Am",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "Am",
+       "text": "Kumbaya có Am–D; ôn Am trước."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Bước nào làm được? Không sao nếu hôm nay mới tới bước 2."
+      }
+     ]
+    },
+    {
+     "id": "w5s2",
+     "title": "Hợp âm A",
+     "goal": "Ba ngón xếp hàng ở ngăn 2.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Khởi động ngón 1-2-3-4",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "DOWN_4",
+       "text": "Đặt ngón trỏ ở ngăn 1 dây 6, gảy; thêm ngón giữa ngăn 2, gảy; áp út ngăn 3; út ngăn 4. Mỗi click một nốt, rồi chuyển sang dây 5… đến dây 1. Giữ các ngón cũ trên dây nếu được.",
+       "visual": {
+        "type": "fretboard",
+        "frets": 4,
+        "dots": [
+         {
+          "s": 6,
+          "f": 1,
+          "label": "1"
+         },
+         {
+          "s": 6,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "3"
+         },
+         {
+          "s": 6,
+          "f": 4,
+          "label": "4"
+         }
+        ],
+        "caption": "Số trên chấm là ngón tay: 1 trỏ · 2 giữa · 3 áp út · 4 út. Mỗi ngón phụ trách một ngăn."
+       }
+      },
+      {
+       "minutes": 8,
+       "title": "Hợp âm A",
+       "tool": "CHORD_CHECK",
+       "chord": "A",
+       "visual": {
+        "type": "chord",
+        "chord": "A"
+       },
+       "text": "Trỏ dây 4, giữa dây 3, áp út dây 2, cả ba ở ngăn 2 — xếp chéo cho vừa ô. Dây 1 buông phải kêu. Gảy từ dây 5 (A — bass)."
+      },
+      {
+       "minutes": 7,
+       "title": "Chuyển D ↔ A",
+       "tool": "CHANGES",
+       "chord": "D",
+       "chordB": "A",
+       "text": "Cả hai nằm quanh ngăn 2. Nhấc cả bàn tay, đặt ba ngón của A cùng lúc như đóng con dấu. Nhớ đổi chỗ gảy: D từ dây 4, A từ dây 5.",
+       "visual": {
+        "type": "chord",
+        "chord": "A"
+       }
+      },
+      {
+       "minutes": 5,
+       "title": "Quạt A – D",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "BALLAD",
+       "text": "A 1 ô – D 1 ô với mẫu Ballad.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w5s3",
+     "title": "Hợp âm E",
+     "goal": "E là Em thêm một ngón; E → Am cùng hình.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 7,
+       "title": "Hợp âm E",
+       "tool": "CHORD_CHECK",
+       "chord": "E",
+       "visual": {
+        "type": "chord",
+        "chord": "E"
+       },
+       "text": "Bấm Em rồi thêm ngón trỏ ngăn 1 dây 3 (G#). Quạt cả 6 dây, bass là dây 6 buông."
+      },
+      {
+       "minutes": 7,
+       "title": "Chuyển E ↔ Am",
+       "tool": "CHANGES",
+       "chord": "E",
+       "chordB": "Am",
+       "text": "Mẹo hay nhất tuần: hình E dời xuống một dây chính là Am — ba ngón giữ nguyên hình, chỉ trượt cả bàn tay.",
+       "visual": {
+        "type": "fretboard",
+        "frets": 3,
+        "dots": [
+         {
+          "s": 3,
+          "f": 1,
+          "label": "1"
+         },
+         {
+          "s": 5,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 4,
+          "f": 2,
+          "label": "3"
+         }
+        ],
+        "caption": "E: ngón 1 dây 3, ngón 2 dây 5, ngón 3 dây 4. Dời tất cả xuống một dây (về phía dây 1) là được Am."
+       }
+      },
+      {
+       "minutes": 5,
+       "title": "E – Am – A",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "BALLAD",
+       "text": "Mỗi hợp âm 1 ô nhịp.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w5s4",
+     "title": "Amazing Grace 3/4",
+     "goal": "Đệm hát bài 3/4 với G7.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Hợp âm G7",
+       "tool": "CHORD_CHECK",
+       "chord": "G7",
+       "visual": {
+        "type": "chord",
+        "chord": "G7"
+       },
+       "text": "Như G nhưng dây 1 hạ về ngăn 1 (ngón trỏ); hai dây bass dùng ngón áp út (dây 6) và ngón giữa (dây 5). G7 nghe như \"muốn đi tới\" C."
+      },
+      {
+       "minutes": 12,
+       "title": "Amazing Grace",
+       "tool": "SONG",
+       "song": "07_amazing_grace.cho",
+       "text": "Bài 3/4: đếm 1 2 3. Dùng 4 bước ghép hát như buổi 1. Hạ tông nếu cao quá (nút Tông −).",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DUDU"
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Chuyển G ↔ C",
+       "tool": "CHANGES",
+       "chord": "G",
+       "chordB": "C",
+       "text": "G–C xuất hiện nhiều trong bài."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w5s5",
+     "title": "Ôn tuần 5 & kiểm tra",
+     "goal": "Đạt các mục kiểm tra để mở tuần 6.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Hợp âm A",
+       "tool": "CHORD_CHECK",
+       "chord": "A",
+       "visual": {
+        "type": "chord",
+        "chord": "A"
+       },
+       "text": "3 lần liền đúng."
+      },
+      {
+       "minutes": 3,
+       "title": "Hợp âm E",
+       "tool": "CHORD_CHECK",
+       "chord": "E",
+       "visual": {
+        "type": "chord",
+        "chord": "E"
+       },
+       "text": "3 lần liền đúng."
+      },
+      {
+       "minutes": 5,
+       "title": "Chuyển D ↔ A",
+       "tool": "CHANGES",
+       "chord": "D",
+       "chordB": "A",
+       "text": "Mục tiêu 20 lần."
+      },
+      {
+       "minutes": 8,
+       "title": "Kiểm tra: đàn và hát trọn bài",
+       "tool": "SONG",
+       "song": "06_kumbaya.cho",
+       "text": "Chọn Kumbaya hoặc một bài mẫu bạn thích. Tốc độ chậm cũng được — miễn hát và đàn liền từ đầu đến cuối.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Ghi âm lần đầu",
+       "tool": "RECORD",
+       "text": "Ghi lại một lượt đàn hát, nghe lại ngay. Đừng ngại — ai nghe giọng mình lần đầu cũng thấy lạ. Chấm thử 5 tiêu chí để biết tuần sau tập gì."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "number": 6,
+   "title": "Dm, F rút gọn, Bm7 · capo & tông",
+   "goal": "Ba hợp âm mở rộng, và biết dùng capo + chuyển tông để bài vừa với giọng mà vẫn bấm thế dễ.",
+   "test": [
+    {
+     "type": "chord",
+     "chord": "Dm",
+     "text": "Dm được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "chord",
+     "chord": "F",
+     "text": "F (rút gọn) được micro chấm đúng 3 lần liền"
+    },
+    {
+     "type": "changes",
+     "chord": "C",
+     "chordB": "F",
+     "min": 15,
+     "text": "Chuyển C ↔ F: ít nhất 15 lần trong 1 phút"
+    },
+    {
+     "type": "self",
+     "text": "Tìm được tông hợp giọng cho 1 bài bằng nút Tông và capo"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "w6s1",
+     "title": "Hợp âm Dm",
+     "goal": "Dm và cặp Dm ↔ Am.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Khởi động ngón 1-2-3-4",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "DOWN_4",
+       "text": "Đặt ngón trỏ ở ngăn 1 dây 6, gảy; thêm ngón giữa ngăn 2, gảy; áp út ngăn 3; út ngăn 4. Mỗi click một nốt, rồi chuyển sang dây 5… đến dây 1. Giữ các ngón cũ trên dây nếu được.",
+       "visual": {
+        "type": "fretboard",
+        "frets": 4,
+        "dots": [
+         {
+          "s": 6,
+          "f": 1,
+          "label": "1"
+         },
+         {
+          "s": 6,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "3"
+         },
+         {
+          "s": 6,
+          "f": 4,
+          "label": "4"
+         }
+        ],
+        "caption": "Số trên chấm là ngón tay: 1 trỏ · 2 giữa · 3 áp út · 4 út. Mỗi ngón phụ trách một ngăn."
+       }
+      },
+      {
+       "minutes": 8,
+       "title": "Hợp âm Dm",
+       "tool": "CHORD_CHECK",
+       "chord": "Dm",
+       "visual": {
+        "type": "chord",
+        "chord": "Dm"
+       },
+       "text": "Giữa ngăn 2 dây 3, áp út ngăn 3 dây 2, trỏ ngăn 1 dây 1. Gảy từ dây 4. So với D: chỉ dây 1 đổi từ ngăn 2 xuống ngăn 1 — nghe buồn hơn hẳn (thứ)."
+      },
+      {
+       "minutes": 7,
+       "title": "Chuyển Dm ↔ Am",
+       "tool": "CHANGES",
+       "chord": "Dm",
+       "chordB": "Am",
+       "text": "Hai hợp âm thứ hay đi cùng nhau trong nhạc Việt.",
+       "visual": {
+        "type": "chord",
+        "chord": "Dm"
+       }
+      },
+      {
+       "minutes": 5,
+       "title": "Am – Dm – E",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "BALLAD",
+       "text": "Vòng thứ cổ điển: Am 1 ô, Dm 1 ô, E 1 ô, Am 1 ô.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w6s2",
+     "title": "F rút gọn",
+     "goal": "Chặn 2 dây bằng ngón trỏ — bước đầu của hợp âm chặn.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Ngón trỏ đè 2 dây",
+       "visual": {
+        "type": "press"
+       },
+       "text": "Ngón trỏ nằm phẳng, đè cả dây 1 và dây 2 ở ngăn 1, sát thanh phím. Lăn ngón hơi nghiêng về phía cạnh xương (phía ngón cái) — cạnh cứng hơn bụng ngón nên ít rè. Gảy từng dây để kiểm tra."
+      },
+      {
+       "minutes": 7,
+       "title": "Hợp âm F",
+       "tool": "CHORD_CHECK",
+       "chord": "F",
+       "visual": {
+        "type": "chord",
+        "chord": "F"
+       },
+       "text": "Thêm giữa ngăn 2 dây 3 và áp út ngăn 3 dây 4. Chỉ gảy 4 dây mỏng, bass F ở dây 4."
+      },
+      {
+       "minutes": 6,
+       "title": "Chuyển C ↔ F",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "F",
+       "text": "Ngón áp út và ngón giữa của C cùng dời sang một dây về phía dây mỏng (vẫn ngăn 3 và 2); ngón trỏ duỗi phẳng đè 2 dây ở ngăn 1.",
+       "visual": {
+        "type": "chord",
+        "chord": "F"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Đau đầu ngón trỏ là bình thường — F cần vài tuần mới sạch."
+      }
+     ]
+    },
+    {
+     "id": "w6s3",
+     "title": "Bm7 và vòng Đô",
+     "goal": "Bm7 thay cho Bm chặn; vòng C–Am–Dm–G.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 6,
+       "title": "Hợp âm Bm7",
+       "tool": "CHORD_CHECK",
+       "chord": "Bm7",
+       "visual": {
+        "type": "chord",
+        "chord": "Bm7"
+       },
+       "text": "Ngón trỏ đè ngăn 2 từ dây 5 tới dây 1, giữa ngăn 3 dây 2, áp út ngăn 4 dây 4. Gảy từ dây 5. Bm7 dùng tạm ở mọi chỗ ghi Bm cho tới khi bạn học hợp âm chặn."
+      },
+      {
+       "minutes": 5,
+       "title": "Chuyển G ↔ Bm7",
+       "tool": "CHANGES",
+       "chord": "G",
+       "chordB": "Bm7",
+       "text": "Hay gặp trong vòng G–Bm–C–D.",
+       "visual": {
+        "type": "chord",
+        "chord": "Bm7"
+       }
+      },
+      {
+       "minutes": 10,
+       "title": "Vòng Đô",
+       "tool": "SONG",
+       "song": "02_vong_slow_C.cho",
+       "text": "C–Am–Dm–G — vòng của rất nhiều bài Việt. 60 BPM, mẫu Ballad.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w6s4",
+     "title": "Capo và chọn tông",
+     "goal": "Hiểu capo; tìm tông hợp giọng.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Capo làm gì?",
+       "visual": {
+        "type": "capo",
+        "capo": 2
+       },
+       "text": "Capo kẹp ngang cần đàn, thay cho đầu đàn. Capo ngăn 2 + thế G → nghe ra tông A. Bạn vẫn bấm hình quen thuộc, chỉ là cao hơn. Trong màn bài hát, hợp âm hiển thị luôn là THẾ BẤM."
+      },
+      {
+       "minutes": 5,
+       "title": "Tìm tông hợp giọng",
+       "text": "Hát câu cao nhất của bài (thường ở điệp khúc). Căng giọng → bấm Tông − ; thấy trầm, hụt hơi → Tông +. Khi đã vừa giọng, nếu hợp âm khó app sẽ gợi ý \"Dễ hơn: capo X\" — bấm Dùng."
+      },
+      {
+       "minutes": 10,
+       "title": "Thử với Kumbaya",
+       "tool": "SONG",
+       "song": "06_kumbaya.cho",
+       "text": "Đổi tông lên/xuống vài nấc, mỗi lần hát thử điệp khúc. Chọn tông thoải mái nhất, rồi để app gợi ý capo."
+      },
+      {
+       "minutes": 3,
+       "title": "Chuyển C ↔ F",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "F",
+       "text": "Một vòng giữ F."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w6s5",
+     "title": "Ôn tuần 6 & kiểm tra",
+     "goal": "Đạt các mục kiểm tra để mở tuần 7.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 3,
+       "title": "Hợp âm Dm",
+       "tool": "CHORD_CHECK",
+       "chord": "Dm",
+       "visual": {
+        "type": "chord",
+        "chord": "Dm"
+       },
+       "text": "3 lần liền đúng."
+      },
+      {
+       "minutes": 4,
+       "title": "Hợp âm F",
+       "tool": "CHORD_CHECK",
+       "chord": "F",
+       "visual": {
+        "type": "chord",
+        "chord": "F"
+       },
+       "text": "3 lần liền đúng — chỉ gảy 4 dây mỏng."
+      },
+      {
+       "minutes": 6,
+       "title": "Chuyển C ↔ F",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "F",
+       "text": "Mục tiêu 15 lần."
+      },
+      {
+       "minutes": 7,
+       "title": "Vòng Đô trọn vẹn",
+       "tool": "SONG",
+       "song": "02_vong_slow_C.cho",
+       "text": "4 vòng liền, 60 BPM.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "number": 7,
+   "title": "Bass – quạt, nhấn phách, intro/outro",
+   "goal": "Đệm điệu Slow/Ballad kiểu bass–quạt, nhấn đúng phách, và biết mở đầu/kết thúc bài cho trọn vẹn.",
+   "test": [
+    {
+     "type": "quiz",
+     "min": 9,
+     "text": "Đố nốt: đúng ít nhất 9/10"
+    },
+    {
+     "type": "self",
+     "text": "Gảy đúng nốt bass của C, G, Am, D, Em mà không nhìn hình"
+    },
+    {
+     "type": "self",
+     "text": "Đàn vòng Đô với kiểu bass–quạt 4 vòng liền"
+    },
+    {
+     "type": "self",
+     "text": "Có intro và outro cho 1 bài mẫu"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "w7s1",
+     "title": "Bass – quạt",
+     "goal": "Mẫu B . D U . U D U: thay cú quạt đầu bằng nốt bass.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Ôn nốt bass",
+       "tool": "QUIZ",
+       "visual": {
+        "type": "fretboard",
+        "frets": 3,
+        "dots": [
+         {
+          "s": 6,
+          "f": 0,
+          "label": "Em",
+          "root": true
+         },
+         {
+          "s": 5,
+          "f": 0,
+          "label": "Am",
+          "root": true
+         },
+         {
+          "s": 5,
+          "f": 3,
+          "label": "C",
+          "root": true
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "G",
+          "root": true
+         },
+         {
+          "s": 4,
+          "f": 0,
+          "label": "D",
+          "root": true
+         }
+        ]
+       },
+       "text": "Chạm từng chấm để nghe nốt bass của 5 hợp âm. Sau đó làm một lượt đố nốt."
+      },
+      {
+       "minutes": 8,
+       "title": "Mẫu bass – quạt",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "BALLAD",
+       "visual": {
+        "type": "strum",
+        "pattern": "B.DU.UDU"
+       },
+       "text": "Giống mẫu Ballad, nhưng ở phách 1 dùng phím gảy (hoặc ngón cái) gảy riêng nốt bass của hợp âm, rồi quạt phần còn lại. Bắt đầu với C (bass dây 5) và G (bass dây 6)."
+      },
+      {
+       "minutes": 8,
+       "title": "Vòng Đô bass – quạt",
+       "tool": "SONG",
+       "song": "02_vong_slow_C.cho",
+       "text": "Am bass dây 5 buông, Dm bass dây 4 buông.",
+       "visual": {
+        "type": "strum",
+        "pattern": "B.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w7s2",
+     "title": "Bass luân phiên",
+     "goal": "Bass 1 – bass 2 cho mỗi hợp âm.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 6,
+       "title": "Hai nốt bass của C và G",
+       "tool": "NOTES",
+       "visual": {
+        "type": "fretboard",
+        "frets": 3,
+        "dots": [
+         {
+          "s": 5,
+          "f": 3,
+          "label": "1",
+          "root": true
+         },
+         {
+          "s": 4,
+          "f": 2,
+          "label": "2"
+         },
+         {
+          "s": 6,
+          "f": 3,
+          "label": "1",
+          "root": true
+         },
+         {
+          "s": 4,
+          "f": 0,
+          "label": "2"
+         }
+        ],
+        "caption": "C: bass 1 = dây 5 ngăn 3 (C), bass 2 = dây 4 ngăn 2 (E). G: bass 1 = dây 6 ngăn 3 (G), bass 2 = dây 4 buông (D)."
+       },
+       "text": "Điệu Slow hay dùng hai nốt bass: phách 1 gảy bass chính, phách 3 gảy bass phụ ở dây gần đó. Không cần đổi thế tay trái — các nốt đó đã nằm trong hình hợp âm."
+      },
+      {
+       "minutes": 8,
+       "title": "B . D U B U D U",
+       "tool": "METRONOME",
+       "bpm": 60,
+       "pattern": "BALLAD",
+       "text": "Phách 1 bass 1, phách 3 bass 2, các chỗ khác quạt nhẹ. Tập trên C rồi G, sau đó chuyển C–G.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 4,
+       "title": "Chuyển C ↔ G",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "G",
+       "text": "Một vòng giữ tay."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w7s3",
+     "title": "Nhấn phách",
+     "goal": "Làm tiếng đàn có sức sống: nhấn và tắt tiếng.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 6,
+       "title": "Nhấn phách 2 và 4",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "DOWN_UP",
+       "text": "Trong DU đều, quạt mạnh hơn ở phách 2 và 4 — kiểu nhạc pop, nghe \"nảy\" hơn hẳn.",
+       "visual": {
+        "type": "strum",
+        "pattern": "DUDUDUDU"
+       }
+      },
+      {
+       "minutes": 6,
+       "title": "Chặn tiếng (chách)",
+       "tool": "METRONOME",
+       "bpm": 70,
+       "pattern": "BALLAD",
+       "text": "Ở phách 3, áp lòng bàn tay phải lên dây ngay sau khi quạt để tiếng tắt \"chách\". Đây là kiểu đệm Slow Rock/ Pop rất hay gặp.",
+       "visual": {
+        "type": "strum",
+        "pattern": "D.DU.UDU"
+       }
+      },
+      {
+       "minutes": 8,
+       "title": "Auld Lang Syne",
+       "tool": "SONG",
+       "song": "08_auld_lang_syne.cho",
+       "text": "Áp dụng nhấn phách hoặc bass–quạt cho bài này.",
+       "visual": {
+        "type": "strum",
+        "pattern": "B.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w7s4",
+     "title": "Intro và outro",
+     "goal": "Mở đầu và kết bài cho trọn vẹn.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Intro đơn giản",
+       "text": "Cách dễ nhất: đàn một vòng hợp âm của câu đầu (hoặc 2 ô nhịp cuối bài) trước khi hát. Đếm to \"1 2 3 4\" trong đầu để vào đúng phách — người nghe cũng biết nhịp."
+      },
+      {
+       "minutes": 5,
+       "title": "Outro đơn giản",
+       "text": "Kết bằng hợp âm chủ (thường là hợp âm đầu tiên của bài): quạt chậm dần, rồi một cú quạt xuống ngân dài. Có thể rải từng dây từ thấp lên cao thay cho cú quạt cuối."
+      },
+      {
+       "minutes": 10,
+       "title": "Đệm trọn bài có intro/outro",
+       "tool": "SONG",
+       "song": "06_kumbaya.cho",
+       "text": "Intro: 2 ô G–C. Kết: G quạt chậm, ngân.",
+       "visual": {
+        "type": "strum",
+        "pattern": "B.DU.UDU"
+       }
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w7s5",
+     "title": "Ôn tuần 7 & kiểm tra",
+     "goal": "Đạt các mục kiểm tra để mở tuần 8.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Đố nốt",
+       "tool": "QUIZ",
+       "text": "Mục tiêu 9/10."
+      },
+      {
+       "minutes": 8,
+       "title": "Kiểm tra: vòng Đô bass – quạt",
+       "tool": "SONG",
+       "song": "02_vong_slow_C.cho",
+       "text": "4 vòng liền.",
+       "visual": {
+        "type": "strum",
+        "pattern": "B.DU.UDU"
+       }
+      },
+      {
+       "minutes": 7,
+       "title": "Kiểm tra: intro + outro",
+       "tool": "SONG",
+       "song": "08_auld_lang_syne.cho",
+       "text": "Một bài mẫu có mở đầu và kết."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "number": 8,
+   "title": "Bài của chính bạn",
+   "goal": "Chọn một bài bạn thích, nhập vào app, tập từng đoạn và đệm hát trọn bài.",
+   "test": [
+    {
+     "type": "self",
+     "text": "Đã nhập 1 bài của bạn vào tab Bài hát"
+    },
+    {
+     "type": "self",
+     "text": "Đệm hát trọn bài đó không dừng nhịp"
+    },
+    {
+     "type": "rubric",
+     "min": 2,
+     "text": "Một bản ghi tự chấm \"ổn\" trở lên ở cả 5 tiêu chí: nhịp đều · âm sạch · đổi hợp âm kịp · giọng hợp tông · liền mạch"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "w8s1",
+     "title": "Chọn và nhập bài",
+     "goal": "Một bài ≤ 5 hợp âm, tốc độ vừa phải.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 5,
+       "title": "Chọn bài",
+       "text": "Chọn bài bạn thuộc lời, chậm hoặc vừa, ít hợp âm (lý tưởng: các hợp âm bạn đã học). Tìm lời có hợp âm trên mạng — dạng [Am] trong lời hoặc dòng hợp âm trên dòng lời đều được."
+      },
+      {
+       "minutes": 10,
+       "title": "Nhập bài",
+       "tool": "SONG",
+       "text": "Vào tab Bài hát → Thêm bài, dán lời có hợp âm. Kiểm tra dòng \"Đọc được … hợp âm\". Mở bài, chỉnh Tông cho hợp giọng, dùng gợi ý capo nếu có hợp âm chặn."
+      },
+      {
+       "minutes": 5,
+       "title": "Xem các hợp âm của bài",
+       "text": "Dải sơ đồ ở đầu bài cho biết bài cần những thế nào. Chạm vào từng hợp âm để xem cách bấm. Hợp âm nào mới thì luyện riêng bằng Kiểm tra hợp âm."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w8s2",
+     "title": "Tập từng đoạn",
+     "goal": "Tách bài thành đoạn, mỗi đoạn chạy được mới ghép.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 8,
+       "title": "Đoạn 1 (lời 1)",
+       "tool": "SONG",
+       "text": "Chỉ đàn đoạn đầu, chậm (tự cuộn 0.6×), không hát. Lặp tới khi đổi hợp âm kịp."
+      },
+      {
+       "minutes": 8,
+       "title": "Điệp khúc",
+       "tool": "SONG",
+       "text": "Tương tự với điệp khúc. Điệp khúc thường cao hơn — thử hát nhẩm để kiểm tra tông."
+      },
+      {
+       "minutes": 4,
+       "title": "Ghép hai đoạn",
+       "tool": "SONG",
+       "text": "Đàn liền lời 1 → điệp khúc."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w8s3",
+     "title": "Chỗ đổi hợp âm khó",
+     "goal": "Luyện riêng cặp hợp âm khó nhất của bài.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 10,
+       "title": "Chuyển hợp âm 1 phút",
+       "tool": "CHANGES",
+       "chord": "C",
+       "chordB": "G",
+       "text": "Chọn ở trên màn hình đúng cặp hợp âm bạn hay chậm nhất trong bài. Ba vòng 1 phút, ghi kỷ lục."
+      },
+      {
+       "minutes": 8,
+       "title": "Đoạn có chỗ khó",
+       "tool": "SONG",
+       "text": "Quay lại bài, đàn đoạn chứa cặp đó. Mẹo: ở ô nhịp trước khi đổi, quạt nhẹ cú cuối để có thời gian chuyển."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w8s4",
+     "title": "Ghép hát cả bài",
+     "goal": "Đàn và hát trọn bài ở tốc độ chậm.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 6,
+       "title": "Bốn bước ghép hát",
+       "tool": "SONG",
+       "text": "Nhắc lại: đàn → đọc lời → 1 cú quạt mỗi hợp âm + hát → quạt đủ + hát."
+      },
+      {
+       "minutes": 12,
+       "title": "Đệm hát trọn bài",
+       "tool": "SONG",
+       "text": "Bật tự cuộn ở tốc độ bạn đã chạy được, thêm intro và outro như tuần 7."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Buổi hôm nay chỗ nào khó nhất? Ghi nhớ để buổi sau tập chậm lại đúng chỗ đó."
+      }
+     ]
+    },
+    {
+     "id": "w8s5",
+     "title": "Tổng duyệt",
+     "goal": "Đệm hát trọn bài và tự chấm 5 tiêu chí.",
+     "steps": [
+      {
+       "minutes": 3,
+       "title": "Lên dây",
+       "tool": "TUNER",
+       "visual": {
+        "type": "strings"
+       },
+       "text": "Gảy từng dây buông, vặn khoá đến khi kim vào giữa và chuyển xanh. Luôn lên dây từ thấp lên (vặn chùng rồi căng dần tới nốt) để dây giữ tông lâu hơn."
+      },
+      {
+       "minutes": 4,
+       "title": "Năm tiêu chí",
+       "text": "Nhịp đều (không dừng tay phải) · Âm sạch (không rè/câm) · Đổi hợp âm kịp · Giọng hợp tông · Liền mạch từ intro tới outro."
+      },
+      {
+       "minutes": 6,
+       "title": "Chạy thử",
+       "tool": "SONG",
+       "text": "Đàn hát một lượt để làm nóng — chưa ghi."
+      },
+      {
+       "minutes": 8,
+       "title": "Biểu diễn & ghi âm",
+       "tool": "RECORD",
+       "text": "Đặt điện thoại cách đàn khoảng 1 m, bấm ghi, đàn hát trọn bài có intro và outro. Nghe lại, chấm 5 tiêu chí (Chưa / Ổn / Tốt). Chưa ổn tiêu chí nào thì tập riêng chỗ đó rồi ghi lại."
+      },
+      {
+       "minutes": 2,
+       "title": "Tự đánh giá",
+       "text": "Chúc mừng — bạn đã đệm hát được một bài! Mở tab Tiến độ để nhìn lại 8 tuần."
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

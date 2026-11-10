@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.pytest_cache/
+# chứa api_key và link xoá ảnh — không commit
+config.toml
+data/

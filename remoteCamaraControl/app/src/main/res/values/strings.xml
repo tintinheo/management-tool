@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">RemoteCam</string>
+    <string name="channel_remote">Điều khiển từ xa</string>
+    <string name="notification_text">Đang nhận lệnh từ nút nhạc của Galaxy Fit 3</string>
+    <string name="action_stop">Tắt</string>
+</resources>

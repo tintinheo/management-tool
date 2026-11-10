@@ -1,0 +1,4 @@
+pillow>=11
+aiohttp>=3.10
+# tuỳ chọn: đọc ảnh HEIC/HEIF từ iPhone để tạo thumbnail
+# pillow-heif

@@ -1,0 +1,45 @@
+# Copy file này thành config.toml rồi điền thông tin.
+
+# API key: đăng nhập postimages.org rồi mở https://postimages.org/login/api
+# (có thể đặt bằng biến môi trường POSTIMAGE_API_KEY thay vì ghi ở đây)
+api_key = ""
+
+# Gallery mặc định: tạo trên web tại https://postimg.cc/files,
+# rồi lấy phần ID trong link https://postimg.cc/gallery/<ID>
+gallery = ""
+
+# Các thư mục ảnh cần sync (có thể là thư mục OneDrive).
+# Đường dẫn Windows: dùng ngoặc đơn '...' (giữ nguyên dấu \) hoặc dấu / trong ngoặc kép.
+folders = [
+  'C:\Users\you\OneDrive\Pictures',
+]
+
+# Sau khi upload thành công, file gốc được đưa vào backup_dir (giữ cấu trúc thư mục con).
+#   after_upload = "move": chuyển hẳn ra khỏi thư mục nguồn (xoá khỏi OneDrive, giải phóng dung lượng)
+#   after_upload = "copy": giữ file gốc, thêm bản sao
+# Bỏ trống backup_dir để không backup.
+backup_dir = 'D:\backup'
+after_upload = "move"
+
+# Nơi lưu chỉ mục SQLite, nhật ký upload (uploads.jsonl) và thumbnail
+data_dir = "data"
+
+# Cổng của gallery (chỉ mở trên 127.0.0.1)
+port = 8765
+
+# Giới hạn của gói Free: 1.000 lượt API/tháng, 32 MB/file (Premium: 10.000 lượt, 96 MB)
+monthly_limit = 1000
+max_file_mb = 32
+
+# Mỗi lần sync upload tối đa bấy nhiêu ảnh rồi dừng (0 = không giới hạn).
+# Áp dụng cho lệnh sync, mỗi vòng --watch và nút Sync trong gallery; --limit N ghi đè.
+batch_limit = 500
+
+# Nghỉ giữa 2 lần upload (giây)
+upload_delay = 1.0
+
+# Tuỳ chọn: đưa từng thư mục con vào gallery riêng (khớp tiền tố dài nhất).
+# Đường dẫn bắt đầu bằng TÊN thư mục gốc trong `folders`.
+# [galleries]
+# "Photos/2024" = "AbCdEf1"
+# "Photos/Gia đình" = "XyZ9876"

@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Vault</title>
+<style>
+  :root {
+    --bg: #f7f5f0; --panel: #fffdf8; --ink: #23221f; --muted: #7a766d; --line: #e6e1d6;
+    --accent: #a8844a; --danger: #b4483b; --sel: #efe7d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161513; --panel: #1e1c19; --ink: #ece8df; --muted: #9a958a; --line: #2f2c27;
+            --accent: #c9a464; --danger: #e07a6c; --sel: #2c2821; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  header { position: sticky; top: 0; z-index: 5; display: flex; gap: 12px; align-items: center;
+           padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  h1 { font: 600 20px/1 Georgia, "Times New Roman", serif; margin: 0 12px 0 0; letter-spacing: .3px; }
+  h1 span { color: var(--accent); }
+  input[type=search] { flex: 1; max-width: 420px; padding: 8px 12px; border: 1px solid var(--line);
+                       border-radius: 8px; background: var(--bg); color: var(--ink); }
+  button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+           color: var(--ink); cursor: pointer; font: inherit; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { color: var(--danger); }
+  #stat { color: var(--muted); margin-left: auto; white-space: nowrap; }
+  main { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 58px); }
+  nav { border-right: 1px solid var(--line); padding: 12px 8px; overflow: auto; max-height: calc(100vh - 58px);
+        position: sticky; top: 58px; }
+  nav a { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; border-radius: 6px;
+          color: inherit; text-decoration: none; overflow: hidden; }
+  nav a span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  nav a small { color: var(--muted); }
+  nav a.on { background: var(--sel); color: var(--accent); }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; padding: 16px;
+          align-content: start; }
+  .tile { aspect-ratio: 1; background: var(--line); border-radius: 6px; overflow: hidden; cursor: zoom-in; position: relative; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
+  .tile:hover img { transform: scale(1.03); }
+  .tile .cap { position: absolute; inset: auto 0 0 0; padding: 18px 8px 6px; font-size: 12px; color: #fff;
+               background: linear-gradient(transparent, rgba(0,0,0,.6)); opacity: 0; transition: opacity .2s;
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile:hover .cap { opacity: 1; }
+  #empty { color: var(--muted); padding: 40px; text-align: center; grid-column: 1 / -1; }
+  #more { height: 1px; }
+  #lb { position: fixed; inset: 0; z-index: 10; background: rgba(10,10,10,.94); display: none;
+        grid-template-columns: 1fr 300px; }
+  #lb.open { display: grid; }
+  #lb .stage { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #lb .stage img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+  #lb .nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.08);
+             border: 0; color: #fff; font-size: 26px; width: 48px; height: 64px; }
+  #lb .prev { left: 8px; } #lb .next { right: 8px; }
+  #lb .loading { position: absolute; color: #aaa; }
+  #lb aside { background: var(--panel); padding: 20px; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+  #lb aside h2 { font: 600 16px Georgia, serif; margin: 0; word-break: break-word; }
+  #lb dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+  #lb dt { color: var(--muted); } #lb dd { margin: 0; word-break: break-word; }
+  #lb .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  #lb .links { display: grid; gap: 6px; }
+  #lb .links label { color: var(--muted); font-size: 12px; }
+  #lb .links div { display: flex; gap: 6px; }
+  #lb .links input { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+                     background: var(--bg); color: var(--ink); font: 12px ui-monospace, Consolas, monospace; }
+  #lb .links button { padding: 4px 10px; font-size: 12px; }
+  #log { position: fixed; right: 16px; bottom: 16px; width: 420px; max-height: 40vh; overflow: auto; display: none;
+         background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+         font: 12px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; z-index: 8; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } nav { display: none; }
+                              #lb { grid-template-columns: 1fr; } #lb aside { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Photo <span>Vault</span></h1>
+  <input type="search" id="q" placeholder="Tìm theo tên / đường dẫn…">
+  <span id="stat"></span>
+  <button id="syncBtn" class="primary">Sync</button>
+</header>
+<main>
+  <nav id="albums"></nav>
+  <section>
+    <div id="grid"></div>
+    <div id="more"></div>
+  </section>
+</main>
+<div id="lb">
+  <div class="stage">
+    <span class="loading">Đang tải…</span>
+    <img id="lbImg" alt="">
+    <button class="nav prev" title="Trước (←)">‹</button>
+    <button class="nav next" title="Sau (→)">›</button>
+  </div>
+  <aside>
+    <h2 id="lbTitle"></h2>
+    <dl id="lbMeta"></dl>
+    <div class="links" id="lbLinks"></div>
+    <div class="actions">
+      <a id="lbPage" target="_blank" rel="noopener"><button>Mở trên Postimages</button></a>
+      <a id="lbDl"><button>Tải file gốc</button></a>
+      <button id="lbDel" class="danger">Xoá…</button>
+      <button id="lbClose">Đóng (Esc)</button>
+    </div>
+  </aside>
+</div>
+<div id="log"></div>
+<script>
+const $ = s => document.querySelector(s);
+const PAGE = 120;
+let state = { album: "", q: "", items: [], done: false, loading: false, idx: -1 };
+
+const fmtBytes = n => n == null ? "—" : n < 1024 ? n + " B" : n < 1048576 ? (n/1024).toFixed(0) + " KB"
+  : n < 1073741824 ? (n/1048576).toFixed(1) + " MB" : (n/1073741824).toFixed(2) + " GB";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(await r.text() || r.statusText);
+  return r.json();
+}
+
+async function loadAlbums() {
+  const albums = await api("/api/albums");
+  const total = albums.reduce((s, a) => s + a.count, 0);
+  // Build a tree: every parent folder gets a node whose count includes its sub-albums.
+  const counts = new Map();
+  for (const a of albums) {
+    const parts = a.album.split("/");
+    for (let i = 1; i <= parts.length; i++) {
+      const key = parts.slice(0, i).join("/");
+      counts.set(key, (counts.get(key) || 0) + a.count);
+    }
+  }
+  const cmp = (x, y) => { const a = x.split("/"), b = y.split("/");
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      const c = a[i].localeCompare(b[i], "vi", { numeric: true }); if (c) return c; }
+    return a.length - b.length; };
+  const rows = [{ album: "", count: total, label: "Tất cả ảnh", depth: 0 }]
+    .concat([...counts.keys()].sort(cmp).map(k => { const parts = k.split("/");
+      return { album: k, count: counts.get(k), label: parts[parts.length - 1] || "(gốc)", depth: parts.length }; }));
+  $("#albums").innerHTML = rows.map(a =>
+    `<a href="#" data-album="${esc(a.album)}" class="${a.album === state.album ? "on" : ""}"
+        style="padding-left:${10 + a.depth * 14}px" title="${esc(a.album)}">
+       <span>${esc(a.label)}</span><small>${a.count}</small></a>`).join("");
+}
+
+function reset() {
+  state.items = []; state.done = false;
+  $("#grid").innerHTML = "";
+  loadMore();
+}
+
+async function loadMore() {
+  if (state.loading || state.done) return;
+  state.loading = true;
+  const params = new URLSearchParams({ album: state.album, q: state.q, offset: state.items.length, limit: PAGE });
+  try {
+    const batch = await api("/api/images?" + params);
+    const start = state.items.length;
+    state.items.push(...batch);
+    if (batch.length < PAGE) state.done = true;
+    $("#grid").insertAdjacentHTML("beforeend", batch.map((it, i) =>
+      `<div class="tile" data-i="${start + i}"><img loading="lazy" src="/thumb/${it.id}" alt="">
+         <div class="cap">${esc(it.filename)}</div></div>`).join(""));
+    if (!state.items.length) $("#grid").innerHTML = `<div id="empty">Chưa có ảnh nào. Bấm <b>Sync</b> để upload.</div>`;
+  } finally { state.loading = false; }
+}
+
+new IntersectionObserver(e => { if (e[0].isIntersecting) loadMore(); }, { rootMargin: "800px" }).observe($("#more"));
+
+$("#albums").addEventListener("click", e => {
+  const a = e.target.closest("a"); if (!a) return;
+  e.preventDefault();
+  state.album = a.dataset.album;
+  document.querySelectorAll("#albums a").forEach(x => x.classList.toggle("on", x === a));
+  reset();
+});
+
+let qTimer;
+$("#q").addEventListener("input", e => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value.trim(); reset(); }, 250); });
+
+$("#grid").addEventListener("click", e => { const t = e.target.closest(".tile"); if (t) openLb(+t.dataset.i); });
+
+function openLb(i) {
+  if (i < 0 || i >= state.items.length) return;
+  state.idx = i;
+  const it = state.items[i];
+  $("#lb").classList.add("open");
+  const img = $("#lbImg");
+  img.style.visibility = "hidden";
+  img.onload = () => { img.style.visibility = "visible"; $(".loading").textContent = ""; };
+  // Show the hosted copy; if Postimages can't serve it, fall back to the file on disk.
+  img.onerror = () => {
+    if (it.has_local && !img.src.includes("/local/")) { img.src = `/local/${it.id}`; return; }
+    $(".loading").textContent = "Không tải được ảnh (có thể đã bị xoá trên Postimages).";
+  };
+  $(".loading").textContent = "Đang tải…";
+  img.src = it.hotlink;
+  $("#lbTitle").textContent = it.filename;
+  $("#lbMeta").innerHTML = [
+    ["Album", it.album || "(gốc)"], ["Đường dẫn", it.rel_path],
+    ["Kích thước", it.width ? `${it.width} × ${it.height}` : "—"], ["Dung lượng", fmtBytes(it.size)],
+    ["Ngày chụp", it.taken_at || "—"], ["Upload", it.uploaded_at || "—"],
+    ["File trên máy", it.has_local ? "còn" : "không còn"],
+    ["Backup", it.backup_path || "—"],
+  ].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+  const links = [
+    ["Link trực tiếp", it.hotlink],
+    ["Trang ảnh", it.page_url],
+    ["Markdown", `[![${it.filename}](${it.hotlink})](${it.page_url})`],
+    ["BBCode (forum)", `[url=${it.page_url}][img]${it.hotlink}[/img][/url]`],
+    ["HTML", `<a href="${it.page_url}"><img src="${it.hotlink}" alt="${esc(it.filename)}"></a>`],
+  ];
+  $("#lbLinks").innerHTML = links.map(([k, v], n) =>
+    `<label>${k}</label><div><input readonly value="${esc(v)}"><button data-copy="${n}">Copy</button></div>`).join("");
+  $("#lbLinks").onclick = async e => {
+    const b = e.target.closest("button[data-copy]"); if (!b) return;
+    await navigator.clipboard.writeText(links[+b.dataset.copy][1]);
+    b.textContent = "✓"; setTimeout(() => b.textContent = "Copy", 1200);
+  };
+  $("#lbPage").href = it.page_url;
+  $("#lbDl").href = `/local/${it.id}?download=1`;
+  $("#lbDl").style.display = it.has_local ? "" : "none";
+  if (i >= state.items.length - 5) loadMore();
+}
+function closeLb() { $("#lb").classList.remove("open"); $("#lbImg").removeAttribute("src"); state.idx = -1; }
+
+$(".prev").onclick = () => openLb(state.idx - 1);
+$(".next").onclick = () => openLb(state.idx + 1);
+$("#lbClose").onclick = closeLb;
+document.addEventListener("keydown", e => {
+  if (state.idx < 0) return;
+  if (e.key === "Escape") closeLb();
+  else if (e.key === "ArrowLeft") openLb(state.idx - 1);
+  else if (e.key === "ArrowRight") openLb(state.idx + 1);
+});
+
+$("#lbDel").onclick = async () => {
+  const it = state.items[state.idx];
+  // Postimages has no delete API: deletion happens on its own delete page, then we record it here.
+  if (it.delete_url) window.open(it.delete_url, "_blank", "noopener");
+  const msg = it.delete_url
+    ? `Đã mở trang xoá của Postimages trong tab mới.\nBấm OK SAU KHI đã xoá xong "${it.filename}" ở tab đó để gỡ khỏi gallery.`
+    : `Không có link xoá cho "${it.filename}". Gỡ khỏi gallery (ảnh vẫn còn trên Postimages)?`;
+  if (!confirm(msg + "\n\nFile trên máy không bị xoá, và sẽ không được upload lại.")) return;
+  await api(`/api/images/${it.id}/deleted`, { method: "POST" });
+  state.items.splice(state.idx, 1);
+  document.querySelector(`.tile[data-i="${state.idx}"]`)?.remove();
+  document.querySelectorAll(".tile").forEach((t, n) => t.dataset.i = n);
+  if (state.items.length) openLb(Math.min(state.idx, state.items.length - 1)); else closeLb();
+  loadAlbums(); refreshStatus();
+};
+
+let wasRunning = false;
+async function refreshStatus() {
+  const s = await api("/api/status");
+  $("#stat").textContent = `${s.counts.ok} ảnh · ${fmtBytes(s.counts.bytes)} · tháng này ${s.month_used}/${s.month_limit} lượt`;
+  $("#stat").title = s.last ? `Lần sync trước: ${s.last}` : "";
+  $("#syncBtn").disabled = s.running;
+  $("#syncBtn").textContent = s.running ? "Đang sync…" : "Sync";
+  if (s.log.length) { $("#log").style.display = s.running ? "block" : $("#log").style.display;
+                      $("#log").textContent = s.log.join("\n"); $("#log").scrollTop = 1e9; }
+  if (wasRunning && !s.running) { loadAlbums(); reset(); setTimeout(() => $("#log").style.display = "none", 4000); }
+  wasRunning = s.running;
+  return s;
+}
+$("#syncBtn").onclick = async () => {
+  const r = await api("/api/sync", { method: "POST" });
+  if (!r.started) alert(r.reason);
+  refreshStatus();
+};
+setInterval(() => { if (wasRunning || document.visibilityState === "visible") refreshStatus(); }, 3000);
+
+loadAlbums(); reset(); refreshStatus();
+</script>
+</body>
+</html>
