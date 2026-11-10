@@ -31,8 +31,13 @@ fun FeedScreen(container: AppContainer, onSpeak: ((String) -> Unit)?, modifier: 
     LaunchedEffect(pager) {
         snapshotFlow { pager.currentPage }.collect { page ->
             if (cards.isNotEmpty() && page >= cards.size - 3) {
+                // Skip everything already shown this session; only when the whole pool is used up,
+                // allow repeats (still not the last 10, so the same card never shows twice in a row).
+                val shown = cards.map { it.id }.toSet()
                 val recent = cards.takeLast(10).map { it.id }.toSet()
-                cards += container.study.feed().filter { it.id !in recent }.ifEmpty { container.study.feed() }
+                cards += container.study.feed(exclude = shown)
+                    .ifEmpty { container.study.feed(exclude = recent) }
+                    .ifEmpty { container.study.feed() }
             }
         }
     }

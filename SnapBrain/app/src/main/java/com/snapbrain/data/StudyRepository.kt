@@ -69,8 +69,8 @@ class StudyRepository(
 
     val masteredCount: Flow<Int> = progress.map { p -> p.values.count { it.box >= 3 } }
 
-    suspend fun feed(limit: Int = 40): List<Card> =
-        FeedPlanner.plan(cards.all, progressMap(), clock.today(), settings.value.topics, limit)
+    suspend fun feed(limit: Int = 40, exclude: Set<String> = emptySet()): List<Card> =
+        FeedPlanner.plan(cards.all, progressMap(), clock.today(), settings.value.topics, limit, exclude = exclude)
 
     suspend fun nextCard(excluding: Set<String> = emptySet()): Card {
         val plan = FeedPlanner.plan(cards.all, progressMap(), clock.today(), settings.value.topics, limit = 10)

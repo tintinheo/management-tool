@@ -18,7 +18,9 @@ class RulesTest {
 
     @Test
     fun srs_climbsOnCorrect_dropsOnWrong() {
-        assertEquals(Srs.Step(1, 101), Srs.next(null, correct = true, today = 100))
+        assertEquals(Srs.Step(2, 103), Srs.next(null, correct = true, today = 100))
+        assertEquals(Srs.Step(0, 101), Srs.next(null, correct = false, today = 100))
+        assertEquals(Srs.Step(1, 101), Srs.next(0, correct = true, today = 100))
         assertEquals(Srs.Step(3, 107), Srs.next(2, correct = true, today = 100))
         assertEquals(Srs.Step(5, 160), Srs.next(5, correct = true, today = 100))
         assertEquals(Srs.Step(0, 101), Srs.next(4, correct = false, today = 100))
@@ -93,7 +95,7 @@ class RulesTest {
     }
 
     @Test
-    fun feed_dueFirst_thenNewMixed_thenRest() {
+    fun feed_newCardsWithReviewsWovenIn_thenRest() {
         val cards = Topic.entries.flatMap { t -> (1..3).map { card("${t.name}$it", t) } }
         val progress = mapOf(
             "SPEAKING1" to progress("SPEAKING1", box = 0, due = 9),
@@ -101,12 +103,31 @@ class RulesTest {
             "AI1" to progress("AI1", box = 3, due = 20),
         )
         val plan = FeedPlanner.plan(cards, progress, today = 10, favorites = emptySet(), limit = 100, random = Random(1))
-        assertEquals(listOf("SPEAKING2", "SPEAKING1"), plan.take(2).map { it.id })
+        // A new day opens with new cards; the most overdue review comes 3rd, the next one 6th.
+        assertTrue(plan.take(2).none { it.id in progress })
+        assertEquals("SPEAKING2", plan[2].id)
+        assertEquals("SPEAKING1", plan[5].id)
         assertEquals("AI1", plan.last().id)
         assertEquals(cards.size, plan.size)
         // New cards: no two neighbours share a topic while several topics remain.
-        val fresh = plan.subList(2, 2 + Topic.entries.size)
+        val fresh = plan.filter { it.id !in progress }.take(Topic.entries.size)
         assertEquals(Topic.entries.size, fresh.map { it.topic }.toSet().size)
+    }
+
+    @Test
+    fun feed_onlyReviewsLeft_allComeBack() {
+        val cards = listOf(card("a", Topic.AI), card("b", Topic.FINANCE))
+        val progress = mapOf("a" to progress("a", box = 0, due = 9), "b" to progress("b", box = 1, due = 10))
+        val plan = FeedPlanner.plan(cards, progress, today = 10, favorites = emptySet(), limit = 10)
+        assertEquals(listOf("a", "b"), plan.map { it.id })
+    }
+
+    @Test
+    fun feed_excludeSkipsCardsAlreadyShown() {
+        val cards = listOf(card("a", Topic.AI), card("b", Topic.FINANCE), card("c", Topic.AI))
+        val progress = mapOf("a" to progress("a", box = 0, due = 9))
+        val plan = FeedPlanner.plan(cards, progress, today = 10, favorites = emptySet(), limit = 10, exclude = setOf("a", "b"))
+        assertEquals(listOf("c"), plan.map { it.id })
     }
 
     @Test
