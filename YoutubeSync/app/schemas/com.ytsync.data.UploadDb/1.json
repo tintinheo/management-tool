@@ -1,0 +1,105 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "2b3a1bda3b275224223dbe3d5473eced",
+    "entities": [
+      {
+        "tableName": "uploads",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mediaId` INTEGER NOT NULL, `displayName` TEXT NOT NULL, `sizeBytes` INTEGER NOT NULL, `mimeType` TEXT NOT NULL, `takenAt` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `state` TEXT NOT NULL, `bytesSent` INTEGER NOT NULL, `sessionUrl` TEXT, `videoId` TEXT, `ageRestricted` INTEGER, `error` TEXT, `attempts` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`mediaId`))",
+        "fields": [
+          {
+            "fieldPath": "mediaId",
+            "columnName": "mediaId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sizeBytes",
+            "columnName": "sizeBytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mimeType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "takenAt",
+            "columnName": "takenAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMs",
+            "columnName": "durationMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bytesSent",
+            "columnName": "bytesSent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionUrl",
+            "columnName": "sessionUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "videoId",
+            "columnName": "videoId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ageRestricted",
+            "columnName": "ageRestricted",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "error",
+            "columnName": "error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "mediaId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2b3a1bda3b275224223dbe3d5473eced')"
+    ]
+  }
+}
