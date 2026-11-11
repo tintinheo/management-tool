@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotecam.camera.CaptureMode
+import com.remotecam.camera.EngineState
 import com.remotecam.remote.LogEntry
 
 private val Ink = Color(0xFF0E0E0E)
@@ -45,13 +47,21 @@ private val Hairline = Color(0xFF2A2A2A)
 private val Gold = Color(0xFFC9A14A)
 private val Live = Color(0xFF5BBF73)
 
+private val Rec = Color(0xFFE5484D)
+
 data class CameraUiState(
     val photos: Int = 0,
+    val videos: Int = 0,
     val backCamera: Boolean = true,
     val zoom: Float = 1f,
     val countdown: Int? = null,
     val flashTick: Int = 0,
     val lastLatencyMs: Long? = null,
+    val mode: CaptureMode = CaptureMode.PHOTO,
+    val modes: List<CaptureMode> = listOf(CaptureMode.PHOTO, CaptureMode.VIDEO),
+    val recordingSeconds: Long? = null,
+    /** e.g. "RAW + JPEG · 50.3MP" or "4K 30fps HLG 10-bit". */
+    val detail: String = "",
 )
 
 data class ScreenState(
@@ -74,6 +84,7 @@ class ScreenActions(
     val onSilentAudio: (Boolean) -> Unit = {},
     val onCopyLog: () -> Unit = {},
     val onClearLog: () -> Unit = {},
+    val onMode: (CaptureMode) -> Unit = {},
 )
 
 @Composable
@@ -107,7 +118,8 @@ fun RemoteCamScreen(
             SessionBadge(state.sessionRunning, Modifier.align(Alignment.TopStart).padding(12.dp))
             Text(
                 buildString {
-                    append("${state.camera.photos} ảnh · ")
+                    if (state.camera.detail.isNotEmpty()) append("${state.camera.detail} · ")
+                    append(if (state.camera.mode == CaptureMode.VIDEO) "${state.camera.videos} video · " else "${state.camera.photos} ảnh · ")
                     append(if (state.camera.backCamera) "sau" else "trước")
                     append(" · %.1fx".format(state.camera.zoom))
                     state.camera.lastLatencyMs?.let { append(" · ${it} ms") }
@@ -130,7 +142,45 @@ fun RemoteCamScreen(
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
-            ShutterButton(actions.onShutter, Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp))
+            state.camera.recordingSeconds?.let {
+                Text(
+                    "● REC ${EngineState.clock(it)}",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 48.dp)
+                        .background(Rec, RoundedCornerShape(50))
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+            }
+            Column(
+                Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier
+                        .background(Color(0x99000000), RoundedCornerShape(50))
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                ) {
+                    state.camera.modes.forEach { mode ->
+                        Text(
+                            mode.label,
+                            color = if (mode == state.camera.mode) Gold else Ivory,
+                            fontSize = 13.sp,
+                            fontWeight = if (mode == state.camera.mode) FontWeight.Medium else FontWeight.Normal,
+                            modifier = Modifier.clickable { actions.onMode(mode) },
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                ShutterButton(
+                    video = state.camera.mode == CaptureMode.VIDEO,
+                    recording = state.camera.recordingSeconds != null,
+                    onClick = actions.onShutter,
+                )
+            }
         }
 
         Column(
@@ -155,7 +205,7 @@ fun RemoteCamScreen(
             ViewerLinks(state.sessionRunning, state.serverUrls, state.viewers)
             Spacer(Modifier.height(6.dp))
             Text(
-                "Fit 3: vuốt tới mục Nhạc → Play/Pause = chụp · Next = đổi camera · Prev = hẹn giờ 3s · Volume = zoom",
+                "Fit 3: mục Nhạc → Play/Pause = chụp / bắt đầu-dừng quay · Next = đổi camera · Prev = hẹn giờ · Volume = zoom",
                 color = Muted,
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
@@ -232,16 +282,21 @@ private fun SessionBadge(running: Boolean, modifier: Modifier) {
 }
 
 @Composable
-private fun ShutterButton(onClick: () -> Unit, modifier: Modifier) {
+private fun ShutterButton(video: Boolean, recording: Boolean, onClick: () -> Unit) {
     Box(
-        modifier
+        Modifier
             .size(68.dp)
             .border(3.dp, Ivory, CircleShape)
-            .padding(6.dp)
             .clip(CircleShape)
-            .background(Ivory)
             .clickable(onClick = onClick),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            recording -> Box(Modifier.size(26.dp).background(Rec, RoundedCornerShape(5.dp)))
+            video -> Box(Modifier.size(54.dp).background(Rec, CircleShape))
+            else -> Box(Modifier.size(54.dp).background(Ivory, CircleShape))
+        }
+    }
 }
 
 @Composable

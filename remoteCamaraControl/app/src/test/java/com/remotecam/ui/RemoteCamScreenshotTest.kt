@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.remotecam.camera.CaptureMode
 import com.remotecam.remote.LogEntry
 import org.junit.Rule
 import org.junit.Test
@@ -60,7 +61,14 @@ class RemoteCamScreenshotTest {
         compose.setContent {
             RemoteCamScreen(
                 state = ScreenState(
-                    camera = CameraUiState(countdown = 2, backCamera = false),
+                    camera = CameraUiState(
+                        countdown = 2,
+                        backCamera = false,
+                        mode = CaptureMode.VIDEO,
+                        modes = CaptureMode.entries,
+                        recordingSeconds = 75,
+                        detail = "4K 30fps HLG 10-bit",
+                    ),
                     sessionRunning = false,
                     remoteVolume = true,
                     keepPlaying = false,

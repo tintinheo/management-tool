@@ -1,9 +1,9 @@
-# RemoteCam (0.2.0)
+# RemoteCam (0.3.0)
 
 Thử nghiệm: dùng nút điều khiển nhạc của Galaxy Fit 3 làm nút chụp cho camera của Xiaomi 14T. Lý do chọn cách này xem ở [RESEARCH.md](RESEARCH.md).
 
 ## Cài đặt
-1. Cài `app/build/outputs/apk/debug/RemoteCam-0.2.0-debug.apk` lên Xiaomi 14T.
+1. Cài `app/build/outputs/apk/debug/RemoteCam-0.3.0-debug.apk` lên Xiaomi 14T.
 2. Mở app, cho phép **Camera** và **Thông báo**.
 3. Vào Settings → Apps → RemoteCam: bật **Autostart**, chọn Battery saver **No restrictions**.
 4. Trong Galaxy Wearable, kiểm tra Fit 3 đã bật mục **Media controller/Nhạc**.
@@ -45,6 +45,22 @@ Xiaomi mở một trang web trong mạng nội bộ. Tablet và PC chỉ cần t
 Lưu ý:
 - Màn hình RemoteCam trên điện thoại phải đang mở. Android không cho app dùng camera khi chạy nền.
 - Chỉ ai có mã `k` mới xem được.
+
+## Tính năng chụp/quay (0.3.0)
+| Tính năng | Cách dùng trên web | Điều kiện |
+|---|---|---|
+| Chế độ Ảnh / Chân dung / Đêm / HDR / Video | Hàng chế độ phía trên nút chụp, phím 1–5 | Chân dung/Đêm/HDR chỉ có nếu Xiaomi mở CameraX Extensions cho app ngoài |
+| RAW (DNG), RAW + JPEG, Ultra HDR | Cài đặt → Ảnh → Định dạng | Chỉ ở chế độ Ảnh, và camera phải mở RAW cho app ngoài |
+| Độ phân giải tối đa (vd 50 MP) | Cài đặt → Ảnh → Độ phân giải → Tối đa | Chụp chậm hơn; app hiện kích thước thật sau khi chọn |
+| Quay 4K, 60 fps | Cài đặt → Video | 60 fps chỉ hiện nếu camera hỗ trợ |
+| HLG 10-bit | Cài đặt → Video → Màu | Dạng HDR phẳng, chỉnh màu được |
+| Log (phẳng) | Cài đặt → Video → Màu | Đường cong log tự tạo (8-bit). **Xiaomi Log gốc không mở cho app ngoài** |
+| Flash, hẹn giờ 3/10 s, bù sáng, zoom 0.6x–10x | Cài đặt và thanh zoom | Bấm vào hình để lấy nét/đo sáng |
+| Thư viện | Nút Thư viện: xem ảnh thu nhỏ, bấm để tải về | Chỉ hiện file do RemoteCam chụp |
+
+Trên điện thoại, mục **"Máy này hỗ trợ"** trong Cài đặt web và dòng log `Camera sau: …` cho biết chính xác máy mở những gì.
+
+**Máy yếu (PC 2 GB RAM):** trang tự chọn preview **Thấp** (640 px, ~8 khung hình/giây). Trạng thái được đẩy về qua một kết nối duy nhất, không hỏi liên tục. Preview tự dừng khi thu nhỏ tab. Có thể đổi trong Cài đặt → Preview trên máy này.
 
 ## Các nút bật/tắt
 - **Giữ PLAYING**: sau mỗi lần pause, app tự báo lại trạng thái "đang phát". Nhờ vậy nút trên vòng luôn gửi pause, tránh lỗi "pause được nhưng không resume được" trên máy không phải Samsung. Thử cả hai chế độ.

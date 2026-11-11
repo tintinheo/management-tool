@@ -12,8 +12,8 @@ android {
         applicationId = "com.remotecam"
         minSdk = 33 // POST_NOTIFICATIONS; Xiaomi 14T ships with Android 14+
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.2.0"
+        versionCode = 5
+        versionName = "0.3.0"
     }
 
     buildTypes {
@@ -66,6 +66,8 @@ dependencies {
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
+    implementation(libs.camera.video)
+    implementation(libs.camera.extensions)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

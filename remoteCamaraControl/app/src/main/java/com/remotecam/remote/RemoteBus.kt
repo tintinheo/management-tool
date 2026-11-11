@@ -1,6 +1,8 @@
 package com.remotecam.remote
 
 import android.os.SystemClock
+import com.remotecam.camera.ControlRequest
+import com.remotecam.camera.EngineState
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -93,9 +95,20 @@ object RemoteBus {
         return _commands.tryEmit(TimedCommand(command, now))
     }
 
+    private val _controls = MutableSharedFlow<ControlRequest>(extraBufferCapacity = 16)
+
+    /** Settings, zoom, exposure and focus requests from the browser. */
+    val controls: SharedFlow<ControlRequest> = _controls.asSharedFlow()
+
+    /** Called by the LAN server. Returns false when the camera screen is not open. */
+    fun dispatchControl(request: ControlRequest): Boolean {
+        if (_controls.subscriptionCount.value == 0) return false
+        return _controls.tryEmit(request)
+    }
+
     private val _camera = MutableStateFlow(CameraStatus())
 
-    /** Camera state published by the camera screen, read by the LAN server's /status. */
+    /** Camera state published by the camera screen, read by the LAN server. */
     val camera: StateFlow<CameraStatus> = _camera.asStateFlow()
 
     fun setCamera(status: CameraStatus) {
@@ -121,11 +134,5 @@ object RemoteBus {
     }
 }
 
-data class CameraStatus(
-    val active: Boolean = false,
-    val photos: Int = 0,
-    val backCamera: Boolean = true,
-    val zoom: Float = 1f,
-    val countdown: Int? = null,
-    val lastLatencyMs: Long? = null,
-)
+/** [active] is false while the camera screen is not visible (Android stops the camera then). */
+data class CameraStatus(val active: Boolean = false, val state: EngineState = EngineState())

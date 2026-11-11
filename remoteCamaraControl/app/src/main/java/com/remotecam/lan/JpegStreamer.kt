@@ -6,41 +6,69 @@ import android.os.SystemClock
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.io.ByteArrayOutputStream
+import java.util.EnumMap
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 /**
- * CameraX analyzer that turns frames into upright JPEGs for the browser preview. Does nothing while
- * nobody is watching, and caps the frame rate so encoding does not compete with photo capture.
+ * Encodes upright frames into JPEG for every stream profile that has viewers and is due a frame.
+ * Must be used from a single thread.
  */
-class JpegStreamer(
-    private val hub: FrameHub,
-    private val maxEdge: Int = 960,
-    private val quality: Int = 60,
-    private val minFrameIntervalMs: Long = 66, // ~15 fps
-) : ImageAnalysis.Analyzer {
-
-    private var lastFrameAt = 0L
+class FrameEncoder(private val hubs: StreamHubs) {
+    private val lastAt = EnumMap<StreamProfile, Long>(StreamProfile::class.java)
     private val buffer = ByteArrayOutputStream(128 * 1024)
+
+    fun dueProfiles(now: Long): List<StreamProfile> =
+        hubs.active().filter { now - (lastAt[it] ?: 0L) >= it.intervalMs }
+
+    /** [upright] may be larger than needed; each profile gets its own downscaled copy. */
+    fun encode(upright: Bitmap, due: List<StreamProfile>, now: Long) {
+        for (profile in due.sortedByDescending { it.maxEdge }) {
+            val scale = profile.maxEdge.toFloat() / max(upright.width, upright.height)
+            val frame = if (scale < 1f) {
+                Bitmap.createScaledBitmap(
+                    upright,
+                    (upright.width * scale).roundToInt(),
+                    (upright.height * scale).roundToInt(),
+                    true,
+                )
+            } else {
+                upright
+            }
+            buffer.reset()
+            frame.compress(Bitmap.CompressFormat.JPEG, profile.quality, buffer)
+            if (frame !== upright) frame.recycle()
+            hubs.hub(profile).publish(buffer.toByteArray())
+            lastAt[profile] = now
+        }
+    }
+}
+
+/** CameraX analyzer feeding [FrameEncoder]. Returns immediately when nobody is watching. */
+class JpegStreamer(private val encoder: FrameEncoder) : ImageAnalysis.Analyzer {
+
+    /** Last rotation seen, used to map browser tap-to-focus points back onto the sensor. */
+    @Volatile var rotationDegrees: Int = 0
+        private set
 
     override fun analyze(image: ImageProxy) {
         image.use {
-            if (hub.viewers.get() == 0) return
+            rotationDegrees = it.imageInfo.rotationDegrees
             val now = SystemClock.uptimeMillis()
-            if (now - lastFrameAt < minFrameIntervalMs) return
-            lastFrameAt = now
+            val due = encoder.dueProfiles(now)
+            if (due.isEmpty()) return
 
             val source = it.toBitmap()
-            val scale = maxEdge.toFloat() / max(source.width, source.height)
+            val largest = due.maxOf { p -> p.maxEdge }
+            val scale = largest.toFloat() / max(source.width, source.height)
             val matrix = Matrix().apply {
                 if (scale < 1f) postScale(scale, scale)
-                postRotate(it.imageInfo.rotationDegrees.toFloat())
+                postRotate(rotationDegrees.toFloat())
             }
             val upright = Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
-            buffer.reset()
-            upright.compress(Bitmap.CompressFormat.JPEG, quality, buffer)
+            encoder.encode(upright, due, now)
             if (upright !== source) upright.recycle()
             source.recycle()
-            hub.publish(buffer.toByteArray())
         }
     }
 }
