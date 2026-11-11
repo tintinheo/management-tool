@@ -29,6 +29,7 @@ class LanServer(
     private val status: () -> String,
     private val onCommand: (RemoteCommand) -> Boolean,
     private val log: (String) -> Unit = {},
+    private val onViewers: (Int) -> Unit = {},
 ) {
     private var server: ServerSocket? = null
     private val clients = ConcurrentHashMap.newKeySet<Socket>()
@@ -132,6 +133,7 @@ class LanServer(
         val who = socket.inetAddress?.hostAddress ?: "?"
         val count = frames.viewers.incrementAndGet()
         log("Xem preview: $who (đang xem: $count)")
+        onViewers(count)
         try {
             out.write(
                 ("HTTP/1.1 200 OK\r\n" +
@@ -152,6 +154,7 @@ class LanServer(
         } finally {
             val left = frames.viewers.decrementAndGet()
             log("Ngừng xem: $who (đang xem: $left)")
+            onViewers(left)
         }
     }
 

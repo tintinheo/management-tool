@@ -22,6 +22,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.KeyEvent
 import com.remotecam.R
+import com.remotecam.lan.LanHost
 import com.remotecam.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +64,7 @@ class RemoteSessionService : Service() {
         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
         .build()
 
+    private val lanHost = LanHost(this)
     private lateinit var session: MediaSession
     private lateinit var audioManager: AudioManager
     private var focusRequest: AudioFocusRequest? = null
@@ -113,6 +115,9 @@ class RemoteSessionService : Service() {
             RemoteBus.log(if (remote) "Volume: gửi về session (remote)" else "Volume: âm lượng điện thoại (local)")
         }.launchIn(scope)
 
+        runCatching { lanHost.start(scope) }
+            .onFailure { RemoteBus.log("✗ Không mở được server preview: ${it.message}") }
+
         RemoteBus.setSessionRunning(true)
         RemoteBus.log("Session bật. Mở mục nhạc trên Fit 3 và bấm thử các nút.")
     }
@@ -124,6 +129,7 @@ class RemoteSessionService : Service() {
 
     override fun onDestroy() {
         scope.cancel()
+        lanHost.stop()
         handler.removeCallbacksAndMessages(null)
         applySilentAudio(false)
         session.isActive = false

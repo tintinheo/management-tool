@@ -45,6 +45,8 @@ class RemoteCamScreenshotTest {
                 state = ScreenState(
                     camera = CameraUiState(photos = 3, zoom = 1.6f, lastLatencyMs = 612),
                     sessionRunning = true,
+                    serverUrls = listOf("http://10.181.24.97:8080/?k=482913  (swlan0)"),
+                    viewers = 1,
                     log = log,
                 ),
                 actions = ScreenActions(),

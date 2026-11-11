@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,6 +61,8 @@ data class ScreenState(
     val keepPlaying: Boolean = true,
     val remoteVolume: Boolean = false,
     val silentAudio: Boolean = true,
+    val serverUrls: List<String> = emptyList(),
+    val viewers: Int = 0,
     val log: List<LogEntry> = emptyList(),
 )
 
@@ -149,6 +152,8 @@ fun RemoteCamScreen(
                 TextButton("Xoá log", onClick = actions.onClearLog)
             }
             Spacer(Modifier.height(10.dp))
+            ViewerLinks(state.sessionRunning, state.serverUrls, state.viewers)
+            Spacer(Modifier.height(6.dp))
             Text(
                 "Fit 3: vuốt tới mục Nhạc → Play/Pause = chụp · Next = đổi camera · Prev = hẹn giờ 3s · Volume = zoom",
                 color = Muted,
@@ -164,6 +169,36 @@ fun RemoteCamScreen(
                         Spacer(Modifier.width(8.dp))
                         Text(entry.text, color = Ivory, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ViewerLinks(running: Boolean, urls: List<String>, viewers: Int) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, Hairline, RoundedCornerShape(6.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    ) {
+        Text(
+            if (viewers > 0) "Xem trên tablet / PC · $viewers đang xem" else "Xem trên tablet / PC",
+            color = Muted,
+            fontSize = 12.sp,
+        )
+        when {
+            !running -> Text("Bật session để mở trang xem", color = Muted, fontSize = 13.sp)
+            urls.isEmpty() -> Text(
+                "Không cần internet: bật Hotspot trên điện thoại, cho tablet/PC kết nối vào, địa chỉ sẽ hiện ở đây",
+                color = Ivory,
+                fontSize = 13.sp,
+                lineHeight = 17.sp,
+            )
+            else -> SelectionContainer {
+                Column {
+                    urls.forEach { Text(it, color = Gold, fontSize = 14.sp, fontFamily = FontFamily.Monospace) }
                 }
             }
         }

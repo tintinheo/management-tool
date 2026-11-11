@@ -1,9 +1,9 @@
-# RemoteCam (spike 0.1.2)
+# RemoteCam (0.2.0)
 
 Thử nghiệm: dùng nút điều khiển nhạc của Galaxy Fit 3 làm nút chụp cho camera của Xiaomi 14T. Lý do chọn cách này xem ở [RESEARCH.md](RESEARCH.md).
 
 ## Cài đặt
-1. Cài `app/build/outputs/apk/debug/RemoteCam-0.1.2-debug.apk` lên Xiaomi 14T.
+1. Cài `app/build/outputs/apk/debug/RemoteCam-0.2.0-debug.apk` lên Xiaomi 14T.
 2. Mở app, cho phép **Camera** và **Thông báo**.
 3. Vào Settings → Apps → RemoteCam: bật **Autostart**, chọn Battery saver **No restrictions**.
 4. Trong Galaxy Wearable, kiểm tra Fit 3 đã bật mục **Media controller/Nhạc**.
@@ -22,6 +22,29 @@ Thử nghiệm: dùng nút điều khiển nhạc của Galaxy Fit 3 làm nút c
 
 4. Log ghi package gửi lệnh (`← com.samsung...`) và độ trễ từ lúc nhận lệnh đến lúc lưu xong ảnh.
 5. Bấm **Copy log** rồi dán log gửi lại.
+
+## Xem preview trên tablet / PC Windows (không cần internet)
+Xiaomi mở một trang web trong mạng nội bộ. Tablet và PC chỉ cần trình duyệt (Chrome/Edge/Safari), không phải cài gì.
+
+**Không có Wi-Fi/router, hoặc không muốn dùng internet:** dùng Hotspot của Xiaomi làm mạng riêng.
+1. Trên Xiaomi: có thể **tắt dữ liệu di động**. Hotspot vẫn bật được, và preview chỉ chạy giữa các máy với nhau.
+2. Settings → Connection & sharing → **Portable hotspot**: bật lên. Đặt tên và mật khẩu cố định để tablet/PC tự kết nối lại những lần sau.
+3. Tắt **"Turn off hotspot automatically"**, nếu không hotspot sẽ tự tắt khi rảnh.
+4. Cho tablet và PC kết nối vào hotspot đó.
+   - Android tablet báo "Không có internet": chọn **Vẫn kết nối**.
+   - Windows báo "No internet": bỏ qua, vẫn dùng được.
+5. Mở RemoteCam. Ô **"Xem trên tablet / PC"** hiện địa chỉ dạng `http://10.x.x.x:8080/?k=123456`. Gõ địa chỉ này vào trình duyệt. Mã `k` giữ nguyên giữa các lần mở app, nên bookmark lại được.
+
+**Có Wi-Fi ở nhà:** cho cả 3 máy vào cùng Wi-Fi rồi mở địa chỉ hiện trong app. Cách này cũng không dùng internet.
+
+**Trên trang xem:**
+- Nút bấm: chụp, hẹn giờ 3s, đổi camera, zoom, toàn màn hình.
+- Phím tắt trên PC: Space chụp · T hẹn giờ · C đổi camera · +/− zoom · F toàn màn hình.
+- Fit 3 vẫn điều khiển song song như trước.
+
+Lưu ý:
+- Màn hình RemoteCam trên điện thoại phải đang mở. Android không cho app dùng camera khi chạy nền.
+- Chỉ ai có mã `k` mới xem được.
 
 ## Các nút bật/tắt
 - **Giữ PLAYING**: sau mỗi lần pause, app tự báo lại trạng thái "đang phát". Nhờ vậy nút trên vòng luôn gửi pause, tránh lỗi "pause được nhưng không resume được" trên máy không phải Samsung. Thử cả hai chế độ.

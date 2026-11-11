@@ -15,14 +15,24 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import android.util.Size
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
+import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import com.remotecam.lan.JpegStreamer
+import com.remotecam.lan.LiveStream
+import com.remotecam.remote.CameraStatus
+import java.util.concurrent.Executors
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -50,6 +60,7 @@ class MainActivity : ComponentActivity() {
     private var hasCameraPermission by mutableStateOf(false)
     private var cameraBound = false
     private var timerJob: Job? = null
+    private val analysisExecutor = Executors.newSingleThreadExecutor()
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -68,6 +79,15 @@ class MainActivity : ComponentActivity() {
         shutterSound.load(MediaActionSound.SHUTTER_CLICK)
         camera = LifecycleCameraController(this).apply {
             imageCaptureMode = ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
+            setEnabledUseCases(CameraController.IMAGE_CAPTURE or CameraController.IMAGE_ANALYSIS)
+            imageAnalysisResolutionSelector = ResolutionSelector.Builder()
+                .setResolutionStrategy(
+                    ResolutionStrategy(Size(1280, 720), ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER),
+                )
+                .build()
+            imageAnalysisOutputImageFormat = ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
+            // Frames for the tablet/PC browser; skipped entirely while nobody is watching.
+            setImageAnalysisAnalyzer(analysisExecutor, JpegStreamer(LiveStream.frames))
         }
         hasCameraPermission = granted(Manifest.permission.CAMERA)
         if (hasCameraPermission) bindCamera()
@@ -78,6 +98,8 @@ class MainActivity : ComponentActivity() {
             val keepPlaying by SpikeSettings.keepPlaying.collectAsStateWithLifecycle()
             val remoteVolume by SpikeSettings.remoteVolume.collectAsStateWithLifecycle()
             val silentAudio by SpikeSettings.silentAudio.collectAsStateWithLifecycle()
+            val urls by RemoteBus.serverUrls.collectAsStateWithLifecycle()
+            val viewers by RemoteBus.viewers.collectAsStateWithLifecycle()
             RemoteCamScreen(
                 state = ScreenState(
                     camera = cameraState,
@@ -86,6 +108,8 @@ class MainActivity : ComponentActivity() {
                     keepPlaying = keepPlaying,
                     remoteVolume = remoteVolume,
                     silentAudio = silentAudio,
+                    serverUrls = urls,
+                    viewers = viewers,
                     log = log,
                 ),
                 actions = ScreenActions(
@@ -117,6 +141,17 @@ class MainActivity : ComponentActivity() {
                 RemoteBus.commands.collect(::onCommand)
             }
         }
+        // Camera state for the browser page; "active" only while this screen is visible, because
+        // Android does not let the camera run in the background.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                try {
+                    snapshotFlow { cameraState }.collect { RemoteBus.setCamera(it.toStatus(active = true)) }
+                } finally {
+                    RemoteBus.setCamera(cameraState.toStatus(active = false))
+                }
+            }
+        }
 
         if (savedInstanceState == null) {
             permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.POST_NOTIFICATIONS))
@@ -126,8 +161,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         shutterSound.release()
+        camera.clearImageAnalysisAnalyzer()
+        analysisExecutor.shutdown()
         super.onDestroy()
     }
+
+    private fun CameraUiState.toStatus(active: Boolean) = CameraStatus(
+        active = active,
+        photos = photos,
+        backCamera = backCamera,
+        zoom = zoom,
+        countdown = countdown,
+        lastLatencyMs = lastLatencyMs,
+    )
 
     private fun granted(permission: String) =
         checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED

@@ -110,6 +110,15 @@ object RemoteBus {
     fun setServerUrls(urls: List<String>) {
         _serverUrls.value = urls
     }
+
+    private val _viewers = MutableStateFlow(0)
+
+    /** Browsers currently watching the preview stream. */
+    val viewers: StateFlow<Int> = _viewers.asStateFlow()
+
+    fun setViewers(count: Int) {
+        _viewers.value = count
+    }
 }
 
 data class CameraStatus(
