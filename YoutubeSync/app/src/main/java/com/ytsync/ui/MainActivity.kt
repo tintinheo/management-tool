@@ -102,14 +102,17 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
                 )
             }
             val rows by dao.observeAll().collectAsState(initial = emptyList())
-            val gallery = remember(galleryVideos, rows, selected, galleryLoading, settings, tick) {
+            val gallery = remember(galleryVideos, rows, selected, galleryLoading, settings, tick, othersVisible) {
                 val byId = rows.associateBy { it.mediaId }
                 GalleryState(
-                    entries = galleryVideos.map { GalleryEntry(it, byId[it.mediaId]) },
+                    entries = galleryVideos.map { v ->
+                        GalleryEntry(v, byId[v.mediaId], if (v.fromCamera) null else v.ownerPackage?.let(::appLabel))
+                    },
                     loading = galleryLoading,
                     selected = selected,
                     autoTemplate = settings?.titleTemplate ?: com.ytsync.youtube.VideoMetadata.DEFAULT_TEMPLATE,
                     hasPermission = hasVideo(),
+                    showOthers = othersVisible,
                 )
             }
             LaunchedEffect(tab, tick) { if (tab == 1) refreshGallery() }
@@ -178,6 +181,24 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
         this.selected = if (selected) this.selected + ids else this.selected - ids.toSet()
     }
     override fun clearSelection() { selected = emptySet() }
+
+    private var othersVisible by mutableStateOf(false)
+    private val labels = HashMap<String, String>()
+
+    override fun setShowOthers(show: Boolean) {
+        othersVisible = show
+        if (!show) { // don't keep hidden videos selected
+            val hidden = galleryVideos.filter { !it.fromCamera }.mapTo(HashSet()) { it.mediaId }
+            selected = selected - hidden
+        }
+    }
+
+    /** "com.zing.zalo" → "Zalo"; falls back to the package name for uninstalled apps. */
+    private fun appLabel(pkg: String): String = labels.getOrPut(pkg) {
+        runCatching {
+            packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, PackageManager.ApplicationInfoFlags.of(0))).toString()
+        }.getOrDefault(pkg)
+    }
 
     override suspend fun thumbnail(id: Long): ImageBitmap? = thumbs.get(id) ?: withContext(Dispatchers.IO) {
         CameraVideos.thumbnail(this@MainActivity, id)?.asImageBitmap()?.also { thumbs.put(id, it) }

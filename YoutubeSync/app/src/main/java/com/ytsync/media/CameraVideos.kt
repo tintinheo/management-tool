@@ -23,6 +23,10 @@ data class CameraVideo(
     val recordedAt: Long,
     val durationMs: Long,
     val addedEpochSec: Long,
+    /** App that created the file (MediaStore OWNER_PACKAGE_NAME); null = Android doesn't know. */
+    val ownerPackage: String? = null,
+    /** Filmed by a camera app — see [CameraVideos.isFromCamera]. Others are never auto-uploaded. */
+    val fromCamera: Boolean = true,
 ) {
     fun toItem(state: com.ytsync.data.UploadState = com.ytsync.data.UploadState.QUEUED) = UploadItem(
         mediaId = mediaId, displayName = displayName, sizeBytes = sizeBytes, mimeType = mimeType,
@@ -41,6 +45,49 @@ object CameraVideos {
     fun isCameraFolder(relativePath: String?): Boolean {
         val p = relativePath?.replace('\\', '/')?.trimStart('/')?.lowercase() ?: return false
         return p == "dcim/camera" || p.startsWith("dcim/camera/")
+    }
+
+    // ---- camera vs. downloaded / edited ---------------------------------------------------------
+
+    /** Camera apps on Xiaomi/HyperOS (+ common others); extended at runtime by [cameraPackages]. */
+    val KNOWN_CAMERA_PACKAGES = setOf(
+        "com.android.camera",            // Xiaomi / HyperOS camera
+        "com.xiaomi.camera",
+        "com.google.android.GoogleCamera",
+        "com.sec.android.app.camera",
+        "org.codeaurora.snapcam",
+        "com.android.camera2",
+    )
+
+    /** Names camera apps give videos: VID_20261109_175130*, PXL_20261109_175130123*, 20261109_175130*. */
+    private val cameraName = Regex("""^(?:VID|PXL|MVIMG)_\d{8}_\d{6,9}(?:[_.].*)?$|^\d{8}_\d{6}(?:[_.(].*)?$""", RegexOption.IGNORE_CASE)
+
+    fun hasCameraName(displayName: String) = cameraName.matches(displayName)
+
+    /**
+     * Every installed app that can record video (handles VIDEO_CAPTURE / VIDEO_CAMERA) plus the known
+     * list. Needs package visibility (QUERY_ALL_PACKAGES / <queries> in the manifest).
+     */
+    fun cameraPackages(context: Context): Set<String> {
+        val pm = context.packageManager
+        val found = listOf(MediaStore.ACTION_VIDEO_CAPTURE, MediaStore.INTENT_ACTION_VIDEO_CAMERA).flatMap { action ->
+            runCatching {
+                pm.queryIntentActivities(android.content.Intent(action), android.content.pm.PackageManager.ResolveInfoFlags.of(0))
+                    .map { it.activityInfo.packageName }
+            }.getOrDefault(emptyList())
+        }
+        return KNOWN_CAMERA_PACKAGES + found
+    }
+
+    /**
+     * True when the video was filmed by the phone's camera:
+     *  - created by a camera app → yes;
+     *  - created by any other app (browser download, Zalo/Messenger save, Gallery editor, CapCut…) → no;
+     *  - creator unknown (restored from backup / copied over USB) → yes only if it has a camera-style name.
+     */
+    fun isFromCamera(ownerPackage: String?, displayName: String, cameraPackages: Set<String>): Boolean = when {
+        ownerPackage.isNullOrBlank() -> hasCameraName(displayName)
+        else -> ownerPackage in cameraPackages
     }
 
     // ---- recording time -------------------------------------------------------------------------
@@ -116,9 +163,12 @@ object CameraVideos {
         MediaStore.Video.Media.DATE_MODIFIED,
         MediaStore.Video.Media.DURATION,
         MediaStore.Video.Media.RELATIVE_PATH,
+        MediaStore.Video.Media.OWNER_PACKAGE_NAME,
     )
 
     private fun read(context: Context, c: Cursor): List<CameraVideo> {
+        val cameraPkgs = cameraPackages(context)
+        val owner = c.getColumnIndexOrThrow(MediaStore.Video.Media.OWNER_PACKAGE_NAME)
         val id = c.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
         val name = c.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
         val size = c.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
@@ -133,7 +183,10 @@ object CameraVideos {
             if (!isCameraFolder(c.getString(path))) continue
             val mediaId = c.getLong(id)
             val displayName = c.getString(name) ?: "video"
+            val ownerPkg = c.getString(owner)
             out += CameraVideo(
+                ownerPackage = ownerPkg,
+                fromCamera = isFromCamera(ownerPkg, displayName, cameraPkgs),
                 mediaId = mediaId,
                 displayName = displayName,
                 sizeBytes = c.getLong(size),
@@ -146,7 +199,10 @@ object CameraVideos {
         return out
     }
 
-    /** Finished (non-pending) camera videos added on/after [sinceEpochSec], oldest first. */
+    /**
+     * Finished (non-pending) videos in DCIM/Camera added on/after [sinceEpochSec], oldest first —
+     * including ones other apps saved there; check [CameraVideo.fromCamera].
+     */
     fun query(context: Context, sinceEpochSec: Long): List<CameraVideo> {
         val selection = "${MediaStore.Video.Media.RELATIVE_PATH} LIKE ? AND " +
             "${MediaStore.Video.Media.DATE_ADDED} >= ? AND " +
@@ -157,7 +213,7 @@ object CameraVideos {
         )?.use { read(context, it) } ?: emptyList()
     }
 
-    /** Every camera video on the phone, newest recording first (for the Video tab). */
+    /** Every DCIM/Camera video, newest recording first (the Video tab hides non-camera ones by default). */
     fun listAll(context: Context): List<CameraVideo> = query(context, 0).sortedByDescending { it.recordedAt }
 
     /** Current size, or null if the video was deleted / moved out of reach. */

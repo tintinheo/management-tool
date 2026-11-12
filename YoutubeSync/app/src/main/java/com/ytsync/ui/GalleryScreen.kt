@@ -64,7 +64,12 @@ import java.util.Date
 import java.util.Locale
 
 /** A camera video plus what the app knows about it (null row = never queued or renamed). */
-data class GalleryEntry(val video: CameraVideo, val row: UploadItem?) {
+data class GalleryEntry(
+    val video: CameraVideo,
+    val row: UploadItem?,
+    /** Readable name of the app that saved a non-camera video ("Zalo", "Chrome"…). */
+    val ownerLabel: String? = null,
+) {
     val id get() = video.mediaId
     val state get() = row?.state ?: UploadState.IDLE
     val uploaded get() = state == UploadState.DONE && row?.videoId != null
@@ -76,6 +81,8 @@ data class GalleryState(
     val selected: Set<Long> = emptySet(),
     val autoTemplate: String = VideoMetadata.DEFAULT_TEMPLATE,
     val hasPermission: Boolean = true,
+    /** Also list videos other apps saved into DCIM/Camera (downloads, edits). Off by default. */
+    val showOthers: Boolean = false,
 )
 
 interface GalleryActions {
@@ -87,6 +94,7 @@ interface GalleryActions {
     fun uploadGroup(ids: List<Long>)
     fun openStudio(videoId: String)
     fun requestVideoPermission()
+    fun setShowOthers(show: Boolean)
     suspend fun thumbnail(id: Long): ImageBitmap?
 }
 
@@ -130,8 +138,12 @@ fun GalleryScreen(state: GalleryState, actions: GalleryActions, modifier: Modifi
     var preview by remember { mutableStateOf<GalleryEntry?>(null) }
     var renameOpen by remember { mutableStateOf(false) }
     val selecting = state.selected.isNotEmpty()
-    val byDay = remember(state.entries) {
-        state.entries.groupBy { dayFmt.format(Date(it.video.recordedAt)) }.toList()
+    val othersCount = remember(state.entries) { state.entries.count { !it.video.fromCamera } }
+    val visible = remember(state.entries, state.showOthers) {
+        if (state.showOthers) state.entries else state.entries.filter { it.video.fromCamera }
+    }
+    val byDay = remember(visible) {
+        visible.groupBy { dayFmt.format(Date(it.video.recordedAt)) }.toList()
     }
 
     Column(modifier.fillMaxSize().background(Bg)) {
@@ -145,11 +157,21 @@ fun GalleryScreen(state: GalleryState, actions: GalleryActions, modifier: Modifi
                     Column(Modifier.weight(1f)) {
                         Text("Video", color = Ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
                         Text(
-                            if (state.loading) "Đang đọc thư viện…" else "${state.entries.size} video trong DCIM/Camera · giữ để chọn nhiều",
+                            if (state.loading) "Đang đọc thư viện…"
+                            else "${visible.count { it.video.fromCamera }} video quay bằng camera · giữ để chọn nhiều",
                             color = Muted, fontSize = 13.sp,
                         )
                     }
                     TextButton(onClick = actions::refreshGallery) { Text("Làm mới", color = Accent) }
+                }
+                if (othersCount > 0) {
+                    Text(
+                        if (state.showOthers) "Ẩn $othersCount video tải về / từ app khác"
+                        else "Đã ẩn $othersCount video tải về / từ app khác · Hiện",
+                        color = Muted, fontSize = 12.sp,
+                        modifier = Modifier.clip(RoundedCornerShape(50)).clickable { actions.setShowOthers(!state.showOthers) }
+                            .padding(vertical = 6.dp),
+                    )
                 }
             }
             if (!state.hasPermission) {
@@ -257,6 +279,9 @@ private fun VideoRow(
         Column(Modifier.weight(1f)) {
             Text(title, color = if (isAuto) Muted else Ink, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text("Quay ${timeFmt.format(Date(e.video.recordedAt))} · ${mb(e.video.sizeBytes)}", color = Muted, fontSize = 12.sp)
+            if (!e.video.fromCamera) {
+                Text("Không phải từ camera · ${e.ownerLabel ?: "không rõ nguồn"}", color = Accent, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+            }
             statusLabel(e.state)?.let { (label, color) ->
                 Text(label, color = color, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
             }
@@ -293,6 +318,9 @@ private fun PreviewDialog(e: GalleryEntry, autoTemplate: String, actions: Galler
                 Spacer(Modifier.height(8.dp))
                 Text("Quay lúc ${fullFmt.format(Date(e.video.recordedAt))}", color = Ink, fontSize = 13.sp)
                 Text("${e.video.displayName} · ${duration(e.video.durationMs)} · ${mb(e.video.sizeBytes)}", color = Muted, fontSize = 12.sp)
+                if (!e.video.fromCamera) {
+                    Text("Video này do ${e.ownerLabel ?: "một app khác"} lưu, không phải quay bằng camera — không tự động tải lên. Bạn vẫn có thể tải tay.", color = Accent, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                }
                 statusLabel(e.state)?.let { (label, color) -> Text(label, color = color, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
                     if (e.uploaded) TextButton(onClick = { actions.openStudio(e.row!!.videoId!!) }) { Text("Mở Studio", color = Ink) }

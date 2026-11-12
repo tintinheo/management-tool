@@ -20,6 +20,7 @@ import com.ytsync.auth.YouTubeAuth
 import com.ytsync.data.Settings
 import com.ytsync.data.SettingsStore
 import com.ytsync.data.UploadDb
+import com.ytsync.data.UploadState
 import com.ytsync.media.CameraVideos
 import com.ytsync.youtube.YouTubeApi
 import kotlinx.coroutines.CancellationException
@@ -87,7 +88,16 @@ object SyncScheduler {
         if (!s.enabled || !hasVideoPermission(context)) return 0
         val dao = UploadDb.get(context).dao()
         val known = dao.knownIds().toHashSet()
-        val inWindow = CameraVideos.query(context, s.sinceEpochSec)
+        val all = CameraVideos.query(context, s.sinceEpochSec)
+        // Videos other apps saved into DCIM/Camera (downloads, edits) were auto-queued before 1.2.0 —
+        // take them back out unless they're already uploading/uploaded.
+        all.filter { !it.fromCamera && it.mediaId in known }.forEach { v ->
+            val row = dao.get(v.mediaId)
+            if (row != null && row.state == UploadState.QUEUED && row.bytesSent == 0L) {
+                dao.put(row.copy(state = UploadState.SKIPPED, error = "Không phải video quay bằng camera (${v.ownerPackage ?: "không rõ nguồn"})"))
+            }
+        }
+        val inWindow = all.filter { it.fromCamera }
         val fresh = inWindow.filter { it.mediaId !in known }.map { it.toItem() }
         if (fresh.isNotEmpty()) dao.insertNew(fresh)
         // Renamed in the Video tab before the scan saw them → still auto-upload (keeping the title).

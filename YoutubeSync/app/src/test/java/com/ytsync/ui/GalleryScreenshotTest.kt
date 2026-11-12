@@ -31,6 +31,7 @@ class GalleryScreenshotTest {
         override fun uploadGroup(ids: List<Long>) {}
         override fun openStudio(videoId: String) {}
         override fun requestVideoPermission() {}
+        override fun setShowOthers(show: Boolean) {}
         override suspend fun thumbnail(id: Long): ImageBitmap? = null
     }
 
@@ -39,6 +40,7 @@ class GalleryScreenshotTest {
         CameraVideo(id, "VID_${id}.mp4", size, "video/mp4", time, dur, 0)
 
     private val entries = listOf(
+        GalleryEntry(v(6, t(9, 18, 20), 15_000, 9_000_000).copy(ownerPackage = "com.zing.zalo", fromCamera = false), null, "Zalo"),
         GalleryEntry(v(5, t(9, 17, 51), 83_000, 210_000_000), null),
         GalleryEntry(v(4, t(9, 16, 31), 1_520_000, 1_250_000_000), UploadItem(4, "VID_4.mp4", 1, "video/mp4", t(9, 16, 31), state = UploadState.UPLOADING, title = "20261109 Video 16:31")),
         GalleryEntry(v(3, t(9, 9, 5), 41_000, 85_000_000), UploadItem(3, "VID_3.mp4", 1, "video/mp4", t(9, 9, 5), state = UploadState.IDLE, titleOverride = "20261109 Đà Lạt 2")),
@@ -49,6 +51,11 @@ class GalleryScreenshotTest {
     @Test fun list() {
         compose.setContent { YtTheme { GalleryScreen(GalleryState(entries = entries), noop) } }
         compose.onRoot().captureRoboImage("build/screenshots/gallery_list.png")
+    }
+
+    @Test fun showingOthers() {
+        compose.setContent { YtTheme { GalleryScreen(GalleryState(entries = entries, showOthers = true), noop) } }
+        compose.onRoot().captureRoboImage("build/screenshots/gallery_others.png")
     }
 
     @Test fun selecting() {

@@ -80,6 +80,20 @@ Cách dùng:
   - Video **đang tải lên**: bị bỏ qua. Bạn đổi tên sau khi video tải xong.
 - **Tải lên** đưa các video đã chọn vào hàng đợi, kể cả video cũ quay trước khi bật tự động. Tính năng này hoạt động cả khi đang tắt tự động tải lên.
 
+## Chỉ tải video quay bằng camera
+
+App chỉ xét thư mục `DCIM/Camera`, nên video tải về bằng trình duyệt (nằm trong `Download/`) vốn đã không xuất hiện. Tuy vậy, một số app lưu thẳng vào `DCIM/Camera`, ví dụ Zalo/Messenger khi bấm "Lưu", trình chỉnh sửa của Thư viện Xiaomi, hay CapCut. Từ bản 1.2.0, app kiểm tra **app nào đã tạo ra file** (thông tin Android ghi lại cho từng file) để loại các video này:
+
+| Nguồn tạo file | Kết quả |
+|---|---|
+| App camera (`com.android.camera` của Xiaomi, hoặc bất kỳ app nào quay được video) | ✅ Tự động tải lên |
+| App khác (Zalo, Chrome, Thư viện, CapCut…) | ❌ Ẩn khỏi danh sách, không tự động tải lên |
+| Android không rõ nguồn (video khôi phục từ bản sao lưu, chép từ máy tính) | ✅ chỉ khi tên file có dạng camera: `VID_YYYYMMDD_HHMMSS`, `PXL_…`, `YYYYMMDD_HHMMSS` |
+
+- Ở tab **Video**, dòng "Đã ẩn N video tải về / từ app khác · Hiện" cho phép hiện lại các video bị ẩn để kiểm tra. Những video này có nhãn đỏ ghi tên app đã lưu chúng, và bạn vẫn tải tay được nếu muốn.
+- Nếu trước đây một video không phải từ camera đã vào hàng đợi mà chưa tải byte nào, app tự chuyển nó sang trạng thái **Bỏ qua**.
+- Để đọc được tên app tạo file, app cần quyền "xem các app đã cài" (`QUERY_ALL_PACKAGES`), vì từ Android 14 thông tin này bị ẩn nếu thiếu quyền. Đây là app cài tay, không phát hành qua Play Store, nên dùng quyền này không gặp vấn đề.
+
 ## Ngày giờ trong tên = lúc QUAY video
 
 Mọi biến ngày giờ (`{YYYYMMDD}`, `{HH}`…), ở cả tên tự động lẫn tên đặt theo nhóm, đều lấy theo **thời điểm quay**. App xác định thời điểm này theo thứ tự ưu tiên:

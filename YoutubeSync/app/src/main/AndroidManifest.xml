@@ -12,6 +12,20 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!--
+      Android 14+ hides MediaStore OWNER_PACKAGE_NAME for apps we can't "see". Seeing every package lets
+      us tell camera recordings from videos that Zalo/Chrome/Gallery editor/CapCut saved into DCIM/Camera.
+      Sideloaded personal app, so the Play policy on this permission doesn't apply.
+    -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <queries>
+        <intent><action android:name="android.media.action.VIDEO_CAPTURE" /></intent>
+        <intent><action android:name="android.media.action.VIDEO_CAMERA" /></intent>
+        <package android:name="com.android.camera" />
+    </queries>
 
     <application
         android:name=".App"
