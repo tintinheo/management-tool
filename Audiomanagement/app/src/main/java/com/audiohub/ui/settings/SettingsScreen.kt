@@ -81,6 +81,17 @@ fun SettingsScreen() {
                 onSave = { path -> scope.launch { container.settings.setPodcastFolder(path) } },
             )
 
+            FolderField(
+                label = "Audiobook folder",
+                value = current.audiobookFolder,
+                onSave = { path ->
+                    scope.launch {
+                        container.settings.setAudiobookFolder(path)
+                        runCatching { container.audiobookRepository.scan() }
+                    }
+                },
+            )
+
             SectionTitle("Podcasts")
             RegionPicker(
                 current = current.podcastCountry,

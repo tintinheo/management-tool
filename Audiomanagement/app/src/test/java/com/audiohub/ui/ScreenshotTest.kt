@@ -8,6 +8,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Podcasts
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -98,7 +103,7 @@ class ScreenshotTest {
         override fun cycleRepeat() = Unit
         override fun jumpTo(index: Int) = Unit
         override fun removeAt(index: Int) = Unit
-        override fun move(from: Int, to: Int) = Unit
+        override fun setPlayOrder(order: List<Int>) = Unit
         override fun setSleepTimer(durationMs: Long) = Unit
     }
 
@@ -290,6 +295,97 @@ class ScreenshotTest {
             onRefresh = {},
             pendingRecall = listOf(episodes[2].copy(played = true)),
             notesCount = 4,
+        )
+    }
+
+    // ------------------------------------------------------------------ Phase 10: layout styles, multi-select queue
+
+    private val navTabs = listOf(
+        NavTab(Routes.LIBRARY, "Music", androidx.compose.material.icons.Icons.Rounded.LibraryMusic),
+        NavTab(Routes.PODCASTS, "Podcasts", androidx.compose.material.icons.Icons.Rounded.Podcasts),
+        NavTab(Routes.BOOKS, "Books", androidx.compose.material.icons.Icons.AutoMirrored.Rounded.MenuBook),
+        NavTab(Routes.SEARCH, "Search", androidx.compose.material.icons.Icons.Rounded.Search),
+        NavTab(Routes.SETTINGS, "Settings", androidx.compose.material.icons.Icons.Rounded.Settings),
+    )
+
+    /** The library tab with the style's own mini player and tab bar. */
+    private fun chromeShot(name: String, style: com.audiohub.ui.theme.UiStyle, dark: Boolean = false) =
+        shot(name, dark = dark, manualClock = true, style = style) {
+            Column {
+                Box(Modifier.weight(1f)) {
+                    LibraryHomeContent(1234, false, "Music/AudioHub/", albums, TrackActions.None, onRescan = {})
+                }
+                AppBottomBar(navTabs, Routes.LIBRARY, onSelect = {}) {
+                    MiniPlayer(playing.copy(title = longTitle), { 84_000L }, {}, {}, {})
+                }
+            }
+        }
+
+    private fun nowPlayingShot(name: String, style: com.audiohub.ui.theme.UiStyle, dark: Boolean = false) =
+        shot(name, dark = dark, manualClock = true, style = style) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                NowPlayingContent(playing, fakeControls, isFavorite = true)
+            }
+        }
+
+    @Test fun washiNowPlaying() = nowPlayingShot("style_washi_now_playing", com.audiohub.ui.theme.UiStyle.Washi)
+    @Test fun washiChrome() = chromeShot("style_washi_library", com.audiohub.ui.theme.UiStyle.Washi)
+    @Test fun bordeauxNowPlaying() = nowPlayingShot("style_bordeaux_now_playing_dark", com.audiohub.ui.theme.UiStyle.Bordeaux, dark = true)
+    @Test fun bordeauxChrome() = chromeShot("style_bordeaux_library", com.audiohub.ui.theme.UiStyle.Bordeaux)
+    @Test fun glacierNowPlaying() = nowPlayingShot("style_glacier_now_playing", com.audiohub.ui.theme.UiStyle.Glacier)
+    @Test fun glacierChrome() = chromeShot("style_glacier_library_dark", com.audiohub.ui.theme.UiStyle.Glacier, dark = true)
+
+    @Test
+    fun queueMultiSelect() = shot("playing_queue_selection", manualClock = true) {
+        com.audiohub.ui.nowplaying.QueueContent(
+            playing.queue, playing.queueIndex, shuffleEnabled = true, fakeControls, onBack = {},
+            initialSelection = setOf(0, 4),
+        )
+    }
+
+    // ------------------------------------------------------------------ Phase 9: audiobooks
+
+    private val books = listOf(
+        com.audiohub.data.db.BookEntity(1, "Mắt Biếc", "Mắt Biếc", "Nguyễn Nhật Ánh", null, 24, 9 * 3_600_000L + 32 * 60_000L, 100,
+            currentFileId = 103, positionMs = 754_000, listenedMs = 4 * 3_600_000L + 10 * 60_000L, lastPlayedAt = 900),
+        com.audiohub.data.db.BookEntity(2, "Sapiens", "Sapiens: Lược Sử Loài Người", "Yuval Noah Harari", null, 41, 15 * 3_600_000L, 200),
+        com.audiohub.data.db.BookEntity(3, "Nhà Giả Kim", "Nhà Giả Kim", "Paulo Coelho", null, 12, 4 * 3_600_000L, 300,
+            finished = true, listenedMs = 4 * 3_600_000L, lastPlayedAt = 500),
+        com.audiohub.data.db.BookEntity(4, "file:Truyen ngan.mp3", "Truyện Ngắn Chọn Lọc", "", null, 1, 48 * 60_000L, 400),
+    )
+
+    private val chapterNames = listOf("Làng Đo Đo", "Ngạn và Hà Lan", "Lên thành phố", "Hà Lan", "Dũng", "Trà Long", "Những lá thư", "Mắt biếc")
+
+    @Test
+    fun audiobooks() = shot("audiobooks") {
+        Column {
+            Box(Modifier.weight(1f)) {
+                com.audiohub.ui.audiobooks.BooksContent(
+                    books, "Audiobook/", scanning = false, sort = com.audiohub.ui.audiobooks.BookSort.Recent,
+                    onSort = {}, onRescan = {}, onOpen = {}, onResume = {},
+                )
+            }
+            MiniPlayer(playing.copy(title = "Chương 4: Hà Lan", artist = "Nguyễn Nhật Ánh", mediaId = "bookfile:103"), { 84_000L }, {}, {}, {})
+        }
+    }
+
+    @Test
+    fun audiobooksEmpty() = shot("audiobooks_empty") {
+        com.audiohub.ui.audiobooks.BooksContent(
+            emptyList(), "Audiobook/", scanning = false, sort = com.audiohub.ui.audiobooks.BookSort.Recent,
+            onSort = {}, onRescan = {}, onOpen = {}, onResume = {},
+        )
+    }
+
+    @Test
+    fun audiobookDetail() = shot("audiobook_detail") {
+        com.audiohub.ui.audiobooks.BookDetailContent(
+            book = books[0],
+            chapters = chapterNames.mapIndexed { i, name ->
+                com.audiohub.data.db.BookChapterEntity(100L + i, 1, i, "Chương ${i + 1}: $name", "content://x/$i", 1_380_000L + i * 61_000L)
+            },
+            playingFileId = 103,
+            onBack = {}, onPlay = {}, onPlayChapter = {}, onSetFinished = {},
         )
     }
 

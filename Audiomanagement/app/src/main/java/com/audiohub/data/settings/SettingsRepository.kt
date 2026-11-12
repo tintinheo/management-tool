@@ -48,6 +48,10 @@ data class AppSettings(
     val bodyFont: String = "",
     /** Album art motion id (see ui.theme.ArtMotion; "" = the style's default). */
     val artMotion: String = "",
+    /** Relative to shared storage root, e.g. "Audiobook/". */
+    val audiobookFolder: String = AudioFolders.DEFAULT_AUDIOBOOK,
+    /** Playback speed for audiobooks. */
+    val bookSpeed: Float = 1f,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -70,6 +74,8 @@ class SettingsRepository(private val context: Context) {
         val HEADING_FONT = stringPreferencesKey("heading_font")
         val BODY_FONT = stringPreferencesKey("body_font")
         val ART_MOTION = stringPreferencesKey("art_motion")
+        val AUDIOBOOK_FOLDER = stringPreferencesKey("audiobook_folder")
+        val BOOK_SPEED = floatPreferencesKey("book_speed")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -91,6 +97,8 @@ class SettingsRepository(private val context: Context) {
             headingFont = p[Keys.HEADING_FONT].orEmpty(),
             bodyFont = p[Keys.BODY_FONT].orEmpty(),
             artMotion = p[Keys.ART_MOTION].orEmpty(),
+            audiobookFolder = p[Keys.AUDIOBOOK_FOLDER] ?: AudioFolders.DEFAULT_AUDIOBOOK,
+            bookSpeed = p[Keys.BOOK_SPEED] ?: 1f,
         )
     }
 
@@ -154,6 +162,14 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setPodcastCountry(country: String) {
         context.dataStore.edit { it[Keys.PODCAST_COUNTRY] = country.lowercase() }
+    }
+
+    suspend fun setAudiobookFolder(relativePath: String) {
+        context.dataStore.edit { it[Keys.AUDIOBOOK_FOLDER] = AudioFolders.normalize(relativePath) }
+    }
+
+    suspend fun setBookSpeed(speed: Float) {
+        context.dataStore.edit { it[Keys.BOOK_SPEED] = speed.coerceIn(0.5f, 3f) }
     }
 
     suspend fun setPodcastSpeed(speed: Float) {

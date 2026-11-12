@@ -41,6 +41,8 @@ import com.audiohub.ui.theme.ArtMotion
 import com.audiohub.ui.theme.FontOption
 import com.audiohub.ui.theme.UiStyle
 import com.audiohub.ui.theme.colors
+import com.audiohub.ui.theme.previewCorner
+import com.audiohub.ui.theme.voice
 
 /** Settings → Appearance: UI style, album-art motion, heading and body fonts. */
 @Composable
@@ -53,9 +55,13 @@ fun AppearanceSection(
 ) {
     val style = UiStyle.fromId(settings.uiStyle)
     Text("Style", style = MaterialTheme.typography.bodyLarge)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        UiStyle.entries.forEach { s ->
-            StyleCard(s, selected = s == style, onClick = { onStyle(s) }, modifier = Modifier.weight(1f))
+    // Row 1: palette/type styles; row 2: the layout styles (they also rearrange the screens).
+    UiStyle.entries.chunked(3).forEach { row ->
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            row.forEach { s ->
+                StyleCard(s, selected = s == style, onClick = { onStyle(s) }, modifier = Modifier.weight(1f))
+            }
+            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
         }
     }
     Text(style.tagline, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -78,11 +84,8 @@ fun AppearanceSection(
 @Composable
 private fun StyleCard(style: UiStyle, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val c = style.colors(isSystemInDarkTheme())
-    val corner = when (style) {
-        UiStyle.Atelier -> 12.dp
-        UiStyle.Noir -> 2.dp
-        UiStyle.Riviera -> 22.dp
-    }
+    val corner = style.previewCorner()
+    val voice = style.voice()
     val shape = RoundedCornerShape(corner)
     Column(
         modifier
@@ -104,9 +107,9 @@ private fun StyleCard(style: UiStyle, selected: Boolean, onClick: () -> Unit, mo
             "Aa",
             color = c.onBackground,
             fontSize = 22.sp,
-            fontFamily = if (style == UiStyle.Noir) FontFamily.SansSerif else FontFamily.Serif,
-            fontWeight = if (style == UiStyle.Noir) FontWeight.Light else FontWeight.Normal,
-            fontStyle = if (style == UiStyle.Riviera) FontStyle.Italic else FontStyle.Normal,
+            fontFamily = voice.family,
+            fontWeight = voice.weight,
+            fontStyle = voice.style,
         )
         Box(Modifier.padding(top = 4.dp).width(28.dp).height(2.dp).background(c.primary))
         Spacer(Modifier.height(8.dp))

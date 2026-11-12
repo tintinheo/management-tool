@@ -207,6 +207,58 @@ class PlaybackFlowTest {
     }
 
     /** Pumps the main looper (controller callbacks) while ExoPlayer runs on its own thread. */
+    private fun titlesInPlayOrder() = connection.state.value.queue.map { it.title }
+
+    /** Title of the item that plays after [mediaId] in the current play order. */
+    private fun titleAfter(mediaId: String?): String? {
+        val q = connection.state.value.queue
+        val pos = q.indexOfFirst { it.mediaId == mediaId }
+        return q.getOrNull(pos + 1)?.title
+    }
+
+    @Test
+    fun playNextLandsRightAfterTheCurrentSongEvenWithShuffle() {
+        val items = (1..8).map { wavItem("Song $it", 300.0 + it * 20, seconds = 4) }
+        connection.playQueue(items, startIndex = 0, shuffle = true)
+        waitFor("shuffled playback") { connection.state.value.isPlaying && connection.state.value.queueSize == 8 }
+        connection.togglePlayPause()
+        // Robolectric renders audio faster than real time: make sure the song can't move on.
+        waitFor("paused") { !connection.state.value.isPlaying && !connection.state.value.playWhenReady }
+        val current = connection.state.value.mediaId
+
+        // Repeat a few times: ExoPlayer alone would put the new song at a random shuffle slot.
+        repeat(3) { round ->
+            val title = "Next $round"
+            connection.playNext(listOf(wavItem(title, 900.0 + round * 30, seconds = 4)))
+            waitFor("\"$title\" queued right after the current song") { titleAfter(current) == title }
+        }
+        assertEquals(current, connection.state.value.mediaId)
+        assertTrue(connection.state.value.shuffleEnabled)
+        assertEquals(11, connection.state.value.queue.size)
+    }
+
+    @Test
+    fun setPlayOrderReordersInShuffleAndInListMode() {
+        val items = (1..6).map { wavItem("Song $it", 300.0 + it * 20, seconds = 4) }
+        connection.playQueue(items, startIndex = 0, shuffle = true)
+        waitFor("shuffled playback") { connection.state.value.queueSize == 6 }
+        connection.togglePlayPause()
+
+        // Shuffle on: the shuffle order itself becomes exactly what was asked for.
+        val desired = listOf(0, 5, 4, 3, 2, 1)
+        connection.setPlayOrder(desired)
+        waitFor("shuffle order replaced") { connection.state.value.queue.map { it.index } == desired }
+        assertTrue(connection.state.value.shuffleEnabled)
+
+        // Shuffle off: list items are moved (a dragged block of 2 songs).
+        connection.toggleShuffle()
+        waitFor("list order") { !connection.state.value.shuffleEnabled }
+        connection.setPlayOrder(listOf(0, 3, 4, 1, 2, 5))
+        waitFor("block moved") {
+            titlesInPlayOrder() == listOf("Song 1", "Song 4", "Song 5", "Song 2", "Song 3", "Song 6")
+        }
+    }
+
     private fun waitFor(what: String, timeoutMs: Long = 8_000, condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {

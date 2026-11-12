@@ -11,6 +11,7 @@ import com.audiohub.data.podcast.NotesRepository.EpisodeHeader
 import com.audiohub.ui.theme.AppFonts
 import com.audiohub.ui.theme.ArtMotion
 import com.audiohub.ui.theme.UiStyle
+import com.audiohub.ui.theme.tokens
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -127,7 +128,12 @@ class Phase8Test {
     fun stylesHaveDistinctDefaults() {
         assertEquals(UiStyle.Atelier, UiStyle.fromId(""))
         assertEquals(UiStyle.Noir, UiStyle.fromId("noir"))
-        assertEquals(3, UiStyle.entries.map { it.defaultMotion }.toSet().size)
+        assertEquals(3, listOf(UiStyle.Atelier, UiStyle.Noir, UiStyle.Riviera).map { it.defaultMotion }.toSet().size)
+        // The layout styles each arrange Now Playing, the tab bar and the mini player in their own way.
+        val layouts = listOf(UiStyle.Washi, UiStyle.Bordeaux, UiStyle.Glacier).map { it.tokens() }
+        assertEquals(3, layouts.map { it.nowPlaying }.toSet().size)
+        assertTrue(layouts.none { it.nowPlaying == com.audiohub.ui.theme.NowPlayingLayout.Classic })
+        assertEquals(3, layouts.map { it.navStyle to it.miniStyle }.toSet().size)
         assertEquals(ArtMotion.Spin, ArtMotion.fromId("spin"))
         assertNull(ArtMotion.fromId(""))
     }

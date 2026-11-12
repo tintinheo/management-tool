@@ -13,6 +13,36 @@ const val EPISODE_ID_PREFIX = "episode:"
 /** Episodes of shows that aren't followed: playable, but progress isn't saved. */
 const val STREAM_ID_PREFIX = "stream:"
 
+/** Audiobook chapters: MediaStore id of the file. */
+const val BOOK_FILE_PREFIX = "bookfile:"
+
+fun bookFileIdOf(mediaId: String?): Long? =
+    mediaId?.takeIf { it.startsWith(BOOK_FILE_PREFIX) }?.removePrefix(BOOK_FILE_PREFIX)?.toLongOrNull()
+
+fun isBookMediaId(mediaId: String?): Boolean = mediaId != null && mediaId.startsWith(BOOK_FILE_PREFIX)
+
+/** One chapter: title = chapter, artist = author, album = book (Now Playing shows "author — book"). */
+fun bookChapterItem(chapter: com.audiohub.data.db.BookChapterEntity, book: com.audiohub.data.db.BookEntity): MediaItem {
+    val uri = Uri.parse(chapter.uri)
+    return MediaItem.Builder()
+        .setMediaId("$BOOK_FILE_PREFIX${chapter.fileId}")
+        .setUri(uri)
+        .setRequestMetadata(MediaItem.RequestMetadata.Builder().setMediaUri(uri).build())
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setTitle(chapter.title)
+                .setArtist(book.author.ifBlank { book.title })
+                .setAlbumTitle(book.title)
+                .setTrackNumber(chapter.position + 1)
+                .setArtworkUri(book.artworkUri?.let(Uri::parse))
+                .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK_CHAPTER)
+                .setIsBrowsable(false)
+                .setIsPlayable(true)
+                .build(),
+        )
+        .build()
+}
+
 /** MediaStore id of a library track, or null for other media (podcast episodes, tests). */
 fun trackIdOf(mediaId: String?): Long? =
     mediaId?.takeIf { it.startsWith(TRACK_ID_PREFIX) }?.removePrefix(TRACK_ID_PREFIX)?.toLongOrNull()

@@ -59,12 +59,35 @@ enum class UiStyle(
     Atelier("atelier", "Atelier", "Warm ivory, champagne gold, editorial serif", ArtMotion.Lift),
     Noir("noir", "Noir", "Monochrome, platinum accent, light sans, sharp edges", ArtMotion.Pulse),
     Riviera("riviera", "Riviera", "Emerald & linen, brass, italic serif, soft curves", ArtMotion.Spin),
+
+    // Layout styles: besides palette and type, these rearrange the tab bar, mini player and Now Playing.
+    Washi("washi", "Washi", "Rice paper & sumi ink, vermilion · editorial layout, icon-only tabs", ArtMotion.Still),
+    Bordeaux("bordeaux", "Bordeaux", "Wine & blush, rose gold, bold serif · full-bleed art, pill player", ArtMotion.Pulse),
+    Glacier("glacier", "Glacier", "Ice & navy, steel blue, modern sans · frosted card, floating tabs", ArtMotion.Lift),
     ;
 
     companion object {
         val Default = Atelier
         fun fromId(id: String): UiStyle = entries.firstOrNull { it.id == id } ?: Default
     }
+}
+
+/** Bottom tab bar: labelled icons, bare icons with a dot, or a floating pill. */
+enum class NavStyle { Labeled, IconsDot, FloatingPill }
+
+/** Mini player: floating card, flat full-width bar, or a compact pill with a progress ring. */
+enum class MiniStyle { Card, Bar, Pill }
+
+/** Now Playing arrangement. */
+enum class NowPlayingLayout {
+    /** Art on top, title and controls below. */
+    Classic,
+    /** Edge-to-edge art with the title laid over its fading lower edge. */
+    Immersive,
+    /** Big title first like a magazine headline, art below, outlined play button. */
+    Editorial,
+    /** Art, title and seek bar together on a translucent card. */
+    Frosted,
 }
 
 /** Per-style tokens that Material's theme doesn't cover. */
@@ -76,6 +99,9 @@ class UiTokens(
     val cornerScale: Float,
     /** Big Now Playing artwork, when not spinning (spinning art is always round). */
     val heroArtShape: Shape,
+    val navStyle: NavStyle = NavStyle.Labeled,
+    val miniStyle: MiniStyle = MiniStyle.Card,
+    val nowPlaying: NowPlayingLayout = NowPlayingLayout.Classic,
 )
 
 val LocalUiTokens = staticCompositionLocalOf {
@@ -143,17 +169,53 @@ private val RivieraDark = darkScheme(
     hairline = Color(0xFF22332C), outline = Color(0xFF3A4D44),
 )
 
+private val WashiLight = lightScheme(
+    accent = Color(0xFFB5442F), onAccent = Color(0xFFFBF8F2), ink = Color(0xFF1B1A19), inkSoft = Color(0xFF7A746B),
+    background = Color(0xFFF7F4EE), paper = Color(0xFFFBF9F5), tint = Color(0xFFEDE8DE),
+    hairline = Color(0xFFE2DCD0), outline = Color(0xFFC7BFB1),
+)
+private val WashiDark = darkScheme(
+    accent = Color(0xFFE07A5F), onAccent = Color(0xFF121110), text = Color(0xFFEDE7DB), textSoft = Color(0xFF9A9286),
+    background = Color(0xFF121110), raised = Color(0xFF1A1918), mist = Color(0xFF24221F),
+    hairline = Color(0xFF2C2A26), outline = Color(0xFF48443E),
+)
+
+private val BordeauxLight = lightScheme(
+    accent = Color(0xFF7A1F2B), onAccent = Color(0xFFFBF3F1), ink = Color(0xFF2A1215), inkSoft = Color(0xFF8A6F72),
+    background = Color(0xFFF8F1EF), paper = Color.White, tint = Color(0xFFEFE2E0),
+    hairline = Color(0xFFE7D7D5), outline = Color(0xFFCDB4B2),
+)
+private val BordeauxDark = darkScheme(
+    accent = Color(0xFFE0A899), onAccent = Color(0xFF140A0C), text = Color(0xFFF3E6E4), textSoft = Color(0xFFA88F92),
+    background = Color(0xFF140A0C), raised = Color(0xFF1E1013), mist = Color(0xFF2A171B),
+    hairline = Color(0xFF341E22), outline = Color(0xFF53363B),
+)
+
+private val GlacierLight = lightScheme(
+    accent = Color(0xFF2F5D8A), onAccent = Color.White, ink = Color(0xFF0F1B2D), inkSoft = Color(0xFF6B7A8C),
+    background = Color(0xFFF2F5F8), paper = Color.White, tint = Color(0xFFE3E9F0),
+    hairline = Color(0xFFDCE3EB), outline = Color(0xFFB8C4D2),
+)
+private val GlacierDark = darkScheme(
+    accent = Color(0xFF9CC3E6), onAccent = Color(0xFF0A111B), text = Color(0xFFE6EEF6), textSoft = Color(0xFF8A9BB0),
+    background = Color(0xFF0A111B), raised = Color(0xFF111A26), mist = Color(0xFF1A2533),
+    hairline = Color(0xFF1F2B3A), outline = Color(0xFF39485B),
+)
+
 /** Light/dark swatches, also used by the style picker. */
 fun UiStyle.colors(dark: Boolean): ColorScheme = when (this) {
     UiStyle.Atelier -> if (dark) AtelierDark else AtelierLight
     UiStyle.Noir -> if (dark) NoirDark else NoirLight
     UiStyle.Riviera -> if (dark) RivieraDark else RivieraLight
+    UiStyle.Washi -> if (dark) WashiDark else WashiLight
+    UiStyle.Bordeaux -> if (dark) BordeauxDark else BordeauxLight
+    UiStyle.Glacier -> if (dark) GlacierDark else GlacierLight
 }
 
 // ------------------------------------------------------------------ Type
 
 /** Large-title voice of each style; the family can be swapped by the user's heading font. */
-private class DisplayVoice(
+class DisplayVoice(
     val family: FontFamily,
     val weight: FontWeight,
     val style: FontStyle,
@@ -161,17 +223,25 @@ private class DisplayVoice(
     val tracking: Float,
 )
 
-private fun UiStyle.voice() = when (this) {
+/** Large-title voice; also drawn by the style picker. */
+fun UiStyle.voice() = when (this) {
     UiStyle.Atelier -> DisplayVoice(FontFamily.Serif, FontWeight.Normal, FontStyle.Normal, -0.6f)
     UiStyle.Noir -> DisplayVoice(FontFamily.SansSerif, FontWeight.Light, FontStyle.Normal, 0.4f)
     UiStyle.Riviera -> DisplayVoice(FontFamily.Serif, FontWeight.Normal, FontStyle.Italic, -0.4f)
+    UiStyle.Washi -> DisplayVoice(FontFamily.Serif, FontWeight.Light, FontStyle.Normal, 0.6f)
+    UiStyle.Bordeaux -> DisplayVoice(FontFamily.Serif, FontWeight.Bold, FontStyle.Normal, -1.0f)
+    UiStyle.Glacier -> DisplayVoice(FontFamily.SansSerif, FontWeight.Medium, FontStyle.Normal, -0.9f)
 }
 
 private fun typography(style: UiStyle, heading: FontFamily?, body: FontFamily?): Typography {
     val v = style.voice()
     val display = heading ?: v.family
     val bodyFamily = body ?: FontFamily.Default
-    val labelTracking = if (style == UiStyle.Noir) 0.6f else 0.2f
+    val labelTracking = when (style) {
+        UiStyle.Noir -> 0.6f
+        UiStyle.Washi -> 1.0f
+        else -> 0.2f
+    }
     fun TextStyle.head(size: Int, line: Int, trackingScale: Float) = copy(
         fontFamily = display, fontSize = size.sp, lineHeight = line.sp, fontWeight = v.weight,
         fontStyle = v.style, letterSpacing = (v.tracking * trackingScale).sp,
@@ -211,17 +281,45 @@ private fun shapes(xs: Dp, s: Dp, m: Dp, l: Dp, xl: Dp) = Shapes(
 private val AtelierShapes = shapes(6.dp, 8.dp, 12.dp, 18.dp, 28.dp)
 private val NoirShapes = shapes(2.dp, 2.dp, 2.dp, 3.dp, 4.dp)
 private val RivieraShapes = shapes(10.dp, 14.dp, 20.dp, 28.dp, 36.dp)
+private val WashiShapes = shapes(0.dp, 0.dp, 0.dp, 0.dp, 0.dp)
+private val BordeauxShapes = shapes(12.dp, 16.dp, 22.dp, 30.dp, 40.dp)
+private val GlacierShapes = shapes(10.dp, 14.dp, 18.dp, 24.dp, 32.dp)
 
 private fun UiStyle.shapes() = when (this) {
     UiStyle.Atelier -> AtelierShapes
     UiStyle.Noir -> NoirShapes
     UiStyle.Riviera -> RivieraShapes
+    UiStyle.Washi -> WashiShapes
+    UiStyle.Bordeaux -> BordeauxShapes
+    UiStyle.Glacier -> GlacierShapes
 }
 
-private fun UiStyle.tokens(motion: ArtMotion) = when (this) {
+/** Corner of the style's medium shape, for previews. */
+fun UiStyle.previewCorner(): Dp = when (this) {
+    UiStyle.Atelier -> 12.dp
+    UiStyle.Noir -> 2.dp
+    UiStyle.Riviera -> 22.dp
+    UiStyle.Washi -> 0.dp
+    UiStyle.Bordeaux -> 22.dp
+    UiStyle.Glacier -> 18.dp
+}
+
+fun UiStyle.tokens(motion: ArtMotion = defaultMotion) = when (this) {
     UiStyle.Atelier -> UiTokens(this, motion, 1f, RoundedCornerShape(12.dp))
     UiStyle.Noir -> UiTokens(this, motion, 0.25f, RoundedCornerShape(2.dp))
     UiStyle.Riviera -> UiTokens(this, motion, 1.6f, RoundedCornerShape(28.dp))
+    UiStyle.Washi -> UiTokens(
+        this, motion, 0f, RoundedCornerShape(0.dp),
+        navStyle = NavStyle.IconsDot, miniStyle = MiniStyle.Bar, nowPlaying = NowPlayingLayout.Editorial,
+    )
+    UiStyle.Bordeaux -> UiTokens(
+        this, motion, 1.4f, RoundedCornerShape(0.dp),
+        navStyle = NavStyle.Labeled, miniStyle = MiniStyle.Pill, nowPlaying = NowPlayingLayout.Immersive,
+    )
+    UiStyle.Glacier -> UiTokens(
+        this, motion, 1.3f, RoundedCornerShape(20.dp),
+        navStyle = NavStyle.FloatingPill, miniStyle = MiniStyle.Card, nowPlaying = NowPlayingLayout.Frosted,
+    )
 }
 
 @Composable

@@ -73,8 +73,14 @@ interface PlayerControls {
     fun cycleRepeat()
     fun jumpTo(index: Int)
     fun removeAt(index: Int)
-    /** Moves the item at list [from] to list [to] (player indices, see [QueueItem.index]). */
-    fun move(from: Int, to: Int)
+    /** Removes several items (player indices); highest first so the others don't shift. */
+    fun removeAll(indices: Collection<Int>) = indices.sortedDescending().forEach(::removeAt)
+
+    /**
+     * Makes the queue play in [order] (player indices, see [QueueItem.index]; a permutation of all
+     * items). Works with shuffle on too: then the shuffle order is replaced instead of the list.
+     */
+    fun setPlayOrder(order: List<Int>)
     /** Minutes in ms, [PlaybackService.SLEEP_END_OF_ITEM], or 0 to cancel. */
     fun setSleepTimer(durationMs: Long)
 }
@@ -219,10 +225,18 @@ class PlayerConnection(private val context: Context) : PlayerControls {
     /** Current position; poll this from the UI while visible (not part of [state] to avoid churn). */
     override val currentPositionMs: Long get() = controller?.currentPosition ?: 0L
 
-    fun playQueue(items: List<MediaItem>, startIndex: Int = 0, shuffle: Boolean = false, startPositionMs: Long = 0L) {
+    fun playQueue(
+        items: List<MediaItem>,
+        startIndex: Int = 0,
+        shuffle: Boolean = false,
+        startPositionMs: Long = 0L,
+        /** e.g. REPEAT_MODE_OFF for audiobooks, so a finished book doesn't loop; null keeps the current mode. */
+        repeatMode: Int? = null,
+    ) {
         if (items.isEmpty()) return
         withController { c ->
             c.shuffleModeEnabled = shuffle
+            repeatMode?.let { c.repeatMode = it }
             c.setMediaItems(items, startIndex.coerceIn(0, items.lastIndex), startPositionMs.coerceAtLeast(0L))
             c.prepare()
             c.play()
@@ -276,10 +290,12 @@ class PlayerConnection(private val context: Context) : PlayerControls {
         if (index in 0 until c.mediaItemCount) c.removeMediaItem(index)
     }
 
-    override fun move(from: Int, to: Int) = withController { c ->
-        if (from != to && from in 0 until c.mediaItemCount && to in 0 until c.mediaItemCount) {
-            c.moveMediaItem(from, to)
-        }
+    override fun setPlayOrder(order: List<Int>) = withController { c ->
+        if (order.size < 2) return@withController
+        c.sendCustomCommand(
+            SessionCommand(PlaybackService.ACTION_SET_ORDER, Bundle.EMPTY),
+            Bundle().apply { putIntArray(PlaybackService.ARG_ORDER, order.toIntArray()) },
+        )
     }
 
     fun playNext(items: List<MediaItem>) = withController { c ->
@@ -287,7 +303,19 @@ class PlayerConnection(private val context: Context) : PlayerControls {
         if (c.mediaItemCount == 0) {
             c.setMediaItems(items); c.prepare(); c.play()
         } else {
-            c.addMediaItems(c.currentMediaItemIndex + 1, items)
+            val at = c.currentMediaItemIndex + 1
+            c.addMediaItems(at, items)
+            // With shuffle on, ExoPlayer scatters new items randomly through the shuffle order;
+            // the service moves them right after the current item once they've arrived.
+            if (c.shuffleModeEnabled) {
+                c.sendCustomCommand(
+                    SessionCommand(PlaybackService.ACTION_PIN_NEXT, Bundle.EMPTY),
+                    Bundle().apply {
+                        putStringArrayList(PlaybackService.ARG_IDS, ArrayList(items.map { it.mediaId }))
+                        putInt(PlaybackService.ARG_FROM, at)
+                    },
+                )
+            }
         }
     }
 

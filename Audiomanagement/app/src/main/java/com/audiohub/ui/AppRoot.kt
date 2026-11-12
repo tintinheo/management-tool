@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Podcasts
 import androidx.compose.material.icons.rounded.Search
@@ -90,9 +91,12 @@ import kotlinx.coroutines.launch
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
     Music(Routes.LIBRARY, "Music", Icons.Rounded.LibraryMusic),
     Podcasts(Routes.PODCASTS, "Podcasts", Icons.Rounded.Podcasts),
+    Books(Routes.BOOKS, "Books", Icons.AutoMirrored.Rounded.MenuBook),
     Search(Routes.SEARCH, "Search", Icons.Rounded.Search),
     Settings(Routes.SETTINGS, "Settings", Icons.Rounded.Settings),
 }
+
+private val navTabs = Tab.entries.map { NavTab(it.route, it.label, it.icon) }
 
 @Composable
 fun AppRoot() {
@@ -211,49 +215,35 @@ private fun MainScaffold() {
     ) {
         Scaffold(
             bottomBar = {
-                Column {
-                    if (playerState.hasMedia) {
-                        MiniPlayer(
-                            state = playerState,
-                            positionProvider = { player.currentPositionMs },
-                            onOpen = { showNowPlaying = true },
-                            onPlayPause = player::togglePlayPause,
-                            onNext = player::skipNext,
-                        )
-                    }
-                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        tonalElevation = 0.dp,
-                    ) {
-                        Tab.entries.forEach { tab ->
-                            NavigationBarItem(
-                                colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = Color.Transparent,
-                                    selectedIconColor = MaterialTheme.colorScheme.onSurface,
-                                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                ),
-                                selected = currentTab == tab.route,
-                                onClick = {
-                                    if (currentTab == tab.route) {
-                                        // Re-tapping the active tab returns to its root, like iOS.
-                                        navController.popBackStack(tab.route, inclusive = false)
-                                    } else {
-                                        navController.navigate(tab.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    }
-                                },
-                                icon = { Icon(tab.icon, contentDescription = null) },
-                                label = { Text(tab.label) },
+                AppBottomBar(
+                    tabs = navTabs,
+                    currentRoute = currentTab,
+                    onSelect = { tab ->
+                        if (currentTab == tab.route) {
+                            // Re-tapping the active tab returns to its root, like iOS.
+                            navController.popBackStack(tab.route, inclusive = false)
+                        } else {
+                            navController.navigate(tab.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    },
+                    miniPlayer = if (playerState.hasMedia) {
+                        {
+                            MiniPlayer(
+                                state = playerState,
+                                positionProvider = { player.currentPositionMs },
+                                onOpen = { showNowPlaying = true },
+                                onPlayPause = player::togglePlayPause,
+                                onNext = player::skipNext,
                             )
                         }
-                    }
-                }
+                    } else {
+                        null
+                    },
+                )
             },
         ) { padding ->
             NavHost(
@@ -263,6 +253,10 @@ private fun MainScaffold() {
             ) {
                 composable(Routes.LIBRARY) { LibraryHomeScreen() }
                 composable(Routes.PODCASTS) { PodcastsScreen() }
+                composable(Routes.BOOKS) { com.audiohub.ui.audiobooks.BooksScreen() }
+                composable(Routes.BOOK, listOf(navArgument("bookId") { type = NavType.LongType })) {
+                    com.audiohub.ui.audiobooks.BookDetailScreen(it.arguments?.getLong("bookId") ?: 0L)
+                }
                 composable(Routes.SEARCH) { SearchScreen() }
                 composable(Routes.SETTINGS) { SettingsScreen() }
 
@@ -325,6 +319,8 @@ private fun MainScaffold() {
 
         if (showNowPlaying && playerState.hasMedia) {
             val trackId = trackIdOf(playerState.mediaId)
+            val isBook = com.audiohub.playback.isBookMediaId(playerState.mediaId)
+            val speed = (if (isBook) settings?.bookSpeed else settings?.podcastSpeed) ?: 1f
             val episodeId = episodeIdOf(playerState.mediaId)
             val lyrics by produceState<com.audiohub.data.lyrics.Lyrics?>(null, trackId) {
                 value = trackId?.let { container.lyricsRepository.load(trackContentUri(it)) }
@@ -340,11 +336,12 @@ private fun MainScaffold() {
                 onToggleFavorite = { trackId?.let(vm::toggleFavorite) },
                 lyrics = lyrics,
                 isPodcast = isPodcastMediaId(playerState.mediaId),
-                podcastSpeed = settings?.podcastSpeed ?: 1f,
+                isBook = isBook,
+                podcastSpeed = speed,
                 onCycleSpeed = {
                     val speeds = SettingsRepository.PODCAST_SPEEDS
-                    val next = speeds[(speeds.indexOf(settings?.podcastSpeed ?: 1f) + 1).mod(speeds.size)]
-                    scope.launch { container.settings.setPodcastSpeed(next) }
+                    val next = speeds[(speeds.indexOf(speed) + 1).mod(speeds.size)]
+                    scope.launch { if (isBook) container.settings.setBookSpeed(next) else container.settings.setPodcastSpeed(next) }
                 },
                 showNotes = showNotes,
                 onOpenQueue = {

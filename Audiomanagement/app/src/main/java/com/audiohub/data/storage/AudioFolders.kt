@@ -10,6 +10,8 @@ import java.io.File
 object AudioFolders {
     const val DEFAULT_MUSIC = "Music/AudioHub/"
     const val DEFAULT_PODCAST = "Podcasts/AudioHub/"
+    /** Each subfolder is one audiobook; its files are the chapters. */
+    const val DEFAULT_AUDIOBOOK = "Audiobook/"
 
     val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "aac", "flac", "ogg", "oga", "opus", "wav", "wma", "alac", "aiff", "aif")
 

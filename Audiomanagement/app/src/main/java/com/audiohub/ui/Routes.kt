@@ -6,6 +6,7 @@ object Routes {
     // Tabs
     const val LIBRARY = "library"
     const val PODCASTS = "podcasts"
+    const val BOOKS = "books"
     const val SEARCH = "search"
     const val SETTINGS = "settings"
 
@@ -54,7 +55,11 @@ object Routes {
     const val RINGTONE = "ringtone/{trackId}"
     fun ringtone(trackId: Long) = "ringtone/$trackId"
 
-    val TABS = setOf(LIBRARY, PODCASTS, SEARCH, SETTINGS)
+    val TABS = setOf(LIBRARY, PODCASTS, BOOKS, SEARCH, SETTINGS)
+
+    /** One audiobook with its chapters. */
+    const val BOOK = "book/{bookId}"
+    fun book(bookId: Long) = "book/$bookId"
 
     private val linkInText = Regex("""(?i)\b(?:https?|feed|pcast|itpc)://\S+""")
 

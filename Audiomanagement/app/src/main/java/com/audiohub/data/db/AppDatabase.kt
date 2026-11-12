@@ -13,13 +13,16 @@ import androidx.room.RoomDatabase
         PodcastEntity::class,
         EpisodeEntity::class,
         EpisodeNoteEntity::class,
+        BookEntity::class,
+        BookChapterEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3), // adds podcasts + episodes
         AutoMigration(from = 3, to = 4), // adds date-modified columns for sorting
         AutoMigration(from = 4, to = 5), // adds episode recall notes
+        AutoMigration(from = 5, to = 6), // adds audiobooks
     ],
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,4 +31,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun statsDao(): StatsDao
     abstract fun podcastDao(): PodcastDao
     abstract fun episodeNoteDao(): EpisodeNoteDao
+    abstract fun bookDao(): BookDao
 }

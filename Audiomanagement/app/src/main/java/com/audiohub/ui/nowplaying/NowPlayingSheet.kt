@@ -22,6 +22,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Notes
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Forward30
 import androidx.compose.material.icons.rounded.MusicNote
@@ -50,6 +52,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.IconButtonDefaults
 import com.audiohub.ui.components.ThinSeekBar
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
+import com.audiohub.ui.theme.LocalUiTokens
+import com.audiohub.ui.theme.NowPlayingLayout
+import com.audiohub.ui.theme.SectionLabelStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -117,6 +130,7 @@ fun NowPlayingSheet(
     onToggleFavorite: () -> Unit,
     lyrics: Lyrics?,
     isPodcast: Boolean,
+    isBook: Boolean = false,
     podcastSpeed: Float,
     onCycleSpeed: () -> Unit,
     showNotes: String?,
@@ -141,7 +155,7 @@ fun NowPlayingSheet(
             ArtworkBackdrop(state.artworkUri, Modifier.matchParentSize())
             NowPlayingContent(
                 state, player, isFavorite, canFavorite, onToggleFavorite, lyrics, panel, { panel = it },
-                isPodcast = isPodcast, podcastSpeed = podcastSpeed, onCycleSpeed = onCycleSpeed, showNotes = showNotes,
+                isPodcast = isPodcast, isBook = isBook, podcastSpeed = podcastSpeed, onCycleSpeed = onCycleSpeed, showNotes = showNotes,
                 onOpenQueue = onOpenQueue,
             )
         }
@@ -181,6 +195,8 @@ fun NowPlayingContent(
     panel: NowPlayingPanel = NowPlayingPanel.Artwork,
     onPanelChange: (NowPlayingPanel) -> Unit = {},
     isPodcast: Boolean = false,
+    /** Audiobook chapter: spoken-word controls like podcasts, no lyrics/notes panel. */
+    isBook: Boolean = false,
     podcastSpeed: Float = 1f,
     onCycleSpeed: () -> Unit = {},
     showNotes: String? = null,
@@ -196,32 +212,187 @@ fun NowPlayingContent(
     val duration = state.durationMs.coerceAtLeast(1L)
     val shown = if (dragging) (dragValue * duration).toLong() else position
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 28.dp)
-            .navigationBarsPadding()
-            .padding(bottom = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1f).padding(top = 8.dp)) {
+    val placeholder = when {
+        isPodcast -> Icons.Rounded.Podcasts
+        isBook -> Icons.AutoMirrored.Rounded.MenuBook
+        else -> Icons.Rounded.MusicNote
+    }
+
+    // The building blocks every layout arranges differently.
+    val panelContent: @Composable () -> Unit = {
+        if (isPodcast) NotesPanel(showNotes) else LyricsPanel(lyrics, position, onSeek = player::seekTo)
+    }
+    val artOrPanel: @Composable (Modifier, Dp) -> Unit = { modifier, elevation ->
+        Box(modifier) {
             when (panel) {
                 NowPlayingPanel.Artwork -> AnimatedArtwork(
                     state.artworkUri,
                     isPlaying = state.isPlaying,
                     modifier = Modifier.fillMaxSize(),
-                    elevation = 28.dp,
-                    placeholder = if (isPodcast) Icons.Rounded.Podcasts else Icons.Rounded.MusicNote,
+                    elevation = elevation,
+                    placeholder = placeholder,
                 )
-                NowPlayingPanel.Lyrics ->
-                    if (isPodcast) NotesPanel(showNotes) else LyricsPanel(lyrics, position, onSeek = player::seekTo)
+                NowPlayingPanel.Lyrics -> panelContent()
             }
         }
-        Spacer(Modifier.height(20.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    }
+    val titleBlock: @Composable (TextStyle) -> Unit = { titleStyle ->
+        NowPlayingTitle(state, titleStyle, canFavorite, isFavorite, onToggleFavorite)
+    }
+    val seekBlock: @Composable () -> Unit = {
+        ThinSeekBar(
+            value = (shown.toFloat() / duration).coerceIn(0f, 1f),
+            onValueChange = { dragging = true; dragValue = it },
+            onValueChangeFinished = {
+                player.seekTo((dragValue * duration).toLong())
+                dragging = false
+            },
+            enabled = state.durationMs > 0,
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            val timeColor = MaterialTheme.colorScheme.onSurfaceVariant
+            Text(formatDuration(shown), style = MaterialTheme.typography.labelSmall, color = timeColor)
+            Text("-" + formatDuration(state.durationMs - shown), style = MaterialTheme.typography.labelSmall, color = timeColor)
+        }
+    }
+    val controlsBlock: @Composable (Boolean) -> Unit = { outlined ->
+        TransportControls(state, player, spoken = isPodcast || isBook, podcastSpeed, onCycleSpeed, outlinedPlay = outlined)
+    }
+    val togglesBlock: @Composable () -> Unit = {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            if (!isBook) {
+                PanelToggle(
+                    if (isPodcast) Icons.AutoMirrored.Rounded.Notes else Icons.Rounded.Lyrics,
+                    if (isPodcast) "Show notes" else "Lyrics",
+                    panel == NowPlayingPanel.Lyrics,
+                ) {
+                    onPanelChange(if (it) NowPlayingPanel.Lyrics else NowPlayingPanel.Artwork)
+                }
+            }
+            SleepTimerButton(state, player)
+            IconButton(onClick = onOpenQueue) {
+                Icon(
+                    if (isBook) Icons.Rounded.FormatListNumbered else Icons.AutoMirrored.Rounded.QueueMusic,
+                    contentDescription = if (isBook) "Chapters" else "Playing queue",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+
+    when (LocalUiTokens.current.nowPlaying) {
+        NowPlayingLayout.Classic -> Column(
+            Modifier.fillMaxWidth().padding(horizontal = 28.dp).navigationBarsPadding().padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            artOrPanel(Modifier.fillMaxWidth().aspectRatio(1f).padding(top = 8.dp), 28.dp)
+            Spacer(Modifier.height(20.dp))
+            titleBlock(MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(8.dp))
+            seekBlock()
+            Spacer(Modifier.height(8.dp))
+            controlsBlock(false)
+            Spacer(Modifier.height(8.dp))
+            togglesBlock()
+        }
+
+        // Bordeaux: art runs edge to edge and dissolves into the page; the title sits on it.
+        NowPlayingLayout.Immersive -> Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 24.dp)) {
+            // Clipped: Lift/Pulse scale the art, which must not spill past the fade.
+            Box(Modifier.fillMaxWidth().aspectRatio(1f).clipToBounds()) {
+                if (panel == NowPlayingPanel.Artwork) {
+                    AnimatedArtwork(
+                        state.artworkUri, state.isPlaying, Modifier.fillMaxSize(),
+                        shape = RectangleShape, placeholder = placeholder,
+                    )
+                    val bg = MaterialTheme.colorScheme.background
+                    Box(
+                        Modifier.fillMaxSize().background(
+                            Brush.verticalGradient(0.45f to Color.Transparent, 0.82f to bg.copy(alpha = 0.85f), 1f to bg),
+                        ),
+                    )
+                    Box(Modifier.align(Alignment.BottomStart).padding(horizontal = 28.dp)) {
+                        titleBlock(MaterialTheme.typography.headlineMedium)
+                    }
+                } else {
+                    Box(Modifier.fillMaxSize().padding(horizontal = 20.dp)) { panelContent() }
+                }
+            }
+            Column(Modifier.padding(horizontal = 28.dp)) {
+                if (panel != NowPlayingPanel.Artwork) {
+                    Spacer(Modifier.height(12.dp))
+                    titleBlock(MaterialTheme.typography.headlineSmall)
+                }
+                Spacer(Modifier.height(12.dp))
+                seekBlock()
+                Spacer(Modifier.height(8.dp))
+                controlsBlock(false)
+                Spacer(Modifier.height(8.dp))
+                togglesBlock()
+            }
+        }
+
+        // Washi: a magazine page — kicker, headline title, then a smaller art plate, outlined play.
+        NowPlayingLayout.Editorial -> Column(
+            Modifier.fillMaxWidth().padding(horizontal = 32.dp).navigationBarsPadding().padding(bottom = 24.dp),
+        ) {
+            Text(
+                if (isBook) "NOW READING" else if (isPodcast) "NOW LISTENING" else "NOW PLAYING",
+                style = SectionLabelStyle,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 10.dp),
+            )
+            titleBlock(MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(20.dp))
+            artOrPanel(Modifier.fillMaxWidth(0.82f).aspectRatio(1f).align(Alignment.CenterHorizontally), 0.dp)
+            Spacer(Modifier.height(24.dp))
+            seekBlock()
+            Spacer(Modifier.height(8.dp))
+            controlsBlock(true)
+            Spacer(Modifier.height(8.dp))
+            togglesBlock()
+        }
+
+        // Glacier: art, title and seek bar share one translucent card; controls float below.
+        NowPlayingLayout.Frosted -> Column(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp).navigationBarsPadding().padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    artOrPanel(Modifier.fillMaxWidth().aspectRatio(1f), 0.dp)
+                    Spacer(Modifier.height(16.dp))
+                    titleBlock(MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.height(8.dp))
+                    seekBlock()
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            controlsBlock(false)
+            Spacer(Modifier.height(8.dp))
+            togglesBlock()
+        }
+    }
+}
+
+/** Title (scrolls when long), "artist — album", and the favourite heart. */
+@Composable
+private fun NowPlayingTitle(
+    state: PlayerUiState,
+    titleStyle: TextStyle,
+    canFavorite: Boolean,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 // Long titles scroll so the whole name can be read.
-                MarqueeText(state.title, style = MaterialTheme.typography.headlineSmall)
+                MarqueeText(state.title, style = titleStyle)
                 MarqueeText(
                     listOf(state.artist, state.album).filter { it.isNotBlank() }.joinToString(" — "),
                     style = MaterialTheme.typography.bodyLarge,
@@ -237,29 +408,25 @@ fun NowPlayingContent(
                     )
                 }
             }
-        }
-        Spacer(Modifier.height(8.dp))
-        ThinSeekBar(
-            value = (shown.toFloat() / duration).coerceIn(0f, 1f),
-            onValueChange = { dragging = true; dragValue = it },
-            onValueChangeFinished = {
-                player.seekTo((dragValue * duration).toLong())
-                dragging = false
-            },
-            enabled = state.durationMs > 0,
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            val timeColor = MaterialTheme.colorScheme.onSurfaceVariant
-            Text(formatDuration(shown), style = MaterialTheme.typography.labelSmall, color = timeColor)
-            Text("-" + formatDuration(state.durationMs - shown), style = MaterialTheme.typography.labelSmall, color = timeColor)
-        }
-        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Shuffle / prev / play / next / repeat — or speed / −15 s / play / +30 s / next for spoken word. */
+@Composable
+private fun TransportControls(
+    state: PlayerUiState,
+    player: PlayerControls,
+    spoken: Boolean,
+    podcastSpeed: Float,
+    onCycleSpeed: () -> Unit,
+    outlinedPlay: Boolean,
+) {
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (isPodcast) {
+            if (spoken) {
                 TextButton(onClick = onCycleSpeed) {
                     Text(speedLabel(podcastSpeed), style = MaterialTheme.typography.titleSmall)
                 }
@@ -278,21 +445,32 @@ fun NowPlayingContent(
                     Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(36.dp))
                 }
             }
-            FilledIconButton(
-                onClick = player::togglePlayPause,
-                modifier = Modifier.size(68.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.onSurface,
-                    contentColor = MaterialTheme.colorScheme.surface,
-                ),
-            ) {
+            val playIcon: @Composable () -> Unit = {
                 Icon(
                     if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = if (state.isPlaying) "Pause" else "Play",
                     modifier = Modifier.size(36.dp),
                 )
             }
-            if (isPodcast) {
+            if (outlinedPlay) {
+                OutlinedIconButton(
+                    onClick = player::togglePlayPause,
+                    modifier = Modifier.size(68.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface),
+                    content = playIcon,
+                )
+            } else {
+                FilledIconButton(
+                    onClick = player::togglePlayPause,
+                    modifier = Modifier.size(68.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.surface,
+                    ),
+                    content = playIcon,
+                )
+            }
+            if (spoken) {
                 IconButton(onClick = { player.seekBy(30_000) }, modifier = Modifier.size(56.dp)) {
                     SkipIcon(Icons.Rounded.Forward30, null, "Forward 30 seconds")
                 }
@@ -313,28 +491,6 @@ fun NowPlayingContent(
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            PanelToggle(
-                if (isPodcast) Icons.AutoMirrored.Rounded.Notes else Icons.Rounded.Lyrics,
-                if (isPodcast) "Show notes" else "Lyrics",
-                panel == NowPlayingPanel.Lyrics,
-            ) {
-                onPanelChange(if (it) NowPlayingPanel.Lyrics else NowPlayingPanel.Artwork)
-            }
-            SleepTimerButton(state, player)
-            IconButton(onClick = onOpenQueue) {
-                Icon(
-                    Icons.AutoMirrored.Rounded.QueueMusic,
-                    contentDescription = "Playing queue",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
 }
 
 // ------------------------------------------------------------------ Sleep timer

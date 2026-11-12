@@ -91,6 +91,10 @@ class AppContainer(private val app: Application) {
 
     val notesRepository: NotesRepository by lazy { NotesRepository(database.episodeNoteDao()) }
 
+    val audiobookRepository: com.audiohub.data.audiobook.AudiobookRepository by lazy {
+        com.audiohub.data.audiobook.AudiobookRepository(app, database.bookDao(), settings)
+    }
+
     /** Advanced: YouTube → audio (Settings → Advanced). */
     val youtubeConverter by lazy { com.audiohub.data.youtube.YoutubeConverter(app, okHttp) }
 

@@ -15,6 +15,7 @@ import android.media.AudioManager
 import com.audiohub.system.DiagnosticsLog
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -51,6 +52,7 @@ class PlaybackService : MediaLibraryService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var episodeTracker: EpisodeTracker? = null
+    private var bookTracker: BookTracker? = null
     private val effects = AudioEffects()
     private var settings: AppSettings? = null
     private lateinit var tree: LibraryTree
@@ -86,11 +88,21 @@ class PlaybackService : MediaLibraryService() {
             },
         ).also(player::addListener)
 
+        val books = container.audiobookRepository
+        bookTracker = BookTracker(
+            player = player,
+            mainScope = mainScope,
+            ioScope = serviceScope,
+            persist = books::savePosition,
+            playedToEnd = books::onPlayedToEnd,
+        ).also(player::addListener)
+
         DiagnosticsLog.log("Service", "Created · audio session ${player.audioSessionId}")
         audioManager.registerAudioDeviceCallback(audioDevices, null)
 
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = applyPerItemSettings()
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) = applyPendingPin()
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
                 DiagnosticsLog.log("Player", "Audio session → $audioSessionId")
                 applyEqualizer()
@@ -141,11 +153,16 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
-    /** Podcasts get the podcast speed and optional silence skipping; music plays untouched. */
+    /** Podcasts and audiobooks get their own speed (podcasts also silence skipping); music plays untouched. */
     private fun applyPerItemSettings() {
         val s = settings ?: return
-        val podcast = isPodcastMediaId(player.currentMediaItem?.mediaId)
-        val speed = if (podcast) s.podcastSpeed else 1f
+        val mediaId = player.currentMediaItem?.mediaId
+        val podcast = isPodcastMediaId(mediaId)
+        val speed = when {
+            podcast -> s.podcastSpeed
+            isBookMediaId(mediaId) -> s.bookSpeed
+            else -> 1f
+        }
         if (player.playbackParameters.speed != speed) player.setPlaybackSpeed(speed)
         val skip = podcast && s.skipSilence
         if (player.skipSilenceEnabled != skip) player.skipSilenceEnabled = skip
@@ -231,6 +248,61 @@ class PlaybackService : MediaLibraryService() {
         session?.setSessionExtras(bundleOf(EXTRA_SLEEP_ENDS_AT to sleepEndsAt, EXTRA_SLEEP_END_OF_ITEM to sleepEndOfItem))
     }
 
+    // ------------------------------------------------------------------ queue order
+
+    /** "Play next" items to move right after the current one in the shuffle order once they've been added. */
+    private class PendingPin(val ids: List<String>, val from: Int, var misses: Int = 0)
+
+    private var pendingPin: PendingPin? = null
+
+    /** Current play order with shuffle on (player indices). */
+    private fun shuffledOrder(): List<Int> {
+        val timeline = player.currentTimeline
+        val out = ArrayList<Int>(timeline.windowCount)
+        var i = timeline.getFirstWindowIndex(true)
+        while (i != C.INDEX_UNSET) {
+            out += i
+            i = timeline.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, true)
+        }
+        return out
+    }
+
+    private fun setShuffleOrder(order: List<Int>) {
+        player.setShuffleOrder(DefaultShuffleOrder(order.toIntArray(), System.nanoTime()))
+    }
+
+    /**
+     * Adding items arrives asynchronously (they're resolved first), so the pin is retried on the next
+     * timeline changes until the items are there; it's dropped if they never show up.
+     */
+    private fun applyPendingPin() {
+        val pin = pendingPin ?: return
+        val end = pin.from + pin.ids.size
+        val arrived = pin.from >= 0 && pin.ids.isNotEmpty() && end <= player.mediaItemCount &&
+            pin.ids.indices.all { player.getMediaItemAt(pin.from + it).mediaId == pin.ids[it] }
+        if (!arrived) {
+            if (++pin.misses > 3) pendingPin = null
+            return
+        }
+        pendingPin = null
+        if (!player.shuffleModeEnabled) return // list order already has them next
+        setShuffleOrder(QueueOrder.pinAfter(shuffledOrder(), player.currentMediaItemIndex, (pin.from until end).toList()))
+        DiagnosticsLog.log("Queue", "Play next: ${pin.ids.size} item(s) pinned after the current one (shuffle)")
+    }
+
+    /** User's reorder from the queue screen: replaces the shuffle order, or moves list items. */
+    private fun applyPlayOrder(order: List<Int>) {
+        if (!QueueOrder.isPermutation(order, player.mediaItemCount)) {
+            DiagnosticsLog.log("Queue", "Ignored a reorder for a queue that has changed meanwhile")
+            return
+        }
+        if (player.shuffleModeEnabled) {
+            setShuffleOrder(order)
+        } else {
+            QueueOrder.planMoves(order).forEach { (from, to) -> player.moveMediaItem(from, to) }
+        }
+    }
+
     // ------------------------------------------------------------------ widget
 
     private data class WidgetState(val title: String, val artist: String, val playing: Boolean, val shuffle: Boolean)
@@ -307,6 +379,8 @@ class PlaybackService : MediaLibraryService() {
             DiagnosticsLog.log("Session", "Controller connected: ${controller.packageName} (v${controller.controllerVersion})")
             val commands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
                 .add(SessionCommand(ACTION_SLEEP, Bundle.EMPTY))
+                .add(SessionCommand(ACTION_SET_ORDER, Bundle.EMPTY))
+                .add(SessionCommand(ACTION_PIN_NEXT, Bundle.EMPTY))
                 .build()
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(commands)
@@ -319,10 +393,16 @@ class PlaybackService : MediaLibraryService() {
             customCommand: SessionCommand,
             args: Bundle,
         ): ListenableFuture<SessionResult> {
-            if (customCommand.customAction == ACTION_SLEEP) {
-                setSleepTimer(args.getLong(ARG_DURATION_MS, 0))
-                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            when (customCommand.customAction) {
+                ACTION_SLEEP -> setSleepTimer(args.getLong(ARG_DURATION_MS, 0))
+                ACTION_SET_ORDER -> args.getIntArray(ARG_ORDER)?.let { applyPlayOrder(it.toList()) }
+                ACTION_PIN_NEXT -> {
+                    pendingPin = PendingPin(args.getStringArrayList(ARG_IDS).orEmpty(), args.getInt(ARG_FROM, -1))
+                    applyPendingPin()
+                }
+                else -> return super.onCustomCommand(session, controller, customCommand, args)
             }
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             return super.onCustomCommand(session, controller, customCommand, args)
         }
 
@@ -387,6 +467,7 @@ class PlaybackService : MediaLibraryService() {
         DiagnosticsLog.log("Service", "Destroyed")
         runCatching { audioManager.unregisterAudioDeviceCallback(audioDevices) }
         episodeTracker?.flush()
+        bookTracker?.flush()
         sleepJob?.cancel()
         effects.release()
         mainScope.cancel()
@@ -402,6 +483,13 @@ class PlaybackService : MediaLibraryService() {
     companion object {
         const val ACTION_SLEEP = "com.audiohub.SLEEP_TIMER"
         const val ARG_DURATION_MS = "durationMs"
+        /** Reorder the queue: [ARG_ORDER] = play order as player indices. */
+        const val ACTION_SET_ORDER = "com.audiohub.SET_ORDER"
+        const val ARG_ORDER = "order"
+        /** After "play next" with shuffle on: [ARG_IDS] added at [ARG_FROM] should play right after the current item. */
+        const val ACTION_PIN_NEXT = "com.audiohub.PIN_NEXT"
+        const val ARG_IDS = "ids"
+        const val ARG_FROM = "from"
         const val SLEEP_END_OF_ITEM = -1L
         const val EXTRA_SLEEP_ENDS_AT = "sleepEndsAt"
         const val EXTRA_SLEEP_END_OF_ITEM = "sleepEndOfItem"
