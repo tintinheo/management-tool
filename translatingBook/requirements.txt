@@ -1,0 +1,3 @@
+lxml>=5.0
+httpx>=0.27
+# GUI dùng Tkinter có sẵn trong Python. Chạy test: pytest

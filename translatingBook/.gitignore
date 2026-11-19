@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.btproj.db
+*.btproj.db-wal
+*.btproj.db-shm
+*.song-ngu.epub
+*.tieng-viet.epub
