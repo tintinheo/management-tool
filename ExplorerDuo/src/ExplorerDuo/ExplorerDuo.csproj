@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <AssemblyName>ExplorerDuo</AssemblyName>
+    <RootNamespace>ExplorerDuo</RootNamespace>
+    <Version>2.2.0</Version>
+    <Product>ExplorerDuo</Product>
+    <Description>Dual-pane, multi-tab file manager built on the Windows Explorer shell view</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- v1 "glued Explorer windows" approach, superseded by the embedded ExplorerBrowser in v2. Safe to delete. -->
+    <Compile Remove="PairManager.cs;ShellBridge.cs;Input.cs;TrayApp.cs;Hotkeys.cs;PaneGeometry.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ExplorerDuo.Tests" />
+  </ItemGroup>
+
+</Project>

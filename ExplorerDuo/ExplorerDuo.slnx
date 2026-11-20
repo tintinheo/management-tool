@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ExplorerDuo/ExplorerDuo.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ExplorerDuo.Tests/ExplorerDuo.Tests.csproj" />
+  </Folder>
+</Solution>

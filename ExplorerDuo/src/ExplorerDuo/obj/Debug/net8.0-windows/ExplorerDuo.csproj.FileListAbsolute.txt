@@ -1,0 +1,15 @@
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Debug\net8.0-windows\ExplorerDuo.exe
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Debug\net8.0-windows\ExplorerDuo.deps.json
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Debug\net8.0-windows\ExplorerDuo.runtimeconfig.json
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Debug\net8.0-windows\ExplorerDuo.dll
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Debug\net8.0-windows\ExplorerDuo.pdb
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ExplorerDuo.GeneratedMSBuildEditorConfig.editorconfig
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ExplorerDuo.AssemblyInfoInputs.cache
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ExplorerDuo.AssemblyInfo.cs
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ExplorerDuo.csproj.CoreCompileInputs.cache
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ExplorerDuo.sourcelink.json
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ExplorerDuo.dll
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\refint\ExplorerDuo.dll
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ExplorerDuo.pdb
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ExplorerDuo.genruntimeconfig.cache
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Debug\net8.0-windows\ref\ExplorerDuo.dll

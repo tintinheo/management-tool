@@ -1,0 +1,15 @@
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Release\net8.0-windows\win-x64\ExplorerDuo.exe
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Release\net8.0-windows\win-x64\ExplorerDuo.deps.json
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Release\net8.0-windows\win-x64\ExplorerDuo.runtimeconfig.json
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Release\net8.0-windows\win-x64\ExplorerDuo.dll
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\bin\Release\net8.0-windows\win-x64\ExplorerDuo.pdb
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ExplorerDuo.GeneratedMSBuildEditorConfig.editorconfig
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ExplorerDuo.AssemblyInfoInputs.cache
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ExplorerDuo.AssemblyInfo.cs
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ExplorerDuo.csproj.CoreCompileInputs.cache
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ExplorerDuo.sourcelink.json
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ExplorerDuo.dll
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\refint\ExplorerDuo.dll
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ExplorerDuo.pdb
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ExplorerDuo.genruntimeconfig.cache
+D:\portfolio\management-tool\myNation\ExplorerDuo\src\ExplorerDuo\obj\Release\net8.0-windows\win-x64\ref\ExplorerDuo.dll
