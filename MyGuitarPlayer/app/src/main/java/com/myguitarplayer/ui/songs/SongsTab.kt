@@ -44,12 +44,12 @@ private const val NEW_SONG = -1L
 
 /** Songs tab: list → viewer, plus the paste/edit screen. */
 @Composable
-fun SongsTab() {
+fun SongsTab(openSongId: Long? = null) {
     val repo = Repos.songs
     LaunchedEffect(Unit) { repo.seedSamples() }
     val songs by remember { repo.all() }.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    var openId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var openId by rememberSaveable(openSongId) { mutableStateOf(openSongId) }
     var editId by rememberSaveable { mutableStateOf<Long?>(null) }
     BackHandler(enabled = editId != null) { editId = null }
     BackHandler(enabled = editId == null && openId != null) { openId = null }

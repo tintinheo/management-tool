@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-val appVersion = "1.0.0"
+val appVersion = "1.1.0"
 
 kotlin {
     compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
@@ -23,14 +23,25 @@ java {
 }
 
 // Bundled course + sample songs come straight from the Android assets, under "assets/" on the classpath,
-// plus the version for the crash report / about line.
+// plus the version for the crash report / about line, plus the Python transcription engine scripts under
+// "engine/" with a files.txt manifest (the app copies them to %LOCALAPPDATA%\MyGuitarPlayer\engine).
 val desktopAssets = layout.buildDirectory.dir("generated/desktopAssets")
 val syncAssets by tasks.registering(Sync::class) {
     from("../app/src/main/assets") { into("assets") }
+    from("../tools/transcriber") {
+        into("engine")
+        include("*.py", "mgp/*.py", "requirements.txt", "setup.ps1")
+    }
     into(desktopAssets)
     val version = appVersion
     inputs.property("version", version)
-    doLast { desktopAssets.get().file("app-version.txt").asFile.writeText(version) }
+    doLast {
+        val root = desktopAssets.get().asFile
+        File(root, "app-version.txt").writeText(version)
+        val engine = File(root, "engine")
+        val files = engine.walkTopDown().filter { it.isFile }.map { it.relativeTo(engine).invariantSeparatorsPath }.sorted()
+        File(engine, "files.txt").writeText(files.joinToString("\n"))
+    }
 }
 
 sourceSets {
@@ -38,6 +49,12 @@ sourceSets {
         kotlin.srcDirs("../app/src/main/java", "src/main/kotlin")
         resources.srcDir(syncAssets)
     }
+}
+
+val GERVILL_OPENS = "--add-opens=java.desktop/com.sun.media.sound=ALL-UNNAMED"
+
+tasks.withType<Test>().configureEach {
+    jvmArgs(GERVILL_OPENS)
 }
 
 ksp {
@@ -68,8 +85,9 @@ compose.desktop {
             languageVersion.set(JavaLanguageVersion.of(21))
             vendor.set(JvmVendorSpec.ADOPTIUM)
         }.get().metadata.installationPath.asFile.absolutePath
-        // The bundled SQLite driver loads a native library.
-        jvmArgs("--enable-native-access=ALL-UNNAMED")
+        // The bundled SQLite driver loads a native library; the piano version renders MIDI offline through
+        // Gervill's non-public AudioSynthesizer.openStream.
+        jvmArgs("--enable-native-access=ALL-UNNAMED", GERVILL_OPENS)
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "MyGuitarPlayer"

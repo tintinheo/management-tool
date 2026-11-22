@@ -49,6 +49,19 @@ Nội dung từng buổi nằm trong JSON (`assets/curriculum.json`): mục tiê
 
 **Không làm ở v1:** AI/LLM, đồng bộ cloud, nhận hợp âm từ file nhạc/YouTube, tab solo/fingerstyle, xử lý giọng hát.
 
+**Thay đổi ở desktop 1.1.0 (2026-11-16): công cụ "Chuyển soạn bài hát", chỉ có bản Windows.** Chọn một file nhạc ở bất kỳ thư mục nào, app tạo ra:
+- **Bản hợp âm ChordPro** kèm lời, lưu được vào mục Bài hát.
+- **Lead sheet**: MusicXML, các trang SVG và bản in HTML.
+- **Bản piano**: nhạc cụ gốc đã bỏ giọng hát, piano chơi giai điệu thay giọng, thêm piano đệm. Xuất ra WAV và MP3.
+
+Cách làm:
+- Engine Python chạy kèm app (sidecar), mã nguồn ở `tools/transcriber/`.
+  - Phần phân tích nhạc (nhịp, hợp âm, giai điệu, MusicXML, MIDI) chỉ dùng numpy/scipy.
+  - Tách giọng dùng Demucs, nhận lời dùng faster-whisper, vẽ bản nhạc dùng Verovio.
+  - Engine được cài một lần vào `%LOCALAPPDATA%\MyGuitarPlayer\engine` bằng `setup.ps1`.
+- Piano được render bằng Gervill kèm soundfont YDP Grand Piano (FreePats, CC-BY 3.0).
+- Bản Android không đổi. Ở Android, `Platform.supportsTranscription` = false.
+
 **Bài mẫu đi kèm** (chỉ hợp âm + lời thuộc phạm vi công cộng, hoặc vòng hợp âm không có lời): Happy Birthday, Twinkle Twinkle, Kumbaya, Amazing Grace, Auld Lang Syne, 2–3 vòng hợp âm "pop 4 chords" và vòng Slow/Ballad Việt (chỉ có hợp âm, không kèm lời). Bài Việt có bản quyền như Hòn Đá Cô Đơn thì người dùng tự dán vào.
 
 ## 5. Kiến trúc

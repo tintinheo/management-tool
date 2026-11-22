@@ -69,6 +69,8 @@ object DesktopPlatform : Platform {
 
     override val micSourceChoice: Boolean get() = false
 
+    override val supportsTranscription: Boolean get() = true
+
     override val appVersion: String by lazy {
         runCatching { resource("app-version.txt").use { it.bufferedReader().readText().trim() } }.getOrDefault("?")
     }

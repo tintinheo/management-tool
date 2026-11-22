@@ -41,7 +41,7 @@ class DesktopSmokeTest {
         val songs = DesktopPlatform.listAssets("songs").filter { it.endsWith(".cho") }
         assertTrue("samples: $songs", songs.size >= 8)
         assertTrue(DesktopPlatform.readAsset("curriculum.json").contains("\"weeks\""))
-        assertEquals("1.0.0", DesktopPlatform.appVersion)
+        assertEquals("1.1.0", DesktopPlatform.appVersion)
     }
 
     @Test

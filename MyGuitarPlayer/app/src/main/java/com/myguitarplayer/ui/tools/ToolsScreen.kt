@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.myguitarplayer.platform.Platform
 import com.myguitarplayer.ui.common.Card
 import com.myguitarplayer.ui.common.ScreenHeader
 import com.myguitarplayer.ui.theme.Palette
@@ -25,6 +26,7 @@ enum class Tool(val title: String, val detail: String) {
     CHANGES("Chuyển hợp âm 1 phút", "Đổi qua lại 2 hợp âm trong 60 giây, micro tự đếm, lưu kỷ lục."),
     RHYTHM("Chấm nhịp quạt", "Quạt theo click, micro đo từng cú sớm hay muộn bao nhiêu ms."),
     RECORD("Ghi âm & tự chấm", "Ghi lại khi đệm hát, nghe lại và chấm 5 tiêu chí."),
+    TRANSCRIBE("Chuyển soạn bài hát", "Chọn một file nhạc: app soạn hợp âm guitar kèm lời, bản nhạc giai điệu và bản piano thay giọng hát."),
 }
 
 @Composable
@@ -34,7 +36,7 @@ fun ToolsScreen(onOpen: (Tool) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         ScreenHeader("Công cụ", "Dùng bất cứ lúc nào, ngoài giáo trình")
-        Tool.entries.forEach { t ->
+        Tool.entries.filter { it != Tool.TRANSCRIBE || Platform.current.supportsTranscription }.forEach { t ->
             Card(Modifier.clickable { onOpen(t) }) {
                 Text(t.title, style = MaterialTheme.typography.headlineSmall)
                 Text(t.detail, style = MaterialTheme.typography.bodyMedium, color = Palette.Muted)

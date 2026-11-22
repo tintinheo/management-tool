@@ -59,6 +59,7 @@ import com.myguitarplayer.ui.theme.Palette
 import com.myguitarplayer.ui.today.TodayTab
 import com.myguitarplayer.ui.tools.Tool
 import com.myguitarplayer.ui.tools.ToolsScreen
+import com.myguitarplayer.ui.transcribe.TranscribeScreen
 import com.myguitarplayer.ui.tuner.TunerScreen
 
 enum class Tab(val label: String, val icon: ImageVector) {
@@ -79,6 +80,8 @@ fun App(initialTab: Tab = Tab.TODAY) {
     var tab by rememberSaveable { mutableStateOf(initialTab) }
     var tool by rememberSaveable { mutableStateOf<Tool?>(null) }
     var toolChord by rememberSaveable { mutableStateOf("Em") }
+    // A song to open when the Songs tab shows (set by tools that create songs, e.g. transcription).
+    var songToOpen by rememberSaveable { mutableStateOf<Long?>(null) }
 
     var crash by remember { mutableStateOf(CrashLog.read()) }
     crash?.let { report ->
@@ -104,7 +107,7 @@ fun App(initialTab: Tab = Tab.TODAY) {
     BackHandler(enabled = tool != null) { tool = null }
     BackHandler(enabled = tool == null && tab != Tab.TODAY) { tab = Tab.TODAY }
 
-    val select: (Tab) -> Unit = { tab = it; tool = null }
+    val select: (Tab) -> Unit = { tab = it; tool = null; songToOpen = null }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= WIDE
@@ -132,6 +135,10 @@ fun App(initialTab: Tab = Tab.TODAY) {
                                 Tool.RHYTHM -> RhythmScreen(onBack = { tool = null })
                                 Tool.RECORD -> RecordScreen(onBack = { tool = null })
                                 Tool.CHORD_CHECK -> ChordCheckScreen(toolChord, onBack = { tool = null })
+                                Tool.TRANSCRIBE -> TranscribeScreen(
+                                    onBack = { tool = null },
+                                    onOpenSong = { id -> songToOpen = id; tab = Tab.SONGS; tool = null },
+                                )
                                 Tool.CHANGES -> {
                                     val a = Chords[toolChord]
                                     ChangesScreen(a.name, suggestPartner(a).name, onBack = { tool = null })
@@ -139,7 +146,7 @@ fun App(initialTab: Tab = Tab.TODAY) {
                                 null -> ToolsScreen(onOpen = { openTool(it, toolChord) })
                             }
                             Tab.CHORDS -> ChordsTab()
-                            Tab.SONGS -> SongsTab()
+                            Tab.SONGS -> SongsTab(openSongId = songToOpen)
                             Tab.PROGRESS -> ProgressTab()
                         }
                     }

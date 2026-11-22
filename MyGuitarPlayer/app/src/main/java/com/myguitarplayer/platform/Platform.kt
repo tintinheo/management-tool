@@ -25,6 +25,8 @@ interface Platform {
     val appVersion: String
     /** Device and OS, e.g. "Xiaomi 2407FPN8EG · Android 15 (SDK 35)". */
     val deviceDescription: String
+    /** Song transcription (audio file -> chords / score / piano) runs a Python engine: Windows only. */
+    val supportsTranscription: Boolean get() = false
 
     companion object {
         @Volatile private var installed: Platform? = null
