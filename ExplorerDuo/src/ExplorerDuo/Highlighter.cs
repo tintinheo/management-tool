@@ -13,21 +13,30 @@ public sealed class ColorRule
 
     public static List<ColorRule> Defaults() => new()
     {
-        new() { Name = "Programs & scripts", Patterns = "*.exe;*.msi;*.bat;*.cmd;*.ps1;*.com;*.appx;*.msix", Color = "#107C10", AppliesTo = "files" },
-        new() { Name = "Archives", Patterns = "*.zip;*.7z;*.rar;*.tar;*.gz;*.tgz;*.bz2;*.xz;*.iso;*.cab", Color = "#8764B8", AppliesTo = "files" },
-        new() { Name = "Images", Patterns = "*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.webp;*.heic;*.tif;*.tiff;*.svg;*.ico;*.raw", Color = "#0063B1", AppliesTo = "files" },
-        new() { Name = "Audio & video", Patterns = "*.mp3;*.flac;*.wav;*.m4a;*.aac;*.ogg;*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.webm", Color = "#CA5010", AppliesTo = "files" },
-        new() { Name = "Documents", Patterns = "*.pdf;*.doc;*.docx;*.xls;*.xlsx;*.ppt;*.pptx;*.epub;*.odt", Color = "#A4262C", AppliesTo = "files" },
+        new() { Name = "Programs & scripts", Patterns = "*.exe;*.msi;*.bat;*.cmd;*.ps1;*.com;*.appx;*.msix", Color = "#4F7A55", AppliesTo = "files" },
+        new() { Name = "Archives", Patterns = "*.zip;*.7z;*.rar;*.tar;*.gz;*.tgz;*.bz2;*.xz;*.iso;*.cab", Color = "#6B568F", AppliesTo = "files" },
+        new() { Name = "Images", Patterns = "*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.webp;*.heic;*.tif;*.tiff;*.svg;*.ico;*.raw", Color = "#3B5B8C", AppliesTo = "files" },
+        new() { Name = "Audio & video", Patterns = "*.mp3;*.flac;*.wav;*.m4a;*.aac;*.ogg;*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.webm", Color = "#B8682E", AppliesTo = "files" },
+        new() { Name = "Documents", Patterns = "*.pdf;*.doc;*.docx;*.xls;*.xlsx;*.ppt;*.pptx;*.epub;*.odt", Color = "#A8433A", AppliesTo = "files" },
     };
 }
 
 /// <summary>Named highlight colours offered in the "Highlight" menu.</summary>
 public static class Palette
 {
+    /// <summary>Muted jewel tones that sit well on ivory.</summary>
     public static readonly (string Name, string Hex)[] Colors =
     {
-        ("Red", "#D13438"), ("Orange", "#CA5010"), ("Gold", "#B58B00"), ("Green", "#107C10"),
-        ("Teal", "#038387"), ("Blue", "#0063B1"), ("Purple", "#8764B8"), ("Pink", "#C239B3"),
+        ("Garnet", "#A8433A"), ("Amber", "#B8682E"), ("Gold", "#9C7A3C"), ("Sage", "#4F7A55"),
+        ("Teal", "#2F7470"), ("Sapphire", "#3B5B8C"), ("Amethyst", "#6B568F"), ("Rose", "#A0527A"),
+    };
+
+    /// <summary>2.2 palette and default rule colours → their 2.4 equivalents (applied to existing settings once).</summary>
+    public static readonly Dictionary<string, string> Upgrade = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["#D13438"] = "#A8433A", ["#A4262C"] = "#A8433A", ["#CA5010"] = "#B8682E", ["#B58B00"] = "#9C7A3C",
+        ["#107C10"] = "#4F7A55", ["#038387"] = "#2F7470", ["#0063B1"] = "#3B5B8C", ["#8764B8"] = "#6B568F",
+        ["#C239B3"] = "#A0527A", ["#8A8A8A"] = "#A39C90",
     };
 }
 

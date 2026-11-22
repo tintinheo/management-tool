@@ -18,15 +18,56 @@ internal sealed class TabStrip : Control
     public event Action<int>? TabClicked;
     public event Action<int>? CloseClicked;
     public event Action? PlusClicked;
+    /// <summary>Files were dragged over a tab and held there briefly: switch to it so they can be dropped into its folder.</summary>
+    public event Action<int>? DragHovered;
+
+    readonly System.Windows.Forms.Timer _dragTimer = new() { Interval = 450 };
+    int _dragIndex = -1;
+
+    protected override void OnDragEnter(DragEventArgs e)
+    {
+        e.Effect = DragDropEffects.None; // tabs aren't drop targets themselves
+        base.OnDragEnter(e);
+    }
+
+    protected override void OnDragOver(DragEventArgs e)
+    {
+        e.Effect = DragDropEffects.None;
+        var p = PointToClient(new Point(e.X, e.Y));
+        int index = Array.FindIndex(TabRects(), r => r.Contains(p));
+        if (index != _dragIndex)
+        {
+            _dragIndex = index;
+            _hover = index;
+            Invalidate();
+            _dragTimer.Stop();
+            if (index >= 0 && index != _selected) _dragTimer.Start();
+        }
+        base.OnDragOver(e);
+    }
+
+    protected override void OnDragLeave(EventArgs e)
+    {
+        _dragTimer.Stop();
+        _dragIndex = _hover = -1;
+        Invalidate();
+        base.OnDragLeave(e);
+    }
 
     public TabStrip()
     {
+        AllowDrop = true;
+        _dragTimer.Tick += (_, _) =>
+        {
+            _dragTimer.Stop();
+            if (_dragIndex >= 0 && _dragIndex < _titles.Count) DragHovered?.Invoke(_dragIndex);
+        };
         SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint |
                  ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
         SetStyle(ControlStyles.Selectable, false);
         Dock = DockStyle.Top;
-        Font = Theme.Ui;
-        Height = 34;
+        Font = Theme.Serif;
+        Height = 38;
     }
 
     public bool ActivePane
@@ -54,7 +95,7 @@ internal sealed class TabStrip : Control
         int avail = Width - L(48);
         int w = Math.Clamp(avail / n, L(56), L(220));
         var rects = new Rectangle[n];
-        for (int i = 0; i < n; i++) rects[i] = new Rectangle(L(6) + i * w, L(5), w - L(2), Height - L(5));
+        for (int i = 0; i < n; i++) rects[i] = new Rectangle(L(8) + i * w, L(6), w - L(4), Height - L(6));
         return rects;
     }
 
@@ -65,13 +106,13 @@ internal sealed class TabStrip : Control
         return new Rectangle(x, L(7), L(30), Height - L(11));
     }
 
-    Rectangle CloseRect(Rectangle tab) => new(tab.Right - L(26), tab.Top + (tab.Height - L(20)) / 2, L(20), L(20));
+    Rectangle CloseRect(Rectangle tab) => new(tab.Right - L(28), tab.Top + (tab.Height - L(20)) / 2 - L(1), L(20), L(20));
 
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.Clear(Theme.Window);
+        g.Clear(Theme.Tint);
         var tabs = TabRects();
 
         for (int i = 0; i < tabs.Length; i++)
@@ -80,24 +121,30 @@ internal sealed class TabStrip : Control
             bool selected = i == _selected;
             if (selected || i == _hover)
             {
-                using var path = TopRounded(r, L(6));
+                using var path = TopRounded(r, L(8));
                 using var fill = new SolidBrush(selected ? Theme.Surface : Theme.Hover);
                 g.FillPath(fill, path);
+                if (selected)
+                {
+                    using var edge = new Pen(Theme.Border);
+                    g.DrawPath(edge, path);
+                }
                 if (selected && _activePane)
                 {
+                    // Slim gold rule under the title of the active tab.
                     using var accent = new SolidBrush(Theme.Accent);
-                    g.FillRectangle(accent, r.Left + L(8), r.Top, r.Width - L(16), L(2));
+                    g.FillRectangle(accent, r.Left + L(14), r.Bottom - L(4), r.Width - L(28), L(2));
                 }
             }
             else if (i + 1 != _selected && i + 1 < tabs.Length && i + 1 != _hover)
             {
                 using var sep = new Pen(Theme.Border);
-                g.DrawLine(sep, r.Right, r.Top + L(8), r.Right, r.Bottom - L(8));
+                g.DrawLine(sep, r.Right + L(1), r.Top + L(10), r.Right + L(1), r.Bottom - L(10));
             }
 
             bool showClose = selected || i == _hover;
-            var textRect = new Rectangle(r.Left + L(10), r.Top, r.Width - L(10) - (showClose ? L(28) : L(8)), r.Height);
-            TextRenderer.DrawText(g, _titles[i], selected && _activePane ? Theme.UiBold : Font, textRect,
+            var textRect = new Rectangle(r.Left + L(14), r.Top, r.Width - L(14) - (showClose ? L(30) : L(10)), r.Height - L(2));
+            TextRenderer.DrawText(g, _titles[i], Font, textRect,
                 selected ? Theme.Text : Theme.Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
 
@@ -118,10 +165,10 @@ internal sealed class TabStrip : Control
         if (_hoverPlus)
         {
             using var hb = new SolidBrush(Theme.Hover);
-            using var path = Rounded(plus, L(5));
+            using var path = Rounded(plus, L(7));
             g.FillPath(hb, path);
         }
-        TextRenderer.DrawText(g, Theme.GlyphAdd, _iconFont, plus, Theme.Text,
+        TextRenderer.DrawText(g, Theme.GlyphAdd, _iconFont, plus, Theme.AccentDeep,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
         using var line = new Pen(Theme.Border);
@@ -208,6 +255,7 @@ internal sealed class TabStrip : Control
         if (disposing)
         {
             _toolTip.Dispose();
+            _dragTimer.Dispose();
             _iconFont.Dispose();
         }
         base.Dispose(disposing);

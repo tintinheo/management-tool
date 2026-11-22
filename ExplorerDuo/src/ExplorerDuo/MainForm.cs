@@ -29,11 +29,14 @@ internal sealed class MainForm : Form, IMessageFilter
         ("Alt+←/→, Backspace", "Back / forward"),
         ("Alt+↑", "Parent folder"),
         ("Ctrl+R", "Refresh"),
-        ("Ctrl+B", "Show / hide the folder tree (Tab in the tree jumps to the active pane)"),
+        ("Ctrl+B", "Show / hide the folder tree on the left (Tab in the tree jumps to the active pane)"),
+        ("Ctrl+Shift+B", "A folder tree inside each pane"),
         ("", ""),
         ("Middle-click", "On a folder (list, tree or bookmark): open it in the OTHER pane · Shift: as new tab · on a tab: close"),
+        ("Right-click", "Full Windows menu (Shift: extended items) plus ExplorerDuo commands on top"),
         ("Explorer keys", "Ctrl+C/X/V, Ctrl+Z, F2 rename, Ctrl+Shift+N, Alt+Enter … work as in Explorer"),
-        ("Mouse", "Drag & drop between panes; double-click the divider to centre it"),
+        ("Mouse", "Drag & drop between panes or onto tree folders (Shift = move, Ctrl = copy, right-drag = ask);"),
+        ("", "hold a drag over a tab to switch to it; double-click the divider to centre it"),
     };
 
     readonly Settings _settings;
@@ -44,13 +47,13 @@ internal sealed class MainForm : Form, IMessageFilter
     readonly SplitContainer _outer;
     readonly FolderTree _tree = new();
     readonly BookmarkBar _bookmarkBar = new();
-    readonly System.Windows.Forms.Timer _statusTimer = new() { Interval = 400 };
+    readonly System.Windows.Forms.Timer _statusTimer = new() { Interval = 500 };
+    readonly System.Windows.Forms.Timer _idleTimer = new() { Interval = 60_000 };
     readonly Stack<string> _closed = new();
     readonly CancellationTokenSource _cts = new();
     Pane _active;
     double _ratio = 0.5;
-    string _revealed = "";
-    (long Until, bool AsTab)? _treePickToOther;
+    (FolderTree Tree, long Until, bool AsTab)? _treePickToOther;
     FindFilesDialog? _find;
 
     /// <summary>For automated screenshots: show without stealing focus.</summary>
@@ -63,19 +66,21 @@ internal sealed class MainForm : Form, IMessageFilter
         _startupPaths = startupPaths;
         _active = _left;
         BrowserTab.ClassicList = settings.ClassicListView;
+        BrowserTab.ShowCloudStatus = settings.ShowCloudStatus;
         RebuildHighlighter();
 
         Text = "ExplorerDuo";
         Icon = AppIcon.Create();
         Font = Theme.Ui;
         BackColor = Theme.Window;
+        Theme.InstallMenuRenderer();
         AutoScaleDimensions = new SizeF(96f, 96f);
         AutoScaleMode = AutoScaleMode.Dpi;
         MinimumSize = new Size(760, 420);
         Size = new Size(1400, 860);
         StartPosition = FormStartPosition.CenterScreen;
 
-        _split = new SplitContainer { Dock = DockStyle.Fill, SplitterWidth = 5, BackColor = Theme.Border, TabStop = false };
+        _split = new SplitContainer { Dock = DockStyle.Fill, SplitterWidth = 10, BackColor = Theme.Window, TabStop = false };
         _split.Panel1.Controls.Add(_left);
         _split.Panel2.Controls.Add(_right);
         _split.SplitterMoved += (_, _) =>
@@ -91,26 +96,15 @@ internal sealed class MainForm : Form, IMessageFilter
         // Folder tree on the far left, shared by both panes: it always drives the active pane.
         _outer = new SplitContainer
         {
-            Dock = DockStyle.Fill, SplitterWidth = 5, BackColor = Theme.Border, TabStop = false, FixedPanel = FixedPanel.Panel1,
+            Dock = DockStyle.Fill, SplitterWidth = 10, BackColor = Theme.Window, TabStop = false, FixedPanel = FixedPanel.Panel1,
         };
-        _outer.Panel1.Controls.Add(_tree);
+        // The shared tree sits on its own card: hairline outline around a surface.
+        var treeCard = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Border, Padding = new Padding(1) };
+        treeCard.Controls.Add(_tree);
+        _outer.Panel1.Controls.Add(treeCard);
         _outer.Panel2.Controls.Add(_split);
-        _tree.FolderPicked += (item, path) =>
-        {
-            if (_treePickToOther is { } route)
-            {
-                _treePickToOther = null;
-                if (Environment.TickCount64 <= route.Until)
-                {
-                    OpenInOtherPane(_active, path, route.AsTab);
-                    return;
-                }
-            }
-            var tab = _active.Current;
-            if (tab == null || PathUtil.SamePath(tab.Path, path)) return;
-            _revealed = path;
-            if (!tab.NavigateItem(item, path)) _active.ShowMessage("Couldn't open that location.");
-        };
+        WireTree(_tree);
+        BrowserTab.MenuExtras = ListMenu;
 
         _bookmarkBar.SetBookmarks(_settings.Bookmarks);
         _bookmarkBar.AddRequested += AddBookmark;
@@ -130,30 +124,204 @@ internal sealed class MainForm : Form, IMessageFilter
             BookmarksChanged();
         };
 
-        Controls.Add(_outer);
+        // Ivory margin around the cards.
+        var stage = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Window, Padding = new Padding(12, 2, 12, 0) };
+        stage.Controls.Add(_outer);
+        Controls.Add(stage);
         Controls.Add(_bookmarkBar);
         Controls.Add(BuildFunctionBar());
 
         foreach (var pane in new[] { _left, _right })
         {
             pane.Activated += SetActive;
-            pane.Changed += p => { if (p == _active) { UpdateTitle(); RevealInTree(); } };
+            pane.Changed += p =>
+            {
+                if (p == _active) { UpdateTitle(); RevealInTree(); }
+                RevealInPaneTree(p);
+            };
             pane.TabClosed += path => _closed.Push(path);
+            pane.TreeButtonClicked += (_, button) => ShowTreeModeMenu(button);
         }
-        _statusTimer.Tick += (_, _) => { _left.UpdateStatus(); _right.UpdateStatus(); };
+        _statusTimer.Tick += (_, _) =>
+        {
+            // Nothing to show while minimized; the next restore refreshes it.
+            if (WindowState == FormWindowState.Minimized) return;
+            _left.UpdateStatus();
+            _right.UpdateStatus();
+        };
+        _idleTimer.Tick += (_, _) => UnloadIdleTabs();
+    }
+
+    // ───────────────────────────── folder trees ─────────────────────────────
+
+    /// <summary>The pane a tree drives: the shared tree follows the active pane, a pane's own tree drives that pane.</summary>
+    Pane TargetOf(FolderTree tree) => tree == _left.Tree ? _left : tree == _right.Tree ? _right : _active;
+
+    IEnumerable<FolderTree> Trees()
+    {
+        yield return _tree;
+        if (_left.Tree != null) yield return _left.Tree;
+        if (_right.Tree != null) yield return _right.Tree;
+    }
+
+    FolderTree? TreeAt(IntPtr hwnd) => Trees().FirstOrDefault(t => Native.IsWithin(t, hwnd));
+
+    void WireTree(FolderTree tree)
+    {
+        tree.FolderPicked += (item, path) =>
+        {
+            var pane = TargetOf(tree);
+            if (_treePickToOther is { } route && route.Tree == tree)
+            {
+                _treePickToOther = null;
+                if (Environment.TickCount64 <= route.Until)
+                {
+                    OpenInOtherPane(pane, path, route.AsTab);
+                    return;
+                }
+            }
+            var tab = pane.Current;
+            if (tab == null || PathUtil.SamePath(tab.Path, path)) return;
+            tree.Revealed = path;
+            if (pane != _active) SetActive(pane);
+            if (!tab.NavigateItem(item, path)) pane.ShowMessage("Couldn't open that location.");
+        };
+        tree.MenuExtras = (_, path) => TreeMenu(tree, path);
+        tree.RenameRequested += RenamePath;
+    }
+
+    string TreeMode => _settings.TreeMode;
+
+    internal Pane LeftPane => _left;
+    internal Pane RightPane => _right;
+    internal void SetTreeModeForTest(string mode) => SetTreeMode(mode);
+
+    /// <summary>"left": one tree for both panes · "panes": a tree inside each pane · "none".</summary>
+    void SetTreeMode(string mode)
+    {
+        SaveTreeWidths();
+        _settings.TreeMode = mode;
+        ApplyTreeMode();
+        _settings.Save();
+        _active.FocusView();
+    }
+
+    void ApplyTreeMode()
+    {
+        _settings.ShowTree = TreeMode == "left"; // keeps older versions' setting meaningful
+        _outer.Panel1Collapsed = TreeMode != "left";
+        foreach (var pane in new[] { _left, _right })
+        {
+            if (TreeMode == "panes")
+            {
+                if (pane.Tree == null)
+                {
+                    var tree = new FolderTree();
+                    WireTree(tree);
+                    pane.SetTree(tree, LogicalToDeviceUnits(_settings.PaneTreeWidth));
+                }
+            }
+            else
+            {
+                pane.SetTree(null, 0); // frees the tree control
+            }
+        }
+        if (TreeMode == "left") ApplyTreeWidth();
+        foreach (var t in Trees()) t.Revealed = "";
+        RevealInTree();
+        RevealInPaneTree(_left);
+        RevealInPaneTree(_right);
+        ApplyRatio();
+    }
+
+    void SaveTreeWidths()
+    {
+        if (!_outer.Panel1Collapsed) _settings.TreeWidth = _outer.SplitterDistance;
+        var paneTree = _active.TreeWidth;
+        if (paneTree > 0) _settings.PaneTreeWidth = (int)Math.Round(paneTree * 96.0 / DeviceDpi);
+    }
+
+    void RevealInPaneTree(Pane pane)
+    {
+        var tree = pane.Tree;
+        var path = pane.Current?.Path;
+        if (tree == null || !tree.IsReady || string.IsNullOrEmpty(path) || PathUtil.SamePath(path, tree.Revealed)) return;
+        tree.Revealed = path;
+        tree.Reveal(path);
+    }
+
+    void ShowTreeModeMenu(Control anchor)
+    {
+        var menu = new ContextMenuStrip { Font = Theme.Ui };
+        menu.Closed += (_, _) => BeginInvoke(() => menu.Dispose());
+        AddTreeModeItems(menu.Items);
+        menu.Show(anchor, new Point(0, anchor.Height));
+    }
+
+    void AddTreeModeItems(ToolStripItemCollection items)
+    {
+        items.Add(new ToolStripMenuItem("Folder tree on the left (follows the active pane)", null, (_, _) => SetTreeMode("left"))
+            { Checked = TreeMode == "left", ShortcutKeyDisplayString = "Ctrl+B" });
+        items.Add(new ToolStripMenuItem("Folder tree in each pane", null, (_, _) => SetTreeMode("panes"))
+            { Checked = TreeMode == "panes", ShortcutKeyDisplayString = "Ctrl+Shift+B" });
+        items.Add(new ToolStripMenuItem("No folder tree", null, (_, _) => SetTreeMode("none")) { Checked = TreeMode == "none" });
+    }
+
+    // ───────────────────────────── memory ─────────────────────────────
+
+    /// <summary>Background tabs untouched for a while give their Explorer view back (they reload when shown).</summary>
+    void UnloadIdleTabs()
+    {
+        int minutes = _settings.UnloadIdleTabsMinutes;
+        if (minutes <= 0) return;
+        long cutoff = Environment.TickCount64 - minutes * 60_000L;
+        int unloaded = 0;
+        foreach (var pane in new[] { _left, _right })
+            foreach (var tab in pane.Tabs)
+                if (tab != pane.Current && tab.IsCreated && tab.HiddenSince is long since && since < cutoff)
+                {
+                    tab.Unload();
+                    unloaded++;
+                }
+        if (unloaded > 0) TrimMemory(workingSet: false);
+    }
+
+    [System.Runtime.InteropServices.DllImport("psapi.dll")] static extern bool EmptyWorkingSet(IntPtr process);
+
+    /// <summary>
+    /// Releases the COM wrappers of closed views and returns freed memory to Windows. The working set is only
+    /// trimmed while minimized (trimming an active window would just cause page faults).
+    /// </summary>
+    static void TrimMemory(bool workingSet)
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers(); // RCW finalizers release the shell objects
+        GC.Collect();
+        if (workingSet)
+        {
+            try { EmptyWorkingSet(System.Diagnostics.Process.GetCurrentProcess().Handle); } catch { }
+        }
     }
 
     // ───────────────────────────── lifecycle ─────────────────────────────
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        Theme.StyleFrame(this); // ivory title bar, gold hairline frame
+    }
 
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e); // DPI auto-scaling happens here, so restore pixel bounds afterwards
         RestoreWindowBounds();
-        _outer.Panel1Collapsed = !_settings.ShowTree;
+        _outer.Panel1Collapsed = TreeMode != "left";
         ApplyTreeWidth();
         RestoreSession();
+        if (TreeMode == "panes") ApplyTreeMode();
         Application.AddMessageFilter(this);
         _statusTimer.Start();
+        _idleTimer.Start();
         _ = Ipc.ServeAsync(args => BeginInvoke(() => ReceiveArgs(args)), _cts.Token);
     }
 
@@ -162,8 +330,15 @@ internal sealed class MainForm : Form, IMessageFilter
         base.OnShown(e);
         ApplyTreeWidth();
         ApplyRatio();
-        _revealed = "";
+        foreach (var t in Trees()) t.Revealed = "";
+        if (TreeMode == "panes")
+        {
+            _left.TreeWidth = LogicalToDeviceUnits(_settings.PaneTreeWidth);
+            _right.TreeWidth = LogicalToDeviceUnits(_settings.PaneTreeWidth);
+        }
         RevealInTree();
+        RevealInPaneTree(_left);
+        RevealInPaneTree(_right);
         _active.FocusView();
     }
 
@@ -185,8 +360,20 @@ internal sealed class MainForm : Form, IMessageFilter
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
-        if (_split != null && WindowState != FormWindowState.Minimized) ApplyRatio();
+        if (_split == null) return;
+        if (WindowState != FormWindowState.Minimized)
+        {
+            _wasMinimized = false;
+            ApplyRatio();
+        }
+        else if (!_wasMinimized)
+        {
+            _wasMinimized = true;
+            BeginInvoke(() => TrimMemory(workingSet: true));
+        }
     }
+
+    bool _wasMinimized;
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
@@ -198,6 +385,8 @@ internal sealed class MainForm : Form, IMessageFilter
     {
         Application.RemoveMessageFilter(this);
         _statusTimer.Stop();
+        _idleTimer.Stop();
+        BrowserTab.MenuExtras = null;
         _cts.Cancel();
         base.OnFormClosed(e);
     }
@@ -243,7 +432,7 @@ internal sealed class MainForm : Form, IMessageFilter
         s.RightIndex = _right.CurrentIndex;
         s.RightActive = _active == _right;
         s.SplitRatio = _ratio;
-        if (!_outer.Panel1Collapsed) _settings.TreeWidth = _outer.SplitterDistance;
+        SaveTreeWidths();
         var b =WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
         s.Bounds = new[] { b.X, b.Y, b.Width, b.Height };
         s.Maximized = WindowState == FormWindowState.Maximized;
@@ -286,25 +475,12 @@ internal sealed class MainForm : Form, IMessageFilter
     void RevealInTree()
     {
         var path = _active.Current?.Path;
-        if (_outer.Panel1Collapsed || !_tree.IsReady || string.IsNullOrEmpty(path) || PathUtil.SamePath(path, _revealed)) return;
-        _revealed = path;
+        if (_outer.Panel1Collapsed || !_tree.IsReady || string.IsNullOrEmpty(path) || PathUtil.SamePath(path, _tree.Revealed)) return;
+        _tree.Revealed = path;
         _tree.Reveal(path);
     }
 
-    void ToggleTree()
-    {
-        if (!_outer.Panel1Collapsed) _settings.TreeWidth = _outer.SplitterDistance;
-        _settings.ShowTree = _outer.Panel1Collapsed;
-        _outer.Panel1Collapsed = !_settings.ShowTree;
-        if (_settings.ShowTree)
-        {
-            ApplyTreeWidth();
-            _revealed = "";
-            RevealInTree();
-        }
-        ApplyRatio();
-        _settings.Save();
-    }
+    void ToggleTree() => SetTreeMode(TreeMode == "left" ? "none" : "left");
 
     void ApplyTreeWidth()
     {
@@ -353,9 +529,11 @@ internal sealed class MainForm : Form, IMessageFilter
         if (!Native.IsWithin(this, m.HWnd)) return false; // dialogs, menus, other windows
 
         var keyCode = ((Keys)(int)m.WParam & Keys.KeyCode) | ModifierKeys;
-        if (keyCode == Keys.Tab && Native.IsWithin(_tree, m.HWnd))
+        if (keyCode == Keys.Tab && TreeAt(m.HWnd) is { } fromTree)
         {
-            _active.FocusView(); // Tab from the tree jumps into the active pane
+            var target = TargetOf(fromTree);
+            if (target != _active) SetActive(target);
+            target.FocusView(); // Tab from a tree jumps into the pane it drives
             return true;
         }
 
@@ -441,6 +619,7 @@ internal sealed class MainForm : Form, IMessageFilter
             case Keys.Control | Keys.E: Mirror(); return true;
             case Keys.Control | Keys.U: SwapFolders(); return true;
             case Keys.Control | Keys.B: ToggleTree(); return true;
+            case Keys.Control | Keys.Shift | Keys.B: SetTreeMode(TreeMode == "panes" ? "none" : "panes"); return true;
         }
 
         var key = keyData & Keys.KeyCode;
@@ -512,36 +691,36 @@ internal sealed class MainForm : Form, IMessageFilter
             warning: false);
     }
 
-    void Transfer(FileOp op)
+    void Transfer(FileOp op) => Transfer(op, op == FileOp.Delete ? null : Other(_active).Current?.Path, "The other pane");
+
+    /// <summary>Copies / moves / recycles the active pane's selection (into <paramref name="destination"/>).</summary>
+    void Transfer(FileOp op, string? destination, string destinationName)
     {
         var src = _active.Current;
         if (src == null) return;
-        var items = src.Selection();
-        if (items.Count == 0)
+        if (src.Counts().Selected == 0)
         {
             _active.ShowMessage("Select files or folders first.");
             return;
         }
 
-        string? destination = null;
         if (op != FileOp.Delete)
         {
-            var dst = Other(_active).Current;
-            if (dst == null || !PathUtil.IsFileSystemPath(dst.Path))
+            if (destination == null || !PathUtil.IsFileSystemPath(destination))
             {
-                _active.ShowMessage("The other pane isn't showing a regular folder.");
+                _active.ShowMessage($"{destinationName} isn't a regular folder.");
                 return;
             }
-            if (PathUtil.SamePath(src.Path, dst.Path))
+            if (PathUtil.SamePath(src.Path, destination))
             {
-                _active.ShowMessage("Both panes show the same folder.");
+                _active.ShowMessage("The items are already in that folder.");
                 return;
             }
-            destination = dst.Path;
         }
 
         var pane = _active;
-        var sources = items.Select(i => i.ParsingName).ToList();
+        var sources = src.SelectionIdLists(); // straight from the view: no per-item path parsing
+        if (sources.Count == 0) return;
         _ = Run();
 
         async Task Run()
@@ -558,15 +737,16 @@ internal sealed class MainForm : Form, IMessageFilter
         }
     }
 
-    void NewFolder()
+    void NewFolder() => NewFolderIn(_active.Current?.Path);
+
+    void NewFolderIn(string? parent)
     {
-        var tab = _active.Current;
-        if (tab == null || !PathUtil.IsFileSystemPath(tab.Path))
+        if (parent == null || !PathUtil.IsFileSystemPath(parent))
         {
             _active.ShowMessage("New folders can only be created inside a regular folder.");
             return;
         }
-        var name = InputDialog.Prompt(this, "New folder", $"Create a folder in {tab.Path}:", "New folder", "Create");
+        var name = InputDialog.Prompt(this, "New folder", $"Create a folder in {parent}:", "New folder", "Create");
         if (name == null) { _active.FocusView(); return; }
         if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         {
@@ -575,13 +755,154 @@ internal sealed class MainForm : Form, IMessageFilter
         }
         try
         {
-            Directory.CreateDirectory(Path.Combine(tab.Path, name));
+            Directory.CreateDirectory(Path.Combine(parent, name));
         }
         catch (Exception ex)
         {
             _active.ShowMessage(ex.Message);
         }
         _active.FocusView();
+    }
+
+    /// <summary>Rename a folder from the tree's menu (through the copy engine, so Ctrl+Z works).</summary>
+    void RenamePath(string path)
+    {
+        var normalized = Highlighter.Normalize(path);
+        var oldName = Path.GetFileName(normalized);
+        if (!PathUtil.IsFileSystemPath(path) || string.IsNullOrEmpty(oldName))
+        {
+            _active.ShowMessage("This item can't be renamed here.");
+            return;
+        }
+        var name = InputDialog.Prompt(this, "Rename", $"New name for \"{oldName}\":", oldName, "Rename");
+        if (name == null || name == oldName) return;
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            _active.ShowMessage("A name can't contain \\ / : * ? \" < > |");
+            return;
+        }
+        try
+        {
+            FileTransfer.Rename(path, name, Handle);
+        }
+        catch (System.Runtime.InteropServices.COMException ex) when (ex.HResult == unchecked((int)0x800704C7))
+        {
+            // Cancelled by the user.
+        }
+        catch (Exception ex)
+        {
+            _active.ShowMessage(ex.Message);
+        }
+    }
+
+    // ───────────────────────────── right-click menus ─────────────────────────────
+
+    /// <summary>ExplorerDuo's part of the file list menu; the complete Windows menu follows below it.</summary>
+    List<MenuCommand> ListMenu(BrowserTab tab, bool onItems)
+    {
+        var pane = _left.Tabs.Contains(tab) ? _left : _right;
+        if (pane != _active) SetActive(pane);
+        var other = Other(pane);
+        bool otherIsFolder = other.Current != null && PathUtil.IsFileSystemPath(other.Current.Path)
+                             && !PathUtil.SamePath(other.Current.Path, tab.Path);
+        var list = new List<MenuCommand>();
+
+        if (!onItems)
+        {
+            list.Add(new MenuCommand("Show this folder in the other pane", Mirror, "Ctrl+E"));
+            list.Add(new MenuCommand("Open in new tab", NewTab, "Ctrl+T"));
+            list.Add(new MenuCommand("New folder…", NewFolder, "F7", PathUtil.IsFileSystemPath(tab.Path)));
+            list.Add(new MenuCommand("Open terminal here", OpenTerminal, "F9", PathUtil.IsFileSystemPath(tab.Path)));
+            list.Add(MenuCommand.Separator);
+            list.Add(new MenuCommand("Select by pattern…", () => SelectByPattern(select: true), "Num +"));
+            list.Add(new MenuCommand("Invert selection", () => tab.InvertSelection(), "Num *"));
+            list.Add(new MenuCommand("Find files…", Search, "Ctrl+F"));
+            list.Add(MenuCommand.Separator);
+            list.Add(new MenuCommand("Copy folder path", CopyPaths, "Ctrl+Shift+C"));
+            list.Add(new MenuCommand("Bookmark this folder", AddBookmark, "Ctrl+D"));
+            list.Add(new MenuCommand("Highlight this folder", null) { Children = HighlightCommands(new List<string> { tab.Path }) });
+            return list;
+        }
+
+        var selection = tab.Selection();
+        var folders = selection.Where(s => s.IsFolder).ToList();
+        bool anyFiles = selection.Any(s => !s.IsFolder && s.IsFileSystem);
+        bool anyZips = selection.Any(s => s.IsFileSystem && s.ParsingName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+
+        if (folders.Count == 1 && selection.Count == 1)
+        {
+            var folder = folders[0].ParsingName;
+            list.Add(new MenuCommand("Open in the other pane", () => OpenInOtherPane(pane, folder, asTab: false), "Middle-click"));
+            list.Add(new MenuCommand("Open in new tab", () => pane.AddTab(folder), "Ctrl+Enter"));
+            list.Add(new MenuCommand("Open in new tab in the other pane", () => other.AddTab(folder, select: false), "Ctrl+Shift+Enter"));
+            list.Add(MenuCommand.Separator);
+        }
+        else if (folders.Count > 1)
+        {
+            list.Add(new MenuCommand($"Open {folders.Count} folders as new tabs", () => OpenSelectionAsTabs(pane), "Ctrl+Enter"));
+            list.Add(new MenuCommand($"Open {folders.Count} folders as tabs in the other pane", () => OpenSelectionAsTabs(other), "Ctrl+Shift+Enter"));
+            list.Add(MenuCommand.Separator);
+        }
+
+        string what = selection.Count == 1 ? "" : $" {selection.Count} items";
+        list.Add(new MenuCommand($"Copy{what} to the other pane", () => Transfer(FileOp.Copy), "F5", otherIsFolder));
+        list.Add(new MenuCommand($"Move{what} to the other pane", () => Transfer(FileOp.Move), "F6", otherIsFolder));
+        list.Add(new MenuCommand("Zip to the other pane…", Pack, "Alt+F5", otherIsFolder));
+        if (anyZips) list.Add(new MenuCommand("Unzip to the other pane", Unpack, "Alt+F9", otherIsFolder));
+        list.Add(MenuCommand.Separator);
+        if (anyFiles) list.Add(new MenuCommand("Edit", EditSelected, "F4"));
+        list.Add(new MenuCommand("Multi-Rename…", MultiRename, "Ctrl+M"));
+        list.Add(new MenuCommand(selection.Count == 1 ? "Copy full path" : "Copy full paths", CopyPaths, "Ctrl+Shift+C"));
+        list.Add(new MenuCommand("Highlight", null) { Children = HighlightCommands(selection.Select(s => s.ParsingName).ToList()) });
+        return list;
+    }
+
+    /// <summary>ExplorerDuo's part of a tree folder's menu.</summary>
+    List<MenuCommand> TreeMenu(FolderTree tree, string path)
+    {
+        var target = TargetOf(tree);
+        var other = Other(target);
+        bool isFolder = PathUtil.IsFileSystemPath(path);
+        var list = new List<MenuCommand>
+        {
+            new("Open in the other pane", () => OpenInOtherPane(target, path, asTab: false), "Middle-click"),
+            new("Open in new tab", () => { target.AddTab(path); target.FocusView(); }),
+            new("Open in new tab in the other pane", () => other.AddTab(path, select: false)),
+            MenuCommand.Separator,
+        };
+
+        // Commander-style: send the active pane's selection straight into this folder.
+        var source = _active.Current;
+        int selected = source?.Counts().Selected ?? 0;
+        if (selected > 0 && isFolder && source != null && !PathUtil.SamePath(source.Path, path))
+        {
+            var items = selected == 1 ? "the selected item" : $"{selected} selected items";
+            list.Add(new MenuCommand($"Copy {items} here", () => Transfer(FileOp.Copy, path, "That folder")));
+            list.Add(new MenuCommand($"Move {items} here", () => Transfer(FileOp.Move, path, "That folder")));
+            list.Add(MenuCommand.Separator);
+        }
+
+        list.Add(new MenuCommand("New folder…", () => NewFolderIn(path), null, isFolder));
+        list.Add(new MenuCommand("Rename…", () => RenamePath(path), null, isFolder && Path.GetFileName(Highlighter.Normalize(path)).Length > 0));
+        list.Add(new MenuCommand("Open terminal here", () => OpenTerminalIn(path), null, isFolder));
+        list.Add(new MenuCommand("Copy path", () =>
+        {
+            Clipboard.SetText(path);
+            _active.ShowMessage($"Copied: {path}", warning: false);
+        }));
+        list.Add(new MenuCommand("Bookmark", () => AddBookmark(path, PathUtil.ShortTitle(path))));
+        list.Add(new MenuCommand("Highlight", null) { Children = HighlightCommands(new List<string> { path }) });
+        return list;
+    }
+
+    List<MenuCommand> HighlightCommands(List<string> targets)
+    {
+        var list = Palette.Colors.Select(c => new MenuCommand(c.Name, () => SetHighlight(targets, c.Hex))).ToList();
+        list.Add(MenuCommand.Separator);
+        list.Add(new MenuCommand("Remove highlight", () => SetHighlight(targets, null), null,
+            targets.Any(t => _settings.Highlights.ContainsKey(Highlighter.Normalize(t)))));
+        list.Add(new MenuCommand("Edit colour rules…", EditSettingsFile));
+        return list;
     }
 
     // ───────────────────────────── Multi Commander-style commands ─────────────────────────────
@@ -592,15 +913,15 @@ internal sealed class MainForm : Form, IMessageFilter
         if (!Native.IsWithin(this, hwnd)) return false;
         bool asTab = (ModifierKeys & Keys.Shift) != 0;
 
-        if (Native.IsWithin(_tree, hwnd))
+        if (TreeAt(hwnd) is { } tree)
         {
             // Select the item under the mouse; the resulting pick is routed to the other pane.
-            _treePickToOther = (Environment.TickCount64 + 1500, asTab);
-            if (!_tree.SelectAt(hwnd, client, out var alreadySelected)) _treePickToOther = null;
+            _treePickToOther = (tree, Environment.TickCount64 + 1500, asTab);
+            if (!tree.SelectAt(hwnd, client, out var alreadySelected)) _treePickToOther = null;
             else if (alreadySelected != null)
             {
                 _treePickToOther = null;
-                OpenInOtherPane(_active, alreadySelected, asTab);
+                OpenInOtherPane(TargetOf(tree), alreadySelected, asTab);
             }
             return true;
         }
@@ -627,15 +948,19 @@ internal sealed class MainForm : Form, IMessageFilter
     void AddBookmark()
     {
         var tab = _active.Current;
-        if (tab == null) return;
-        if (_settings.Bookmarks.Any(b => PathUtil.SamePath(b.Path, tab.Path)))
+        if (tab != null) AddBookmark(tab.Path, tab.Title);
+    }
+
+    void AddBookmark(string path, string title)
+    {
+        if (_settings.Bookmarks.Any(b => PathUtil.SamePath(b.Path, path)))
         {
             _active.ShowMessage("This folder is already bookmarked.", warning: false);
             return;
         }
-        _settings.Bookmarks.Add(new Bookmark { Name = tab.Title, Path = tab.Path });
+        _settings.Bookmarks.Add(new Bookmark { Name = title, Path = path });
         BookmarksChanged();
-        _active.ShowMessage($"Bookmarked \"{tab.Title}\" (Alt+{Math.Min(_settings.Bookmarks.Count, 9)}).", warning: false);
+        _active.ShowMessage($"Bookmarked \"{title}\" (Alt+{Math.Min(_settings.Bookmarks.Count, 9)}).", warning: false);
     }
 
     void OpenBookmark(Bookmark bm, OpenTarget target)
@@ -661,7 +986,7 @@ internal sealed class MainForm : Form, IMessageFilter
     {
         Highlights.Current = new Highlighter(_settings.Highlights, _settings.ColorRules, _settings.HiddenColor);
         foreach (var tab in _left.Tabs.Concat(_right.Tabs)) tab.Repaint();
-        _tree.Repaint();
+        foreach (var tree in Trees()) tree.Repaint();
     }
 
     void ReloadUserSettings()
@@ -765,9 +1090,10 @@ internal sealed class MainForm : Form, IMessageFilter
         _active.ShowMessage(paths.Count == 1 ? $"Copied: {paths[0]}" : $"Copied {paths.Count} paths.", warning: false);
     }
 
-    void OpenTerminal()
+    void OpenTerminal() => OpenTerminalIn(_active.Current?.Path);
+
+    void OpenTerminalIn(string? path)
     {
-        var path = _active.Current?.Path;
         if (!PathUtil.IsFileSystemPath(path)) { _active.ShowMessage("A terminal can only open in a regular folder."); return; }
         try
         {
@@ -889,11 +1215,11 @@ internal sealed class MainForm : Form, IMessageFilter
 
     Control BuildFunctionBar()
     {
-        var bar = new Panel { Dock = DockStyle.Bottom, Height = 34, BackColor = Theme.Window };
+        var bar = new Panel { Dock = DockStyle.Bottom, Height = 46, BackColor = Theme.Window, Padding = new Padding(8, 0, 12, 0) };
         var flow = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill, WrapContents = false, AutoScroll = false,
-            Padding = new Padding(6, 3, 0, 3), BackColor = Theme.Window,
+            Padding = new Padding(0, 8, 0, 6), BackColor = Theme.Window,
         };
         flow.Controls.Add(Fn("Tab", "Switch", SwitchPane));
         flow.Controls.Add(Fn("F4", "Edit", EditSelected));
@@ -915,11 +1241,6 @@ internal sealed class MainForm : Form, IMessageFilter
 
         bar.Controls.Add(flow);
         bar.Controls.Add(more);
-        bar.Paint += (_, e) =>
-        {
-            using var pen = new Pen(Theme.Border);
-            e.Graphics.DrawLine(pen, 0, 0, bar.Width, 0);
-        };
         return bar;
     }
 
@@ -956,8 +1277,14 @@ internal sealed class MainForm : Form, IMessageFilter
         menu.Items.Add(highlight);
         menu.Items.Add(new ToolStripSeparator());
 
-        menu.Items.Add(new ToolStripMenuItem("Folder tree", null, (_, _) => ToggleTree())
-            { Checked = _settings.ShowTree, ShortcutKeyDisplayString = "Ctrl+B" });
+        var trees = new ToolStripMenuItem("Folder tree");
+        AddTreeModeItems(trees.DropDownItems);
+        menu.Items.Add(trees);
+        menu.Items.Add(new ToolStripMenuItem($"Unload tabs unused for {Math.Max(_settings.UnloadIdleTabsMinutes, 10)} min (saves memory)", null, (_, _) =>
+        {
+            _settings.UnloadIdleTabsMinutes = _settings.UnloadIdleTabsMinutes > 0 ? 0 : 10;
+            _settings.Save();
+        }) { Checked = _settings.UnloadIdleTabsMinutes > 0 });
         menu.Items.Add(new ToolStripMenuItem("Classic list view (colours + middle-click)", null, (_, _) =>
         {
             _settings.ClassicListView = !_settings.ClassicListView;
@@ -965,6 +1292,13 @@ internal sealed class MainForm : Form, IMessageFilter
             _settings.Save();
             _active.ShowMessage("Applies to tabs opened from now on, and to all tabs after restarting.", warning: false);
         }) { Checked = _settings.ClassicListView });
+        menu.Items.Add(new ToolStripMenuItem("Cloud status column in OneDrive folders", null, (_, _) =>
+        {
+            _settings.ShowCloudStatus = !_settings.ShowCloudStatus;
+            BrowserTab.ShowCloudStatus = _settings.ShowCloudStatus;
+            _settings.Save();
+            if (_settings.ShowCloudStatus) _active.Current?.Refresh();
+        }) { Checked = _settings.ShowCloudStatus });
         menu.Items.Add(new ToolStripMenuItem("Reopen my tabs on startup", null, (_, _) =>
         {
             _settings.RestoreSession = !_settings.RestoreSession;
@@ -993,7 +1327,7 @@ internal sealed class MainForm : Form, IMessageFilter
     void ShowShortcuts()
     {
         var text = string.Join(Environment.NewLine,
-            ShortcutHelp.Select(s => s.Keys.Length == 0 ? "" : $"{s.Keys}\t{s.Action}"));
+            ShortcutHelp.Select(s => s.Keys.Length == 0 && s.Action.Length == 0 ? "" : $"{s.Keys}\t{s.Action}"));
         MessageBox.Show(this, text, "ExplorerDuo – keyboard shortcuts", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
@@ -1027,7 +1361,7 @@ internal sealed class FnButton : FlatButton
     {
         var k = TextRenderer.MeasureText(_key, Theme.UiBold, Size.Empty, TextFormatFlags.NoPadding);
         var l = TextRenderer.MeasureText(_label, Font, Size.Empty, TextFormatFlags.NoPadding);
-        return new Size(k.Width + l.Width + LogicalToDeviceUnits(26), LogicalToDeviceUnits(28));
+        return new Size(k.Width + l.Width + LogicalToDeviceUnits(30), LogicalToDeviceUnits(32));
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -1036,7 +1370,7 @@ internal sealed class FnButton : FlatButton
         var flags = TextFormatFlags.NoPadding | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine;
         var k = TextRenderer.MeasureText(_key, Theme.UiBold, Size.Empty, TextFormatFlags.NoPadding);
         int x = LogicalToDeviceUnits(10);
-        TextRenderer.DrawText(e.Graphics, _key, Theme.UiBold, new Rectangle(x, 0, k.Width + 2, Height), Theme.Accent, flags);
+        TextRenderer.DrawText(e.Graphics, _key, Theme.UiBold, new Rectangle(x, 0, k.Width + 2, Height), Theme.AccentDeep, flags);
         x += k.Width + LogicalToDeviceUnits(6);
         TextRenderer.DrawText(e.Graphics, _label, Font, new Rectangle(x, 0, Width - x, Height), Theme.Text, flags);
     }

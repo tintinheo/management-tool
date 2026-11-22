@@ -5,7 +5,7 @@
   },
   "projects": {
     "D:\\portfolio\\management-tool\\myNation\\ExplorerDuo\\src\\ExplorerDuo\\ExplorerDuo.csproj": {
-      "version": "2.2.0",
+      "version": "2.4.0",
       "restore": {
         "projectUniqueName": "D:\\portfolio\\management-tool\\myNation\\ExplorerDuo\\src\\ExplorerDuo\\ExplorerDuo.csproj",
         "projectName": "ExplorerDuo",
@@ -73,6 +73,10 @@
           "downloadDependencies": [
             {
               "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[8.0.31, 8.0.31]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Crossgen2.win-x64",
               "version": "[8.0.31, 8.0.31]"
             },
             {

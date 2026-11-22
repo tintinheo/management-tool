@@ -13,7 +13,7 @@ internal sealed class BookmarkBar : Panel
 
     readonly FlowLayoutPanel _flow = new()
     {
-        Dock = DockStyle.Fill, WrapContents = false, AutoScroll = false, BackColor = Theme.Window, Padding = new Padding(4, 2, 0, 2),
+        Dock = DockStyle.Fill, WrapContents = false, AutoScroll = false, BackColor = Theme.Window, Padding = new Padding(6, 8, 0, 6),
     };
     readonly ToolTip _tip = new();
 
@@ -26,14 +26,11 @@ internal sealed class BookmarkBar : Panel
     public BookmarkBar()
     {
         Dock = DockStyle.Top;
-        Height = 32;
+        Height = 48;
         BackColor = Theme.Window;
+        Padding = new Padding(14, 0, 0, 0);
         Controls.Add(_flow);
-        Paint += (_, e) =>
-        {
-            using var pen = new Pen(Theme.Border);
-            e.Graphics.DrawLine(pen, 0, Height - 1, Width, Height - 1);
-        };
+        Controls.Add(new WordmarkLabel());
     }
 
     public void SetBookmarks(IReadOnlyList<Bookmark> bookmarks)
@@ -42,7 +39,7 @@ internal sealed class BookmarkBar : Panel
         foreach (Control c in _flow.Controls) c.Dispose();
         _flow.Controls.Clear();
 
-        var add = new GlyphButton(GlyphStarAdd, "Bookmark", Theme.Accent);
+        var add = new GlyphButton(GlyphStarAdd, "Bookmark", Theme.Accent, Theme.Muted);
         _tip.SetToolTip(add, "Bookmark the active pane's folder (Ctrl+D)");
         add.Click += (_, _) => AddRequested?.Invoke();
         _flow.Controls.Add(add);
@@ -52,7 +49,7 @@ internal sealed class BookmarkBar : Panel
             _flow.Controls.Add(new Label
             {
                 Text = "Ctrl+D bookmarks the current folder · middle-click a bookmark or folder to open it in the other pane",
-                AutoSize = true, ForeColor = Theme.Muted, Margin = new Padding(8, 7, 0, 0),
+                AutoSize = true, ForeColor = Theme.Muted, Font = Theme.UiSmall, Margin = new Padding(8, 8, 0, 0),
             });
         }
 
@@ -60,7 +57,7 @@ internal sealed class BookmarkBar : Panel
         {
             var bm = bookmarks[i];
             int index = i;
-            var b = new GlyphButton(GlyphFolder, bm.Name, Color.FromArgb(214, 160, 30));
+            var b = new GlyphButton(GlyphFolder, bm.Name, Theme.Accent, Theme.Text);
             _tip.SetToolTip(b, $"{bm.Path}\n{(index < 9 ? $"Alt+{index + 1} · " : "")}Click: open · Ctrl+click: new tab · Middle-click: other pane");
             b.MouseUp += (_, e) =>
             {
@@ -97,19 +94,58 @@ internal sealed class BookmarkBar : Panel
         base.Dispose(disposing);
     }
 
+    /// <summary>"ExplorerDuo" in serif with a small gold mark and a hairline divider — the header's anchor.</summary>
+    sealed class WordmarkLabel : Control
+    {
+        public WordmarkLabel()
+        {
+            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
+            SetStyle(ControlStyles.Selectable, false);
+            Dock = DockStyle.Left;
+            BackColor = Theme.Window;
+            Width = 150;
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            var t = TextRenderer.MeasureText("ExplorerDuo", Theme.Wordmark, Size.Empty, TextFormatFlags.NoPadding);
+            Width = t.Width + LogicalToDeviceUnits(40);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.Clear(BackColor);
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            float s = LogicalToDeviceUnits(4);
+            float cy = Height / 2f;
+            using (var gold = new SolidBrush(Theme.Accent))
+                g.FillPolygon(gold, new[] { new PointF(s, cy - s), new PointF(2 * s, cy), new PointF(s, cy + s), new PointF(0, cy) });
+            int x = LogicalToDeviceUnits(14);
+            TextRenderer.DrawText(g, "ExplorerDuo", Theme.Wordmark, new Rectangle(x, 0, Width - x, Height), Theme.Text,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+            using var pen = new Pen(Theme.Border);
+            int inset = LogicalToDeviceUnits(14);
+            g.DrawLine(pen, Width - 1, inset, Width - 1, Height - inset);
+        }
+    }
+
     /// <summary>Flat button: small icon-font glyph + text.</summary>
     sealed class GlyphButton : FlatButton
     {
         readonly string _glyph;
         readonly string _label;
         readonly Color _glyphColor;
+        readonly Color _textColor;
         readonly Font _glyphFont = Theme.Icons(9.5f);
 
-        public GlyphButton(string glyph, string label, Color glyphColor)
+        public GlyphButton(string glyph, string label, Color glyphColor, Color textColor)
         {
             _glyph = glyph;
             _label = label;
             _glyphColor = glyphColor;
+            _textColor = textColor;
             AutoSize = true;
             Margin = new Padding(1, 0, 1, 0);
             Text = "";
@@ -118,18 +154,18 @@ internal sealed class BookmarkBar : Panel
         public override Size GetPreferredSize(Size proposedSize)
         {
             var t = TextRenderer.MeasureText(_label, Font, Size.Empty, TextFormatFlags.NoPadding);
-            return new Size(Math.Min(t.Width, LogicalToDeviceUnits(180)) + LogicalToDeviceUnits(34), LogicalToDeviceUnits(26));
+            return new Size(Math.Min(t.Width, LogicalToDeviceUnits(180)) + LogicalToDeviceUnits(40), LogicalToDeviceUnits(32));
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-            int x = LogicalToDeviceUnits(8);
+            int x = LogicalToDeviceUnits(10);
             int g = LogicalToDeviceUnits(16);
             var flags = TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine;
             TextRenderer.DrawText(e.Graphics, _glyph, _glyphFont, new Rectangle(x, 0, g, Height), _glyphColor, flags | TextFormatFlags.HorizontalCenter);
             x += g + LogicalToDeviceUnits(4);
-            TextRenderer.DrawText(e.Graphics, _label, Font, new Rectangle(x, 0, Width - x - LogicalToDeviceUnits(4), Height), Theme.Text,
+            TextRenderer.DrawText(e.Graphics, _label, Font, new Rectangle(x, 0, Width - x - LogicalToDeviceUnits(4), Height), _textColor,
                 flags | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         }
 

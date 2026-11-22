@@ -9,9 +9,19 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AssemblyName>ExplorerDuo</AssemblyName>
     <RootNamespace>ExplorerDuo</RootNamespace>
-    <Version>2.2.0</Version>
+    <Version>2.4.0</Version>
     <Product>ExplorerDuo</Product>
     <Description>Dual-pane, multi-tab file manager built on the Windows Explorer shell view</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Lean runtime: workstation GC without the background GC thread keeps the heap and thread count small for a UI app. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Precompiled code: faster start-up, less JIT CPU on first use of each window/menu. -->
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != ''">true</PublishReadyToRun>
   </PropertyGroup>
 
   <ItemGroup>

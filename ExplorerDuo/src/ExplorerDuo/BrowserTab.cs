@@ -31,15 +31,19 @@ internal sealed class BrowserTab : IDisposable
     /// <summary>Use the classic SysListView32 layout (colour highlighting + middle-click). Applies to views created afterwards.</summary>
     public static bool ClassicList { get; set; } = true;
 
+    /// <summary>Add the cloud "Status" column automatically in OneDrive and other cloud-synced folders.</summary>
+    public static bool ShowCloudStatus { get; set; } = true;
+
     /// <summary>How many list rows have been painted with a highlight colour (diagnostics/tests).</summary>
     public static int ColoredItemPaints { get; private set; }
     IExplorerBrowser? _browser;
+    object? _view; // the current shell view (IShellView / IFolderView2), cached per navigation
     DefViewHook? _hook;
     BrowserEvents? _events;
     uint _cookie;
     string _pending;
 
-    public Panel Host { get; } = new() { Dock = DockStyle.Fill, Visible = false, BackColor = Color.White };
+    public Panel Host { get; } = new() { Dock = DockStyle.Fill, Visible = false, BackColor = Theme.Surface };
     public string Path { get; private set; }
     public string Title { get; private set; }
     public bool IsCreated => _browser != null;
@@ -68,13 +72,49 @@ internal sealed class BrowserTab : IDisposable
         var fs = new FOLDERSETTINGS { ViewMode = FVM_DETAILS, Flags = FWF_SHOWSELALWAYS | FWF_NOCLIENTEDGE };
         browser.Initialize(Host.Handle, ref rc, ref fs);
 
-        _events = new BrowserEvents(OnNavigated, () => NavigationFailed?.Invoke(this));
+        _events = new BrowserEvents(OnNavigated, () => NavigationFailed?.Invoke(this), _ => { _view = null; ClearColorCache(); });
         var sink = Marshal.GetComInterfaceForObject(_events, typeof(IExplorerBrowserEvents));
         try { browser.Advise(sink, out _cookie); }
         finally { Marshal.Release(sink); }
 
         _browser = browser;
+        HiddenSince = null;
         if (!Navigate(_pending)) Navigate(PathUtil.ThisPc);
+    }
+
+    /// <summary>When the tab was last hidden (null while visible); idle tabs are unloaded to save memory.</summary>
+    public long? HiddenSince { get; set; }
+
+    /// <summary>
+    /// Frees the embedded Explorer view (and the shell extensions it loaded) but keeps the tab and its folder;
+    /// the view is recreated the next time the tab is shown.
+    /// </summary>
+    public void Unload()
+    {
+        if (_browser == null) return;
+        _pending = Path;
+        DestroyBrowser();
+    }
+
+    void DestroyBrowser()
+    {
+        _hook?.ReleaseHandle();
+        _hook = null;
+        _view = null;
+        ListHandle = IntPtr.Zero;
+        ClearColorCache();
+        if (_browser == null) return;
+        try
+        {
+            _browser.Unadvise(_cookie);
+            _browser.Destroy();
+        }
+        catch
+        {
+            // Already torn down by the shell.
+        }
+        Marshal.ReleaseComObject(_browser);
+        _browser = null;
     }
 
     /// <summary>Navigates to a path, "::{CLSID}", "shell:..." or %VAR% string. Returns false if it can't be resolved.</summary>
@@ -115,7 +155,14 @@ internal sealed class BrowserTab : IDisposable
         Path = Shell.NameOf(pidl, Shell.SIGDN_DESKTOPABSOLUTEPARSING) ?? Path;
         Title = Shell.NameOf(pidl, Shell.SIGDN_NORMALDISPLAY) ?? PathUtil.ShortTitle(Path);
         _pending = Path;
+        _view = null; // re-read lazily: the view object of the finished navigation
+        ClearColorCache();
         AttachHook();
+        if (ShowCloudStatus && CloudStatus.IsCloudPath(Path) && View<IShellView>() is { } view)
+        {
+            try { CloudStatus.EnsureStatusColumn(view); }
+            catch (Exception ex) { Log.Write("cloud status column: " + ex.Message); }
+        }
         Navigated?.Invoke(this);
         TrySelectPending();
     }
@@ -139,7 +186,159 @@ internal sealed class BrowserTab : IDisposable
     /// <summary>Repaint after highlight rules change.</summary>
     public void Repaint()
     {
+        ClearColorCache();
         if (ListHandle != IntPtr.Zero) Native.InvalidateRect(ListHandle, IntPtr.Zero, true);
+    }
+
+    // ── colour cache ──
+    // The list asks for a colour for every visible row on every repaint (scrolling, hovering, selection).
+    // Resolving a row means several COM calls plus pattern matching, so answers are cached per item ID
+    // (a hash of the item's PIDL, which also changes when the item is renamed or modified).
+    readonly Dictionary<ulong, Color?> _colors = new();
+    Highlighter? _colorsFor;
+    byte[] _pidlBuffer = new byte[512];
+
+    void ClearColorCache()
+    {
+        _colors.Clear();
+        _colorsFor = null;
+    }
+
+    [DllImport("shell32.dll")] static extern uint ILGetSize(IntPtr pidl);
+
+    internal Color? ColorAt(int index, Highlighter highlighter)
+    {
+        if (!ReferenceEquals(highlighter, _colorsFor) || _colors.Count > 50000)
+        {
+            _colors.Clear();
+            _colorsFor = highlighter;
+        }
+        var fv = View<IFolderView2>();
+        if (fv == null || fv.Item(index, out var pidl) != 0 || pidl == IntPtr.Zero) return null;
+        ulong key;
+        try
+        {
+            int size = (int)ILGetSize(pidl);
+            if (size > _pidlBuffer.Length) _pidlBuffer = new byte[size * 2];
+            Marshal.Copy(pidl, _pidlBuffer, 0, size);
+            key = 14695981039346656037UL; // FNV-1a
+            for (int i = 0; i < size; i++) key = (key ^ _pidlBuffer[i]) * 1099511628211UL;
+        }
+        finally
+        {
+            Marshal.FreeCoTaskMem(pidl);
+        }
+        if (_colors.TryGetValue(key, out var cached)) return cached;
+        var color = ItemAt(index) is { } entry ? highlighter.ColorFor(entry) : null;
+        _colors[key] = color;
+        return color;
+    }
+
+    /// <summary>Items whose colour is cached (tests/diagnostics).</summary>
+    internal int CachedColorCount => _colors.Count;
+
+    // ── right-click menu ──
+
+    /// <summary>ExplorerDuo commands for the view's right-click menu: (tab, clicked on items?) → commands. Null = native menu.</summary>
+    public static Func<BrowserTab, bool, List<MenuCommand>>? MenuExtras { get; set; }
+
+    const int LVM_GETITEMRECT = 0x100E;
+
+    /// <summary>
+    /// Shows the complete Windows menu (as Explorer builds it) for the selection or the folder background, with
+    /// ExplorerDuo's commands on top. <paramref name="lParam"/> is screen coordinates, or -1 for the keyboard.
+    /// </summary>
+    internal bool ShowContextMenu(IntPtr lParam)
+    {
+        var view = View<IShellView>();
+        if (view == null || view.GetWindow(out var defView) != 0) return false;
+
+        bool onItems;
+        Point screen;
+        if (lParam == (IntPtr)(-1))
+        {
+            onItems = Counts().Selected > 0;
+            screen = Cursor.Position;
+            var fv = View<IFolderView2>();
+            if (onItems && fv != null && fv.GetFocusedItem(out var focused) == 0 && focused >= 0 && ListHandle != IntPtr.Zero)
+            {
+                var rect = Marshal.AllocHGlobal(16);
+                try
+                {
+                    Marshal.WriteInt32(rect, 2 /* LVIR_LABEL */);
+                    if (Native.SendMessage(ListHandle, LVM_GETITEMRECT, (IntPtr)focused, rect) != IntPtr.Zero)
+                    {
+                        var pt = new POINT(Marshal.ReadInt32(rect, 0) + 8, Marshal.ReadInt32(rect, 12));
+                        Native.MapWindowPoints(ListHandle, IntPtr.Zero, ref pt, 1);
+                        screen = new Point(pt.X, pt.Y);
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(rect);
+                }
+            }
+        }
+        else
+        {
+            screen = Native.PointFromLParam(lParam);
+            var pt = new POINT(screen.X, screen.Y);
+            if (ListHandle != IntPtr.Zero) Native.MapWindowPoints(IntPtr.Zero, ListHandle, ref pt, 1);
+            onItems = ListHandle != IntPtr.Zero && HitTest(new Point(pt.X, pt.Y)) != null && Counts().Selected > 0;
+        }
+
+        var cm = ShellMenu.ForView(view, onItems ? ShellMenu.SVGIO_SELECTION : ShellMenu.SVGIO_BACKGROUND);
+        if (cm == null) return false;
+        MenusShown++;
+        try
+        {
+            var own = MenuExtras?.Invoke(this, onItems) ?? new List<MenuCommand>();
+            ShellMenu.Show(defView, cm, screen, own, PathUtil.IsFileSystemPath(Path) ? Path : null, verb =>
+            {
+                switch (verb.ToLowerInvariant())
+                {
+                    case "rename":
+                        View<IFolderView2>()?.DoRename(); // in-place rename, exactly like F2
+                        return true;
+                    case "open" or "explore" when onItems:
+                        var selection = Selection();
+                        if (selection.Count == 1 && selection[0].IsFolder) return Navigate(selection[0].ParsingName);
+                        return false;
+                    default:
+                        return false;
+                }
+            }, site: view);
+        }
+        finally
+        {
+            ShellMenu.Release(cm);
+        }
+        return true;
+    }
+
+    /// <summary>Right-click menus shown so far (tests).</summary>
+    public int MenusShown { get; private set; }
+
+    [DllImport("shell32.dll")] static extern int SHGetIDListFromObject([MarshalAs(UnmanagedType.IUnknown)] object punk, out IntPtr pidl);
+
+    /// <summary>
+    /// Absolute ID lists of the selected items (caller frees each with CoTaskMemFree). Handing these to the copy engine
+    /// avoids re-parsing every path from disk, and they can safely cross to the worker thread.
+    /// </summary>
+    public List<IntPtr> SelectionIdLists()
+    {
+        var list = new List<IntPtr>();
+        var fv = View<IFolderView>();
+        if (fv == null) return list;
+        var iid = typeof(IShellItemArray).GUID;
+        if (fv.Items(SVGIO_SELECTION, ref iid, out var obj) != 0 || obj is not IShellItemArray array) return list;
+        array.GetCount(out var count);
+        for (uint i = 0; i < count; i++)
+        {
+            array.GetItemAt(i, out var item);
+            if (SHGetIDListFromObject(item, out var pidl) == 0 && pidl != IntPtr.Zero) list.Add(pidl);
+        }
+        return list;
     }
 
     /// <summary>Item at a view index (same index as the list control row).</summary>
@@ -290,6 +489,9 @@ internal sealed class BrowserTab : IDisposable
     sealed class DefViewHook : NativeWindow
     {
         const int NM_CUSTOMDRAW = -12;
+        const int WM_CONTEXTMENU = 0x007B, NM_RCLICK = -5;
+        // NMITEMACTIVATE: NMHDR, iItem, iSubItem, uNewState, uOldState, uChanged, ptAction
+        static readonly int ActionOffset = Marshal.SizeOf<NMHDR>() + 5 * 4;
         const uint CDDS_PREPAINT = 0x1, CDDS_ITEMPREPAINT = 0x10001;
         const long CDRF_NEWFONT = 0x2, CDRF_NOTIFYITEMDRAW = 0x20;
         static readonly int CodeOffset = (int)Marshal.OffsetOf<NMHDR>(nameof(NMHDR.code));
@@ -308,6 +510,37 @@ internal sealed class BrowserTab : IDisposable
 
         protected override void WndProc(ref Message m)
         {
+            if (m.Msg == WM_CONTEXTMENU && MenuExtras != null && (m.WParam == _list || m.WParam == Handle))
+            {
+                try
+                {
+                    if (_tab.ShowContextMenu(m.LParam)) return;
+                }
+                catch (Exception ex)
+                {
+                    Log.Write("view menu failed: " + ex);
+                }
+            }
+            // A mouse right-click arrives first as NM_RCLICK from the list (handled → no WM_CONTEXTMENU follows).
+            if (m.Msg == Native.WM_NOTIFY && MenuExtras != null && m.LParam != IntPtr.Zero
+                && Marshal.ReadIntPtr(m.LParam) == _list && Marshal.ReadInt32(m.LParam, CodeOffset) == NM_RCLICK)
+            {
+                try
+                {
+                    // NMITEMACTIVATE.ptAction: the click in list client coordinates.
+                    var pt = new POINT(Marshal.ReadInt32(m.LParam, ActionOffset), Marshal.ReadInt32(m.LParam, ActionOffset + 4));
+                    Native.MapWindowPoints(_list, IntPtr.Zero, ref pt, 1);
+                    if (_tab.ShowContextMenu((IntPtr)((pt.Y << 16) | (pt.X & 0xFFFF))))
+                    {
+                        m.Result = (IntPtr)1;
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Write("view menu failed: " + ex);
+                }
+            }
             if (m.Msg == Native.WM_NOTIFY && Highlights.Current is { IsEmpty: false } highlighter && m.LParam != IntPtr.Zero)
             {
                 try
@@ -324,7 +557,7 @@ internal sealed class BrowserTab : IDisposable
                         else if (stage == CDDS_ITEMPREPAINT)
                         {
                             int index = (int)Marshal.ReadIntPtr(m.LParam, ItemOffset);
-                            if (_tab.ItemAt(index) is { } entry && highlighter.ColorFor(entry) is Color color)
+                            if (_tab.ColorAt(index, highlighter) is Color color)
                             {
                                 Marshal.WriteInt32(m.LParam, TextColorOffset, (int)Highlighter.ToColorRef(color));
                                 m.Result = (IntPtr)(result | CDRF_NEWFONT);
@@ -350,19 +583,26 @@ internal sealed class BrowserTab : IDisposable
         _browser.SetRect(ref hdwp, new RECT(Host.ClientRectangle));
     }
 
+    /// <summary>The current view as <typeparamref name="T"/>. The view object is fetched once per navigation, not per call.</summary>
     T? View<T>() where T : class
     {
         if (_browser == null) return null;
-        var iid = typeof(T).GUID;
-        if (_browser.GetCurrentView(ref iid, out var ptr) != 0 || ptr == IntPtr.Zero) return null;
-        try { return Marshal.GetObjectForIUnknown(ptr) as T; }
-        finally { Marshal.Release(ptr); }
+        if (_view == null)
+        {
+            var iid = typeof(IShellView).GUID;
+            if (_browser.GetCurrentView(ref iid, out var ptr) != 0 || ptr == IntPtr.Zero) return null;
+            try { _view = Marshal.GetObjectForIUnknown(ptr); }
+            finally { Marshal.Release(ptr); }
+        }
+        return _view as T;
     }
 
     /// <summary>Gives the shell view its keyboard accelerators (Ctrl+C/V/X/Z/A, Delete, F2, Alt+Enter, Ctrl+Shift+N...).</summary>
     public bool TranslateAccelerator(ref MSG msg) => View<IShellView>()?.TranslateAccelerator(ref msg) == 0;
 
     public void Refresh() => View<IShellView>()?.Refresh();
+
+    internal IShellView? ShellView => View<IShellView>();
 
     public void FocusView()
     {
@@ -400,22 +640,7 @@ internal sealed class BrowserTab : IDisposable
 
     public void Dispose()
     {
-        _hook?.ReleaseHandle();
-        _hook = null;
-        if (_browser != null)
-        {
-            try
-            {
-                _browser.Unadvise(_cookie);
-                _browser.Destroy();
-            }
-            catch
-            {
-                // Already torn down by the shell.
-            }
-            Marshal.ReleaseComObject(_browser);
-            _browser = null;
-        }
+        DestroyBrowser();
         Host.Dispose();
     }
 }

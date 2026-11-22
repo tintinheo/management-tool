@@ -1,4 +1,4 @@
-# ExplorerDuo 2.2.0
+# ExplorerDuo 2.4.0
 
 ExplorerDuo is a dual-panel file manager with tabs, in the style of Multi Commander. Each tab shows a
 real Windows Explorer view (the official `IExplorerBrowser` shell component). The file list,
@@ -9,7 +9,7 @@ folder tree, bookmarks, colour highlighting and commander-style commands.
 ## Run
 
 ```
-dist\ExplorerDuo-2.2.0\ExplorerDuo.exe [folder ...]
+dist\ExplorerDuo-2.4.0\ExplorerDuo.exe [folder ...]
 ```
 
 You need the .NET 8 Desktop Runtime. Each folder you pass opens as a tab. If ExplorerDuo is already
@@ -18,9 +18,27 @@ running, the folders open as tabs in that window.
 Build and test from source:
 
 ```
-dotnet publish src/ExplorerDuo/ExplorerDuo.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o dist/ExplorerDuo-2.2.0
+dotnet publish src/ExplorerDuo/ExplorerDuo.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o dist/ExplorerDuo-2.4.0
 dotnet test
 ```
+
+## Look
+Minimalist and warm: ivory window, charcoal text, a single champagne-gold accent, hairline borders,
+and serif headings (the ExplorerDuo wordmark, tab titles and dialog titles). Each pane and the shared
+folder tree sit on their own card. The active pane has a gold-tinted outline and a slim gold line
+under its current tab. On Windows 11 the title bar matches: an ivory caption with a fine gold border.
+The file lists themselves are Windows' own views, so they keep the Windows look.
+
+Highlight colours are muted jewel tones: Garnet, Amber, Gold, Sage, Teal, Sapphire, Amethyst and Rose.
+If your settings still contain the old bright colours (the 2.3 defaults or the old Highlight menu
+colours), they switch to the matching new colours automatically, once. Any colour you typed in
+yourself stays as it is.
+
+## Cloud status (OneDrive)
+In OneDrive folders, the Windows **Status** column (synced, available online only, always available,
+syncing) is added automatically, right after Name. This also works in other cloud folders that are
+registered with Windows, such as Dropbox, Google Drive and iCloud. Turn it off under ⋯ → **Cloud status
+column in OneDrive folders**.
 
 ## Middle-click: open in the other pane
 - **Folder in the file list**: opens that folder in the opposite pane. Hold **Shift** to open it as a
@@ -81,16 +99,65 @@ The bar under the title shows your bookmarks.
 | Ctrl+L, Alt+D | Edit the address |
 | Alt+←/→, Backspace, Alt+↑ | Back / forward / parent folder |
 | Ctrl+R | Refresh |
-| Ctrl+B | Show / hide the folder tree |
+| Ctrl+B | Show / hide the folder tree on the left |
+| Ctrl+Shift+B | A folder tree inside each pane (on / off) |
 
 Explorer's own keys also work: Ctrl+C/X/V, Ctrl+Z, F2, Ctrl+A, Ctrl+Shift+N and Alt+Enter.
 
 ## Folder tree
-Explorer's own navigation tree is on the far left: Home; Desktop, Downloads, Documents, Pictures,
-Music and Videos; This PC; and Network.
-- Click a folder to open it in the active pane, the pane with the blue tab marker.
-- When the active pane changes folder, the tree highlights that folder.
-- **Tab** moves from the tree into the active pane.
+The folder tree is Explorer's own navigation tree: Home; Desktop, Downloads, Documents, Pictures, Music
+and Videos; This PC; and Network. Choose where it appears with the tree button at the right end of
+each address bar, or under ⋯ → **Folder tree**:
+
+| Choice | What you get |
+|---|---|
+| **On the left** (Ctrl+B) | One tree for the whole window. Clicking a folder opens it in the active pane (the pane with the blue tab marker), and the tree follows the active pane. |
+| **In each pane** (Ctrl+Shift+B) | Each pane gets its own tree, and each tree follows and drives only its own pane. |
+| **No folder tree** | More room for the file lists. |
+
+- **Tab** moves from a tree into the pane it drives.
+- **Drag and drop onto tree folders.** Drop files on a folder in the tree to copy or move them there,
+  the same as in Explorer: within one drive, a drop moves; between drives, it copies. Hold **Shift**
+  to move, hold **Ctrl** to copy, or drag with the right mouse button to choose.
+- **Drop into another tab.** While dragging, hold the pointer over a tab for half a second to switch
+  to it, then drop into its file list.
+
+## Right-click menus
+The right-click menus in the file lists and in the folder trees are the complete Windows menus: Open
+with, Send to, New, Paste, Undo, View, Sort by, Properties, and every add-on such as 7-Zip, Git or
+VS Code. Hold **Shift** while right-clicking to get the extended items, such as "Copy as path" and
+"Open PowerShell window here".
+
+ExplorerDuo adds its own commands at the top of each menu:
+- **On files and folders**: open in the other pane or as a new tab, copy or move to the other pane,
+  zip or unzip to the other pane, Edit, Multi-Rename, copy full paths, and Highlight.
+- **On empty space**: show this folder in the other pane, open it in a new tab, new folder, terminal
+  here, select by pattern, invert selection, find files, copy the folder path, bookmark, and
+  highlight.
+- **On a tree folder**: open in the other pane or as a new tab; **copy or move the active pane's
+  selection into this folder**; new folder, rename, terminal here, copy path, bookmark, and highlight.
+
+The menus need the Classic list view, which is on by default. With the modern Windows 11 list, you
+get Windows' own menu without the ExplorerDuo commands.
+
+## Speed and memory
+- **Colouring is cached.** Each item's colour is looked up once per folder instead of on every
+  repaint, so scrolling large folders with colour rules uses much less CPU. The folder tree skips
+  colouring completely when there are no rules.
+- **Faster copy and move.** F5, F6 and F8, and "Copy/Move here" in the tree menu, pass the selected
+  items straight to the Windows copy engine in one batch. Paths aren't parsed again from disk, which
+  helps with thousands of files. The operation runs on its own thread, so you can keep browsing
+  while it copies. You still get the normal Windows progress, conflict and undo handling.
+- **No freezes from slow drives.** Free disk space is read in the background and refreshed at most
+  every 5 seconds. A sleeping USB disk or a disconnected network drive no longer freezes the window
+  when you open it.
+- **Background tabs release their memory.** A tab you haven't looked at for 10 minutes closes its
+  Explorer view and any add-ons the view loaded. The folder stays in the tab, and the view reloads
+  when you click the tab, but its Back/Forward history is lost. Turn this off under ⋯ → **Unload
+  tabs unused for 10 min**, or change `unloadIdleTabsMinutes` in the settings (0 = never).
+- **Less memory when minimized.** Freed memory is given back to Windows when you minimize the window.
+- **Faster start-up.** The program is precompiled (ReadyToRun) and uses a smaller garbage-collector
+  configuration.
 
 ## Opening many folders at once
 - Press **Ctrl+Enter** or **Ctrl+Shift+Enter** on selected folders to open them as tabs, or use
@@ -108,7 +175,9 @@ Settings are stored in `%AppData%\ExplorerDuo\settings.json`:
 - `hiddenColor`
 - `editor`
 - `classicListView`
-- tree visible and tree width
+- `treeMode` (`left`, `panes` or `none`), plus the tree widths
+- `unloadIdleTabsMinutes` (10 by default; 0 = never unload)
+- `showCloudStatus` (true by default)
 - your session
 
 Errors are written to `%AppData%\ExplorerDuo\log.txt`.

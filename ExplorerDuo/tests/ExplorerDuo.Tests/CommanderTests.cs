@@ -10,8 +10,8 @@ public class HighlighterTests
     public void Rules_colour_by_extension_case_insensitive()
     {
         var h = Make();
-        Assert.Equal(ColorTranslator.FromHtml("#107C10"), h.ColorFor(@"C:\x\Setup.EXE", false, false));
-        Assert.Equal(ColorTranslator.FromHtml("#8764B8"), h.ColorFor(@"C:\x\a.7z", false, false));
+        Assert.Equal(ColorTranslator.FromHtml("#4F7A55"), h.ColorFor(@"C:\x\Setup.EXE", false, false));
+        Assert.Equal(ColorTranslator.FromHtml("#6B568F"), h.ColorFor(@"C:\x\a.7z", false, false));
         Assert.Null(h.ColorFor(@"C:\x\notes.txt", false, false));
     }
 

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ExplorerDuo.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bcad6b926e02a21e2c08cdfc2e8aae5a6db4be32")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dc895be7f256086c44f05d88499976228cac95ec")]
 [assembly: System.Reflection.AssemblyProductAttribute("ExplorerDuo.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ExplorerDuo.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

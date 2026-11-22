@@ -299,6 +299,8 @@ public class ShellViewTests
     {
         RunSta(() =>
         {
+            // Per-row paint callbacks only run while there are colour rules.
+            Highlights.Current = new Highlighter(null, ColorRule.Defaults(), "#8A8A8A");
             // Shown off-screen without activation: the tree only lays items out once it is visible.
             using var form = new QuietForm { Size = new Size(320, 700), StartPosition = FormStartPosition.Manual, Location = new Point(-8000, 100) };
             var tree = new FolderTree();
@@ -359,6 +361,7 @@ public class ShellViewTests
             settings.Session.Left = new() { @"C:\Windows", @"C:\Program Files", PathUtil.ThisPc };
             settings.Session.Right = new() { @"C:\Users", @"C:\Windows\System32" };
             settings.Session.LeftIndex = 0;
+            settings.TreeMode = Environment.GetEnvironmentVariable("EXPLORERDUO_SHOT_TREE") ?? "left";
             settings.Highlights[@"C:\Windows\Boot"] = "#D13438";
             settings.Highlights[@"C:\Windows\System32"] = "#107C10";
             settings.Highlights[@"C:\Users\Public"] = "#8764B8";

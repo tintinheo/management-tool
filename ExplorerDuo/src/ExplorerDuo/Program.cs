@@ -30,6 +30,7 @@ internal static class Program
         }
 
         ApplicationConfiguration.Initialize();
+        Application.OleRequired(); // drag & drop targets (folder tree, views) need OLE, not just COM
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += (_, e) =>
         {

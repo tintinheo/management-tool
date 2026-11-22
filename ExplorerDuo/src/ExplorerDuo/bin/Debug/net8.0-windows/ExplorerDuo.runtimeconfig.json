@@ -12,6 +12,9 @@
       }
     ],
     "configProperties": {
+      "System.GC.Concurrent": false,
+      "System.GC.Server": false,
+      "System.Runtime.TieredPGO": true,
       "CSWINRT_USE_WINDOWS_UI_XAML_PROJECTIONS": false
     }
   }

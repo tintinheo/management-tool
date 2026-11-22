@@ -72,6 +72,8 @@ internal sealed class FolderTree : Panel
     }
 
     public bool IsReady => _tree != null;
+    /// <summary>The path last revealed for the pane this tree follows (avoids re-expanding on every refresh).</summary>
+    public string Revealed { get; set; } = "";
     public int RootCount { get; private set; }
     public IntPtr TreeHandle => _hwnd;
 
@@ -80,6 +82,9 @@ internal sealed class FolderTree : Panel
         base.OnHandleCreated(e);
         if (_tree != null) return;
 
+        // The tree registers itself as a drop target only if OLE (not just COM) is initialised on this thread;
+        // without it, files can't be dragged onto tree folders.
+        Application.OleRequired();
         var tree = (INameSpaceTreeControl)Activator.CreateInstance(Type.GetTypeFromCLSID(ClsidNamespaceTree)!)!;
         var rc = new RECT(ClientRectangle);
         tree.Initialize(Handle, ref rc,
@@ -87,7 +92,7 @@ internal sealed class FolderTree : Panel
             NSTCS_SHOWSELECTIONALWAYS | NSTCS_AUTOHSCROLL | NSTCS_TABSTOP | NSTCS_NOEDITLABELS);
         tree.SetTheme("Explorer");
 
-        _events = new TreeEvents(OnSelectionChanged, ColorOf);
+        _events = new TreeEvents(OnSelectionChanged, ColorOf, () => Highlights.Current is { IsEmpty: false });
         tree.TreeAdvise(_events, out _cookie);
 
         foreach (var (candidates, style) in Roots)
@@ -110,6 +115,164 @@ internal sealed class FolderTree : Panel
         if (tree is IOleWindow window && window.GetWindow(out var hwnd) == 0) _hwnd = hwnd;
         _tree = tree;
         ResizeTree();
+
+        // Replace the tree's short built-in menu with the full Windows menu plus ExplorerDuo commands.
+        if (_hwnd != IntPtr.Zero)
+        {
+            _frameHook = new MenuHook(this, treeView: false);
+            _frameHook.AssignHandle(_hwnd);
+            var tv = TreeViewHandle;
+            if (tv != _hwnd)
+            {
+                _viewHook = new MenuHook(this, treeView: true);
+                _viewHook.AssignHandle(tv);
+            }
+        }
+    }
+
+    MenuHook? _frameHook, _viewHook;
+
+    /// <summary>ExplorerDuo commands shown above the Windows items when a tree folder is right-clicked.</summary>
+    public Func<IShellItem, string, List<MenuCommand>>? MenuExtras { get; set; }
+
+    /// <summary>"Rename" was chosen in the tree's menu.</summary>
+    public event Action<string>? RenameRequested;
+
+    /// <summary>Number of right-click menus shown (tests).</summary>
+    public int MenusShown { get; private set; }
+
+    const int WM_CONTEXTMENU = 0x007B, NM_RCLICK = -5, TVGN_DROPHILITE = 0x8;
+
+    /// <summary>Right-click / Shift+F10 / menu key on the tree. <paramref name="lParam"/> is screen coordinates, or -1 for the keyboard.</summary>
+    void ShowContextMenu(IntPtr lParam)
+    {
+        var tv = TreeViewHandle;
+        if (tv == IntPtr.Zero) return;
+        Point screen;
+        IntPtr hItem;
+        IShellItem? item;
+        if (lParam == (IntPtr)(-1))
+        {
+            hItem = Native.SendMessage(tv, TVM_GETNEXTITEM, (IntPtr)TVGN_CARET, IntPtr.Zero);
+            item = SelectedItem();
+            var r = SelectedItemRect() ?? Rectangle.Empty;
+            var pt = new POINT(r.Left + 8, r.Bottom);
+            Native.MapWindowPoints(tv, IntPtr.Zero, ref pt, 1);
+            screen = new Point(pt.X, pt.Y);
+        }
+        else
+        {
+            screen = Native.PointFromLParam(lParam);
+            var pt = new POINT(screen.X, screen.Y);
+            Native.MapWindowPoints(IntPtr.Zero, tv, ref pt, 1);
+            hItem = HitTestHandle(tv, new Point(pt.X, pt.Y));
+            item = hItem == IntPtr.Zero ? null : ItemAt(tv, new Point(pt.X, pt.Y));
+        }
+        if (item == null) return;
+        var path = Shell.NameOf(item, Shell.SIGDN_DESKTOPABSOLUTEPARSING) ?? "";
+
+        MenusShown++;
+        Native.SendMessage(tv, TVM_SELECTITEM, (IntPtr)TVGN_DROPHILITE, hItem); // show which folder the menu is for
+        var cm = ShellMenu.ForItem(item);
+        try
+        {
+            var own = MenuExtras?.Invoke(item, path) ?? new List<MenuCommand>();
+            ShellMenu.Show(_hwnd, cm, screen, own, PathUtil.IsFileSystemPath(path) ? path : null, verb =>
+            {
+                switch (verb.ToLowerInvariant())
+                {
+                    case "open":
+                    case "explore":
+                        FolderPicked?.Invoke(item, path); // open in ExplorerDuo instead of a new Explorer window
+                        return true;
+                    case "rename":
+                        RenameRequested?.Invoke(path);
+                        return true;
+                    default:
+                        return false;
+                }
+            });
+        }
+        finally
+        {
+            Native.SendMessage(tv, TVM_SELECTITEM, (IntPtr)TVGN_DROPHILITE, IntPtr.Zero);
+            ShellMenu.Release(cm);
+        }
+    }
+
+    IntPtr HitTestHandle(IntPtr tv, Point client)
+    {
+        var buffer = Marshal.AllocHGlobal(IntPtr.Size * 3);
+        try
+        {
+            Marshal.WriteInt32(buffer, 0, client.X);
+            Marshal.WriteInt32(buffer, 4, client.Y);
+            var hItem = Native.SendMessage(tv, TVM_HITTEST, IntPtr.Zero, buffer);
+            return (Marshal.ReadInt32(buffer, 8) & TVHT_ON_ROW) != 0 ? hItem : IntPtr.Zero;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    IShellItem? SelectedItem()
+    {
+        if (_tree == null || _tree.GetSelectedItems(out var items) != 0 || items == null) return null;
+        items.GetCount(out var n);
+        if (n == 0) return null;
+        items.GetItemAt(0, out var item);
+        return item;
+    }
+
+    /// <summary>Opens the menu for the folder under a tree-view client point, as a right-click would (tests).</summary>
+    internal void OpenMenuAt(Point treeViewClient)
+    {
+        var pt = new POINT(treeViewClient.X, treeViewClient.Y);
+        Native.MapWindowPoints(TreeViewHandle, IntPtr.Zero, ref pt, 1);
+        ShowContextMenu((IntPtr)((pt.Y << 16) | (pt.X & 0xFFFF)));
+    }
+
+    sealed class MenuHook : NativeWindow
+    {
+        static readonly int CodeOffset = IntPtr.Size * 2;
+        readonly FolderTree _owner;
+        readonly bool _treeView;
+
+        public MenuHook(FolderTree owner, bool treeView)
+        {
+            _owner = owner;
+            _treeView = treeView;
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            // WM_KEYDOWN, WM_CHAR, WM_LBUTTONDOWN, WM_LBUTTONDBLCLK, WM_MBUTTONDOWN: the user is driving the tree.
+            if (_treeView && m.Msg is 0x0100 or 0x0102 or 0x0201 or 0x0203 or 0x0207)
+                _owner._lastUserInput = Environment.TickCount64;
+            try
+            {
+                if (m.Msg == WM_CONTEXTMENU)
+                {
+                    _owner.ShowContextMenu(m.LParam);
+                    return;
+                }
+                if (!_treeView && m.Msg == Native.WM_NOTIFY && m.LParam != IntPtr.Zero
+                    && Marshal.ReadInt32(m.LParam, CodeOffset) == NM_RCLICK && Marshal.ReadIntPtr(m.LParam) == _owner.TreeViewHandle)
+                {
+                    var p = Cursor.Position;
+                    _owner.ShowContextMenu((IntPtr)((p.Y << 16) | (p.X & 0xFFFF)));
+                    m.Result = (IntPtr)1; // handled: no second (built-in) menu
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Write("tree menu failed: " + ex);
+                return;
+            }
+            base.WndProc(ref m);
+        }
     }
 
     protected override void OnResize(EventArgs e)
@@ -124,9 +287,13 @@ internal sealed class FolderTree : Panel
             SetWindowPos(_hwnd, IntPtr.Zero, 0, 0, ClientSize.Width, ClientSize.Height, SWP_NOZORDER | SWP_NOACTIVATE);
     }
 
+    long _lastUserInput;
+
     void OnSelectionChanged(IntPtr selection)
     {
         if (_syncing || selection == IntPtr.Zero) return;
+        // A new tree selects its first root by itself; only selections that follow a click or key press are picks.
+        if (Environment.TickCount64 - _lastUserInput > 2000) return;
         try
         {
             if (Marshal.GetObjectForIUnknown(selection) is not IShellItemArray array) return;
@@ -188,15 +355,27 @@ internal sealed class FolderTree : Panel
         }
     }
 
-    static uint? ColorOf(IShellItem item)
+    // Painting asks for every visible row on every repaint; remember answers until the rules change.
+    readonly Dictionary<string, uint?> _colorCache = new(StringComparer.OrdinalIgnoreCase);
+    Highlighter? _colorCacheFor;
+
+    uint? ColorOf(IShellItem item)
     {
         if (Highlights.Current is not { IsEmpty: false } h) return null;
+        if (!ReferenceEquals(h, _colorCacheFor) || _colorCache.Count > 20000)
+        {
+            _colorCache.Clear();
+            _colorCacheFor = h;
+        }
         var path = Shell.NameOf(item, Shell.SIGDN_DESKTOPABSOLUTEPARSING);
         if (string.IsNullOrEmpty(path)) return null;
+        if (_colorCache.TryGetValue(path, out var cached)) return cached;
         item.GetAttributes(Shell.SFGAO_HIDDEN, out var attrs);
-        return h.ColorFor(path, isFolder: true, isHidden: (attrs & Shell.SFGAO_HIDDEN) != 0) is Color c
+        uint? color = h.ColorFor(path, isFolder: true, isHidden: (attrs & Shell.SFGAO_HIDDEN) != 0) is Color c
             ? Highlighter.ToColorRef(c)
             : null;
+        _colorCache[path] = color;
+        return color;
     }
 
     /// <summary>Number of item custom-draw callbacks so far (diagnostics/tests).</summary>
@@ -244,6 +423,7 @@ internal sealed class FolderTree : Panel
                 alreadySelectedPath = SelectedPath();
                 return alreadySelectedPath != null;
             }
+            _lastUserInput = Environment.TickCount64;
             Native.SendMessage(tv, TVM_SELECTITEM, (IntPtr)TVGN_CARET, hItem);
             return true;
         }
@@ -252,6 +432,19 @@ internal sealed class FolderTree : Panel
             Marshal.FreeHGlobal(buffer);
         }
     }
+
+    /// <summary>Shell item under a point (client coordinates of <paramref name="fromHwnd"/>), or null.</summary>
+    public IShellItem? ItemAt(IntPtr fromHwnd, Point client)
+    {
+        if (_tree == null || _hwnd == IntPtr.Zero) return null;
+        var pt = new POINT(client.X, client.Y);
+        if (fromHwnd != _hwnd) Native.MapWindowPoints(fromHwnd, _hwnd, ref pt, 1);
+        try { return _tree.HitTest(ref pt, out var item) == 0 ? item : null; }
+        catch { return null; }
+    }
+
+    public string? HitTestPath(IntPtr fromHwnd, Point client) =>
+        ItemAt(fromHwnd, client) is { } item ? Shell.NameOf(item, Shell.SIGDN_DESKTOPABSOLUTEPARSING) : null;
 
     bool ScrollSelectionIntoView()
     {
@@ -308,6 +501,8 @@ internal sealed class FolderTree : Panel
         if (disposing)
         {
             _debounce.Dispose();
+            _frameHook?.ReleaseHandle();
+            _viewHook?.ReleaseHandle();
             if (_tree != null)
             {
                 try { _tree.TreeUnadvise(_cookie); } catch { }

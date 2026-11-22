@@ -50,6 +50,14 @@ internal interface IShellView
     [PreserveSig] int EnableModeless([MarshalAs(UnmanagedType.Bool)] bool enable);
     [PreserveSig] int UIActivate(uint state);
     [PreserveSig] int Refresh();
+    [PreserveSig] int CreateViewWindow(IntPtr previous, IntPtr fs, IntPtr browser, IntPtr rc, out IntPtr hwnd);
+    [PreserveSig] int DestroyViewWindow();
+    [PreserveSig] int GetCurrentInfo(IntPtr fs);
+    [PreserveSig] int AddPropertySheetPages(uint reserved, IntPtr callback, IntPtr lparam);
+    [PreserveSig] int SaveViewState();
+    [PreserveSig] int SelectItem(IntPtr pidl, uint flags);
+    /// <summary>SVGIO_BACKGROUND / SVGIO_SELECTION → the same IContextMenu the view itself would show.</summary>
+    [PreserveSig] int GetItemObject(uint item, ref Guid riid, out IntPtr ppv);
 }
 
 [ComImport, Guid("CDE725B0-CCC9-4519-917E-325D72FAB4CE"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -96,6 +104,18 @@ internal interface IFolderView2
     [PreserveSig] int SetSortColumns(IntPtr columns, int count);
     [PreserveSig] int GetSortColumns(IntPtr columns, int count);
     [PreserveSig] int GetItem(int item, ref Guid riid, [MarshalAs(UnmanagedType.Interface)] out object? ppv);
+    [PreserveSig] int GetVisibleItem(int start, int previous, out int item);
+    [PreserveSig] int GetSelectedItem(int start, out int item);
+    [PreserveSig] int GetSelection(int noneImpliesFolder, out IntPtr items);
+    [PreserveSig] int GetSelectionState(IntPtr pidl, out uint flags);
+    [PreserveSig] int InvokeVerbOnSelection([MarshalAs(UnmanagedType.LPStr)] string? verb);
+    [PreserveSig] int SetViewModeAndIconSize(int mode, int imageSize);
+    [PreserveSig] int GetViewModeAndIconSize(out int mode, out int imageSize);
+    [PreserveSig] int SetGroupSubsetCount(uint visibleRows);
+    [PreserveSig] int GetGroupSubsetCount(out uint visibleRows);
+    [PreserveSig] int SetRedraw(int redraw);
+    [PreserveSig] int IsMoveInSameFolder();
+    [PreserveSig] int DoRename();
 }
 
 /// <summary>Lets an ExplorerBrowser host ask for the classic (SysListView32) layout, which supports custom-draw colours.</summary>
@@ -199,16 +219,23 @@ public sealed class TreeEvents : INameSpaceTreeControlEvents, INameSpaceTreeCont
     const int CDRF_DODEFAULT = 0x0, CDRF_NEWFONT = 0x2, CDRF_NOTIFYITEMDRAW = 0x20;
     readonly Action<IntPtr> _selectionChanged;
     readonly Func<IShellItem, uint?> _colorOf;
+    readonly Func<bool> _wantsColors;
 
-    internal TreeEvents(Action<IntPtr> selectionChanged, Func<IShellItem, uint?> colorOf)
+    internal TreeEvents(Action<IntPtr> selectionChanged, Func<IShellItem, uint?> colorOf, Func<bool> wantsColors)
     {
         _selectionChanged = selectionChanged;
         _colorOf = colorOf;
+        _wantsColors = wantsColors;
     }
 
     public int ItemPaintCalls { get; private set; }
 
-    public int PrePaint(IntPtr hdc, IntPtr rc, out IntPtr result) { result = (IntPtr)CDRF_NOTIFYITEMDRAW; return S_OK; }
+    // No colour rules → no per-row callbacks at all.
+    public int PrePaint(IntPtr hdc, IntPtr rc, out IntPtr result)
+    {
+        result = (IntPtr)(_wantsColors() ? CDRF_NOTIFYITEMDRAW : CDRF_DODEFAULT);
+        return S_OK;
+    }
     public int PostPaint(IntPtr hdc, IntPtr rc) => S_OK;
     public int ItemPostPaint(IntPtr hdc, IntPtr rc, IntPtr item) => S_OK;
 
@@ -260,15 +287,17 @@ public sealed class BrowserEvents : IExplorerBrowserEvents
 {
     readonly Action<IntPtr> _completed;
     readonly Action _failed;
+    readonly Action<object> _viewCreated;
 
-    internal BrowserEvents(Action<IntPtr> completed, Action failed)
+    internal BrowserEvents(Action<IntPtr> completed, Action failed, Action<object> viewCreated)
     {
         _completed = completed;
         _failed = failed;
+        _viewCreated = viewCreated;
     }
 
     public int OnNavigationPending(IntPtr pidlFolder) => 0;
-    public int OnViewCreated(object shellView) => 0;
+    public int OnViewCreated(object shellView) { _viewCreated(shellView); return 0; }
     public int OnNavigationComplete(IntPtr pidlFolder) { _completed(pidlFolder); return 0; }
     public int OnNavigationFailed(IntPtr pidlFolder) { _failed(); return 0; }
 }
