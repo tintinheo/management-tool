@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Youtube Sync</string>
+    <string name="shortcut_record_short">Quay &amp; đồng bộ</string>
+    <string name="shortcut_record_long">Quay video và tải lên YouTube cùng lúc</string>
 </resources>

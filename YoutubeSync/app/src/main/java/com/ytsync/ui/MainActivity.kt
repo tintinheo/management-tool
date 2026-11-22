@@ -217,8 +217,8 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
             if (!s.connected) { message = "Hãy kết nối YouTube ở tab Đồng bộ trước."; return@launch }
             val known = dao.knownIds().toHashSet()
             val videos = entriesFor(ids).map { it.video }
-            dao.insertNew(videos.filter { it.mediaId !in known }.map { it.toItem(UploadState.QUEUED) })
-            dao.queue(ids)
+            dao.insertNew(videos.filter { it.mediaId !in known }.map { it.toItem(UploadState.QUEUED).copy(source = com.ytsync.data.UploadSource.MANUAL) })
+            dao.queue(ids, com.ytsync.data.UploadSource.MANUAL)
             SyncScheduler.enqueueUpload(this@MainActivity, s)
             selected = emptySet()
             message = "Đã thêm ${videos.size} video vào hàng đợi." + if (s.wifiOnly) " Sẽ tải khi có Wi‑Fi." else ""
@@ -345,6 +345,8 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
     }
 
     override fun openAutostart() = PhoneSetup.openAutostart(this)
+
+    override fun openLive() { startActivity(Intent(this, com.ytsync.live.LiveActivity::class.java)) }
 
     // ---- settings ----
 

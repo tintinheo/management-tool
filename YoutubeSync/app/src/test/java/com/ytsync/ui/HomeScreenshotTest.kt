@@ -22,6 +22,7 @@ class HomeScreenshotTest {
 
     private val noop = object : HomeActions {
         override fun connect() {}
+        override fun openLive() {}
         override fun requestVideoPermission() {}
         override fun requestNotificationPermission() {}
         override fun fixBattery() {}

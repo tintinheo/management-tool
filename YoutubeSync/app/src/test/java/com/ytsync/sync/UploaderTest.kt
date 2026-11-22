@@ -96,6 +96,16 @@ class UploaderTest {
         assertTrue(!body.contains("channelId")) // read-only fields are not sent back
     }
 
+    @Test fun sharedCopyIsUploadedThenReleased() = runTest {
+        val copyId = com.ytsync.share.ShareIntake.copyId("zalo_clip.mp4", 100)
+        files.data[copyId] = ByteArray(100) { 7 }
+        dao.put(UploadItem(copyId, "zalo_clip.mp4", 100, "video/mp4", 5_000, source = com.ytsync.data.UploadSource.SHARE, localPath = "/data/shared/x.mp4"))
+        server.enqueue(session()); server.enqueue(created("s1")); server.enqueue(check(age = true))
+        assertEquals(QueueOutcome.DRAINED, uploader().runQueue())
+        assertEquals(UploadState.DONE, dao.get(copyId)!!.state)
+        assertEquals(listOf(copyId), files.finished) // the app-private copy may now be deleted
+    }
+
     @Test fun networkBlipResumesInSameRun() = runTest {
         dao.put(video(21, 3000))
         server.enqueue(session())
@@ -265,9 +275,11 @@ private class FakeTokens : TokenSource {
 
 private class FakeFiles : VideoFiles {
     val data = mutableMapOf<Long, ByteArray>()
-    override fun size(mediaId: Long) = data[mediaId]?.size?.toLong()
-    override fun open(mediaId: Long, offset: Long): InputStream =
-        ByteArrayInputStream(data.getValue(mediaId)).also { it.skip(offset) }
+    val finished = mutableListOf<Long>()
+    override fun size(item: UploadItem) = data[item.mediaId]?.size?.toLong()
+    override fun open(item: UploadItem, offset: Long): InputStream =
+        ByteArrayInputStream(data.getValue(item.mediaId)).also { it.skip(offset) }
+    override fun uploaded(item: UploadItem) { finished += item.mediaId }
 }
 
 private class FakeDao : UploadDao {
@@ -285,8 +297,9 @@ private class FakeDao : UploadDao {
     override suspend fun retryAllFailed() = rows.replaceAll { _, v -> if (v.state == UploadState.FAILED) v.copy(state = UploadState.QUEUED) else v }
     override suspend fun skip(id: Long, now: Long) { rows[id]?.let { rows[id] = it.copy(state = UploadState.SKIPPED) } }
     override fun observeAll(): Flow<List<UploadItem>> = flow
+    override suspend fun recordingRows() = rows.values.filter { it.state == UploadState.RECORDING }
     override suspend fun promoteIdle(ids: List<Long>, now: Long) = ids.forEach { id -> rows[id]?.takeIf { it.state == UploadState.IDLE }?.let { rows[id] = it.copy(state = UploadState.QUEUED) } }
-    override suspend fun queue(ids: List<Long>, now: Long) = ids.forEach { id -> rows[id]?.let { rows[id] = it.copy(state = UploadState.QUEUED) } }
+    override suspend fun queue(ids: List<Long>, source: com.ytsync.data.UploadSource, now: Long) = ids.forEach { id -> rows[id]?.let { rows[id] = it.copy(state = UploadState.QUEUED, source = source) } }
     override suspend fun setTitleOverride(id: Long, title: String?, now: Long) { rows[id]?.let { rows[id] = it.copy(titleOverride = title) } }
     override suspend fun setRemoteTitle(id: Long, title: String, now: Long) { rows[id]?.let { rows[id] = it.copy(title = title, titleOverride = title) } }
 }

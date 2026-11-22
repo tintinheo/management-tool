@@ -14,8 +14,8 @@ android {
         applicationId = "com.ytsync"
         minSdk = 33 // READ_MEDIA_VIDEO + POST_NOTIFICATIONS; Xiaomi 14T ships with Android 14+
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.2.0"
+        versionCode = 8
+        versionName = "1.4.0"
     }
 
     signingConfigs {
@@ -93,6 +93,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.play.services.auth)
     implementation(libs.okhttp)
+    implementation(libs.media3.muxer)
+    implementation(libs.media3.common)
+    implementation(libs.media3.container)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

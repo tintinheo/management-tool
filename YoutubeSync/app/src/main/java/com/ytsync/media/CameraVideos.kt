@@ -76,7 +76,8 @@ object CameraVideos {
                     .map { it.activityInfo.packageName }
             }.getOrDefault(emptyList())
         }
-        return KNOWN_CAMERA_PACKAGES + found
+        // Our own "Quay & đồng bộ" recorder is a camera too.
+        return KNOWN_CAMERA_PACKAGES + found + context.packageName
     }
 
     /**
@@ -166,7 +167,7 @@ object CameraVideos {
         MediaStore.Video.Media.OWNER_PACKAGE_NAME,
     )
 
-    private fun read(context: Context, c: Cursor): List<CameraVideo> {
+    private fun read(context: Context, c: Cursor, cameraFolderOnly: Boolean = true): List<CameraVideo> {
         val cameraPkgs = cameraPackages(context)
         val owner = c.getColumnIndexOrThrow(MediaStore.Video.Media.OWNER_PACKAGE_NAME)
         val id = c.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
@@ -180,7 +181,7 @@ object CameraVideos {
         val path = c.getColumnIndexOrThrow(MediaStore.Video.Media.RELATIVE_PATH)
         val out = ArrayList<CameraVideo>(c.count)
         while (c.moveToNext()) {
-            if (!isCameraFolder(c.getString(path))) continue
+            if (cameraFolderOnly && !isCameraFolder(c.getString(path))) continue
             val mediaId = c.getLong(id)
             val displayName = c.getString(name) ?: "video"
             val ownerPkg = c.getString(owner)
@@ -215,6 +216,33 @@ object CameraVideos {
 
     /** Every DCIM/Camera video, newest recording first (the Video tab hides non-camera ones by default). */
     fun listAll(context: Context): List<CameraVideo> = query(context, 0).sortedByDescending { it.recordedAt }
+
+    /** Videos by MediaStore id, in ANY folder (Download/, Movies/, Zalo/…) — used for shared videos. */
+    fun byIds(context: Context, ids: Collection<Long>): List<CameraVideo> {
+        if (ids.isEmpty()) return emptyList()
+        val out = ArrayList<CameraVideo>()
+        ids.chunked(500).forEach { chunk ->
+            val sel = "${MediaStore.Video.Media._ID} IN (${chunk.joinToString(",") { "?" }})"
+            context.contentResolver.query(collection, projection, sel, chunk.map { it.toString() }.toTypedArray(), null)
+                ?.use { out += read(context, it, cameraFolderOnly = false) }
+        }
+        return out
+    }
+
+    /** MediaStore video id for a file, matched by name + exact size (shared URIs from other providers). */
+    fun findByNameAndSize(context: Context, displayName: String, size: Long): Long? {
+        val sel = "${MediaStore.Video.Media.DISPLAY_NAME} = ? AND ${MediaStore.Video.Media.SIZE} = ?"
+        return context.contentResolver.query(collection, arrayOf(MediaStore.Video.Media._ID), sel, arrayOf(displayName, size.toString()), null)
+            ?.use { c -> if (c.count == 1 && c.moveToFirst()) c.getLong(0) else null }
+    }
+
+    /** MediaStore video id for an absolute path (some gallery providers expose `_data`). */
+    @Suppress("DEPRECATION")
+    fun findByPath(context: Context, path: String): Long? {
+        val sel = "${MediaStore.Video.Media.DATA} = ?"
+        return context.contentResolver.query(collection, arrayOf(MediaStore.Video.Media._ID), sel, arrayOf(path), null)
+            ?.use { c -> if (c.moveToFirst()) c.getLong(0) else null }
+    }
 
     /** Current size, or null if the video was deleted / moved out of reach. */
     fun currentSize(context: Context, mediaId: Long): Long? =

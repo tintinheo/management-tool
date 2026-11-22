@@ -94,6 +94,45 @@ App chỉ xét thư mục `DCIM/Camera`, nên video tải về bằng trình duy
 - Nếu trước đây một video không phải từ camera đã vào hàng đợi mà chưa tải byte nào, app tự chuyển nó sang trạng thái **Bỏ qua**.
 - Để đọc được tên app tạo file, app cần quyền "xem các app đã cài" (`QUERY_ALL_PACKAGES`), vì từ Android 14 thông tin này bị ẩn nếu thiếu quyền. Đây là app cài tay, không phát hành qua Play Store, nên dùng quyền này không gặp vấn đề.
 
+## Gửi video từ Thư viện (Chia sẻ → Youtube Sync)
+
+Cách này **không giới hạn** chỉ video camera. Video tải về, video từ Zalo/Telegram, video đã chỉnh sửa… đều gửi được.
+
+1. Mở **Thư viện** (hoặc app Files, Google Photos…), giữ để **chọn một hoặc nhiều video**, rồi bấm **Gửi**.
+2. Trong menu chia sẻ, chọn **Youtube Sync**. Mục này chỉ xuất hiện khi bạn chia sẻ **video**; chia sẻ ảnh hay văn bản sẽ không thấy.
+3. Màn hình **Đồng bộ lên YouTube** liệt kê các video vừa chọn, gồm thumbnail, giờ quay, dung lượng và tên sẽ dùng trên YouTube.
+   - Chạm một video để bỏ chọn hoặc chọn lại.
+   - Video **đã lên YouTube** hoặc **đã có trong hàng đợi** được đánh dấu và tự bỏ qua.
+   - Bật **Đặt tên riêng cho nhóm này** để dùng một mẫu cho cả nhóm, ví dụ `{YYYYMMDD} Đà Lạt {n}`. Biến `{n}` đánh số theo giờ quay.
+4. Bấm **Đồng bộ N video**. Các video vào **cùng hàng đợi** với video tự động: cùng điều kiện Wi‑Fi/sạc, cùng chế độ Riêng tư, 18+ và Không dành cho trẻ em, cùng cách tải tiếp khi mất mạng.
+
+**Video không có trong thư viện máy** (ví dụ nằm trong bộ nhớ riêng của Telegram) chỉ đọc được trong lúc màn hình chia sẻ còn mở. Vì vậy app **chép video đó vào app** trước, có thanh tiến độ; hãy giữ màn hình mở cho tới khi chép xong. Bản sao được **xoá ngay sau khi tải lên YouTube xong**. Video có sẵn trong thư viện (Thư viện, Download/, Movies/…) không phải chép, app đọc trực tiếp khi tải lên.
+
+Video bạn đã tự chọn, qua Chia sẻ hoặc nút "Tải lên" ở tab Video, sẽ không bao giờ bị lượt quét tự động gỡ ra vì "không phải từ camera".
+
+## Quay & đồng bộ (vừa quay vừa tải lên)
+
+Đây **không phải livestream**. Kết quả là một video riêng tư bình thường trên kênh, nhưng các phần đã quay được gửi lên YouTube ngay trong lúc bạn còn đang quay. Nhờ vậy, dừng quay xong là video gần như đã tải xong.
+
+**Cách mở:** bấm thẻ **Quay & đồng bộ** ở đầu tab Đồng bộ, hoặc **giữ icon app → Quay & đồng bộ**. Lần đầu, app xin quyền Camera và Micro.
+
+- Quay bằng camera sau, 1080p30, H.264 16 Mbit/s, âm thanh AAC stereo. Video được lưu vào **Thư viện (DCIM/Camera)** như video quay bằng camera thường. Hướng cầm máy (dọc hoặc ngang) được ghi lại lúc bấm quay.
+- Màn hình hiện **"Đã gửi lên YouTube X MB / Y MB"** trong lúc quay. Bấm dừng xong, app gửi nốt vài MB cuối. Lúc này bạn thoát màn hình được, việc tải vẫn chạy tiếp.
+- Tiêu đề, chế độ Riêng tư, 18+ và Không dành cho trẻ em giống hệt video tự động. Tên lấy theo giờ bắt đầu quay.
+- Rời màn hình (về Home, tắt màn hình) hoặc bấm Back trong lúc quay thì app **dừng quay và lưu video**, không bị mất.
+
+**Kỹ thuật:**
+- App ghi theo dạng **MP4 phân mảnh** (Media3 `FragmentedMp4Muxer`). Dạng này chỉ ghi nối vào cuối file, không bao giờ sửa lại phần đã ghi, nên byte nào đã ghi xong là gửi đi được. Test `FragmentedMuxerAppendOnlyTest` kiểm tra lại điều này mỗi lần build.
+- Upload dùng resumable upload **chưa khai báo tổng dung lượng**: các đoạn 4 MB được gửi kèm `bytes a-b/*`, đoạn cuối mang tổng dung lượng thật.
+- ⚠️ **Rủi ro:** tài liệu YouTube **không ghi** là hỗ trợ kiểu upload này. Chỉ tài liệu Google Cloud Storage có ghi, dù hai bên dùng chung hạ tầng upload. Vì vậy app có **đường lui tự động**: nếu YouTube từ chối ngay đoạn đầu, màn hình báo *"YouTube không nhận tải song song"*. Bạn vẫn quay bình thường, và video tải lên **ngay khi quay xong** qua hàng đợi.
+
+**Khi nào không tải song song** (video vẫn quay và lưu đầy đủ, rồi vào hàng đợi):
+- Chưa kết nối YouTube.
+- Đang dùng 4G/5G trong khi bạn bật "Chỉ khi có Wi‑Fi".
+- YouTube từ chối kiểu tải song song.
+
+**Mất mạng giữa chừng:** app tự thử lại, rồi hỏi YouTube đã nhận đến byte nào để gửi tiếp. Nếu quay xong mà vẫn chưa gửi hết, phần còn lại được hàng đợi tải tiếp, không gửi lại từ đầu. Nếu app bị tắt đột ngột trong lúc quay, lần mở sau app giữ phần đã quay (đọc được tới mảnh cuối cùng đã ghi xong) và tải lên.
+
 ## Ngày giờ trong tên = lúc QUAY video
 
 Mọi biến ngày giờ (`{YYYYMMDD}`, `{HH}`…), ở cả tên tự động lẫn tên đặt theo nhóm, đều lấy theo **thời điểm quay**. App xác định thời điểm này theo thứ tự ưu tiên:

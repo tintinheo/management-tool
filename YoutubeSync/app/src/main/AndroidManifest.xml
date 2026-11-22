@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- "Quay & đồng bộ" recorder -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <!--
       Android 14+ hides MediaStore OWNER_PACKAGE_NAME for apps we can't "see". Seeing every package lets
       us tell camera recordings from videos that Zalo/Chrome/Gallery editor/CapCut saved into DCIM/Camera.
@@ -42,6 +46,40 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Long-press the icon → "Quay & đồng bộ" -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+        </activity>
+
+        <activity
+            android:name=".live.LiveActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:theme="@style/Theme.YoutubeSync"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+
+        <!--
+          "Send" target: shows up in the share sheet ONLY when videos are shared (Gallery → select → Send).
+          Own task so it doesn't drag the main screen into the gallery's back stack.
+        -->
+        <activity
+            android:name=".share.ShareActivity"
+            android:exported="true"
+            android:label="Youtube Sync"
+            android:icon="@drawable/ic_launcher"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.ytsync.share"
+            android:documentLaunchMode="never">
+            <intent-filter android:label="Youtube Sync">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter android:label="Youtube Sync">
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
 

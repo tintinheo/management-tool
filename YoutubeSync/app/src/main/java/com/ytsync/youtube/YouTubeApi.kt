@@ -73,12 +73,17 @@ class YouTubeApi(
         }
     }
 
-    /** Opens an upload session; returns the session URI (Location header). */
-    fun startSession(token: String, parts: String, metadata: JsonObject, size: Long, mime: String): String {
+    /**
+     * Opens an upload session; returns the session URI (Location header).
+     * [size] null = length not known yet (record-and-upload): the header is omitted and chunks use
+     * `bytes a-b/STAR` (STAR = total unknown) until the last one. Google's resumable protocol supports this (documented for GCS);
+     * the YouTube guide doesn't mention it, so callers must handle a rejection — see [LiveUploader].
+     */
+    fun startSession(token: String, parts: String, metadata: JsonObject, size: Long?, mime: String): String {
         val req = Request.Builder()
             .url("$baseUrl/upload/youtube/v3/videos?uploadType=resumable&part=$parts")
             .header("Authorization", "Bearer $token")
-            .header("X-Upload-Content-Length", size.toString())
+            .apply { if (size != null) header("X-Upload-Content-Length", size.toString()) }
             .header("X-Upload-Content-Type", mime)
             .post(metadata.toString().toRequestBody(JSON))
             .build()
@@ -88,12 +93,12 @@ class YouTubeApi(
         }
     }
 
-    /** Asks how much of the file the server already has. */
-    fun queryStatus(token: String, sessionUrl: String, size: Long): ResumeStatus {
+    /** Asks how much of the file the server already has. [size] null → `bytes STAR/STAR` (length still unknown). */
+    fun queryStatus(token: String, sessionUrl: String, size: Long?): ResumeStatus {
         val req = Request.Builder()
             .url(sessionUrl)
             .header("Authorization", "Bearer $token")
-            .header("Content-Range", "bytes */$size")
+            .header("Content-Range", "bytes */${size ?: "*"}")
             .put(ByteArray(0).toRequestBody(null))
             .build()
         http.newCall(req).execute().use { r ->
@@ -101,6 +106,30 @@ class YouTubeApi(
                 r.code == 308 -> ResumeStatus.Partial(nextByteFromRange(r.header("Range")))
                 r.code == 200 || r.code == 201 -> ResumeStatus.Complete(r.videoId())
                 r.code == 404 || r.code == 410 -> ResumeStatus.Expired
+                else -> throw r.toError()
+            }
+        }
+    }
+
+    /**
+     * One PUT of [length] bytes at [start] for a session whose length may be unknown.
+     * [total] null → intermediate chunk (`bytes start-end/STAR`, length must be a multiple of 256 KiB);
+     * [total] set → this is the final chunk. Returns the server's state after the request.
+     */
+    fun putChunk(token: String, sessionUrl: String, mime: String, start: Long, length: Long, total: Long?, input: InputStream): ResumeStatus {
+        val body = ChunkBody(input, length, mime.toMediaType()) {}
+        val range = if (length > 0) "bytes $start-${start + length - 1}/${total ?: "*"}" else "bytes */${total ?: "*"}"
+        val req = Request.Builder()
+            .url(sessionUrl)
+            .header("Authorization", "Bearer $token")
+            .header("Content-Range", range)
+            .put(body)
+            .build()
+        http.newCall(req).execute().use { r ->
+            return when (r.code) {
+                200, 201 -> ResumeStatus.Complete(r.videoId())
+                308 -> ResumeStatus.Partial(nextByteFromRange(r.header("Range")))
+                404, 410 -> ResumeStatus.Expired
                 else -> throw r.toError()
             }
         }

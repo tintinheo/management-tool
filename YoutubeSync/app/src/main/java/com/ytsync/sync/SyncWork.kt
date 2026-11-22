@@ -20,6 +20,8 @@ import com.ytsync.auth.YouTubeAuth
 import com.ytsync.data.Settings
 import com.ytsync.data.SettingsStore
 import com.ytsync.data.UploadDb
+import com.ytsync.data.UploadItem
+import com.ytsync.data.UploadSource
 import com.ytsync.data.UploadState
 import com.ytsync.media.CameraVideos
 import com.ytsync.youtube.YouTubeApi
@@ -93,7 +95,8 @@ object SyncScheduler {
         // take them back out unless they're already uploading/uploaded.
         all.filter { !it.fromCamera && it.mediaId in known }.forEach { v ->
             val row = dao.get(v.mediaId)
-            if (row != null && row.state == UploadState.QUEUED && row.bytesSent == 0L) {
+            // Only rows the scanner itself added — never videos the user picked or shared on purpose.
+            if (row != null && row.source == UploadSource.AUTO && row.state == UploadState.QUEUED && row.bytesSent == 0L) {
                 dao.put(row.copy(state = UploadState.SKIPPED, error = "Không phải video quay bằng camera (${v.ownerPackage ?: "không rõ nguồn"})"))
             }
         }
@@ -185,7 +188,7 @@ class UploadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
     }
 }
 
-private class AuthTokens(private val ctx: Context) : TokenSource {
+internal class AuthTokens(private val ctx: Context) : TokenSource {
     override suspend fun token(): String? = when (val r = YouTubeAuth.token(ctx)) {
         is YouTubeAuth.Result.Token -> r.accessToken
         is YouTubeAuth.Result.NeedsUser -> null
@@ -197,11 +200,14 @@ private class AuthTokens(private val ctx: Context) : TokenSource {
 }
 
 private class MediaStoreFiles(private val ctx: Context) : VideoFiles {
-    override fun size(mediaId: Long): Long? = CameraVideos.currentSize(ctx, mediaId)
+    override fun size(item: UploadItem): Long? =
+        if (item.localPath != null) java.io.File(item.localPath).takeIf { it.exists() }?.length()
+        else CameraVideos.currentSize(ctx, item.mediaId)
 
-    override fun open(mediaId: Long, offset: Long): InputStream {
-        val input = ctx.contentResolver.openInputStream(CameraVideos.uriOf(mediaId))
-            ?: throw java.io.FileNotFoundException("video $mediaId")
+    override fun open(item: UploadItem, offset: Long): InputStream {
+        val input = item.localPath?.let { java.io.FileInputStream(it) }
+            ?: ctx.contentResolver.openInputStream(CameraVideos.uriOf(item.mediaId))
+            ?: throw java.io.FileNotFoundException("video ${item.mediaId}")
         var left = offset
         while (left > 0) { // FileInputStream.skip seeks, so this is O(1) in practice
             val n = input.skip(left)
@@ -209,5 +215,10 @@ private class MediaStoreFiles(private val ctx: Context) : VideoFiles {
             left -= n
         }
         return input
+    }
+
+    /** Shared videos copied into the app are only needed until YouTube has them. */
+    override fun uploaded(item: UploadItem) {
+        item.localPath?.let { java.io.File(it).delete() }
     }
 }

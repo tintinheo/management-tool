@@ -22,10 +22,12 @@ interface TokenSource {
     suspend fun invalidate(token: String)
 }
 
-/** Access to the phone's video files — real impl reads MediaStore. */
+/** Access to the video bytes — MediaStore, or the app-private copy of a shared video ([UploadItem.localPath]). */
 interface VideoFiles {
-    fun size(mediaId: Long): Long?
-    fun open(mediaId: Long, offset: Long): InputStream
+    fun size(item: UploadItem): Long?
+    fun open(item: UploadItem, offset: Long): InputStream
+    /** Called once YouTube has the whole video (e.g. delete an app-private copy). */
+    fun uploaded(item: UploadItem) {}
 }
 
 enum class QueueOutcome {
@@ -69,7 +71,7 @@ class Uploader(
     /** Returns null to continue with the next item, or an outcome that stops the run. */
     private suspend fun uploadOne(start: UploadItem, onItem: suspend (UploadItem, Long) -> Unit): QueueOutcome? {
         var item = start
-        val size = files.size(item.mediaId)
+        val size = files.size(item)
         if (size == null) { // deleted before we got to it
             dao.put(item.copy(state = UploadState.SKIPPED, sessionUrl = null, error = "Video đã bị xoá khỏi máy"))
             return null
@@ -150,7 +152,7 @@ class Uploader(
                 size = item.sizeBytes,
                 mime = item.mimeType,
                 startByte = from,
-                open = { off -> files.open(item.mediaId, off) },
+                open = { off -> files.open(item, off) },
                 // api.upload is blocking (already on Dispatchers.IO), so bridging back is cheap.
                 onProgress = { sent -> runBlocking { dao.progress(item.mediaId, sent); onItem(item, sent) } },
             )
@@ -193,6 +195,7 @@ class Uploader(
             updatedAt = System.currentTimeMillis(),
         )
         dao.put(done)
+        runCatching { files.uploaded(done) }
         return done
     }
 }

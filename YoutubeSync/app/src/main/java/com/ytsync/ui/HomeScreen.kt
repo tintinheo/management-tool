@@ -75,6 +75,7 @@ data class HomeState(
 
 interface HomeActions {
     fun connect()
+    fun openLive()
     fun requestVideoPermission()
     fun requestNotificationPermission()
     fun fixBattery()
@@ -114,6 +115,24 @@ fun HomeScreen(state: HomeState, actions: HomeActions, modifier: Modifier = Modi
             Text("Youtube Sync", color = Ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
             Text("Video quay bằng camera → kênh YouTube của bạn", color = Muted, fontSize = 14.sp)
+        }
+
+        item {
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)
+                    .border(1.dp, Accent.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                    .clickable(onClick = actions::openLive).padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(34.dp).clip(CircleShape).border(3.dp, Ink, CircleShape), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(20.dp).clip(CircleShape).background(Accent))
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Quay & đồng bộ", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text("Vừa quay vừa tải lên YouTube — quay xong là gần như đã lên kênh", color = Muted, fontSize = 12.sp)
+                }
+            }
         }
 
         state.message?.let { msg ->
@@ -354,7 +373,7 @@ private fun QueueRow(item: UploadItem, actions: HomeActions) {
                 }
                 UploadState.FAILED, UploadState.SKIPPED -> TextButton(onClick = { actions.retry(item) }) { Text("Thử lại", color = Accent) }
                 UploadState.QUEUED -> TextButton(onClick = { actions.skip(item) }) { Text("Bỏ qua", color = Muted) }
-                UploadState.UPLOADING, UploadState.IDLE -> {}
+                UploadState.UPLOADING, UploadState.IDLE, UploadState.RECORDING -> {}
             }
         }
     }
@@ -364,6 +383,7 @@ private fun QueueRow(item: UploadItem, actions: HomeActions) {
 private fun StateChip(item: UploadItem) {
     val (label, color) = when (item.state) {
         UploadState.QUEUED, UploadState.IDLE -> "Chờ" to Muted
+        UploadState.RECORDING -> "Đang quay" to Accent
         UploadState.UPLOADING -> "${if (item.sizeBytes > 0) item.bytesSent * 100 / item.sizeBytes else 0}%" to Accent
         UploadState.DONE -> (if (item.ageRestricted == true) "Riêng tư · 18+" else "Riêng tư") to Ok
         UploadState.FAILED -> "Lỗi" to Accent

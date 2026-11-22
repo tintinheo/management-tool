@@ -127,6 +127,7 @@ private fun statusLabel(state: UploadState): Pair<String, Color>? = when (state)
     UploadState.IDLE -> null
     UploadState.QUEUED -> "Chờ tải" to Muted
     UploadState.UPLOADING -> "Đang tải" to Accent
+    UploadState.RECORDING -> "Đang quay & tải lên" to Accent
     UploadState.DONE -> "Đã lên YouTube" to Ok
     UploadState.FAILED -> "Lỗi" to Accent
     UploadState.SKIPPED -> "Bỏ qua" to Muted

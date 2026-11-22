@@ -2,6 +2,7 @@ package com.ytsync.data
 
 import android.content.Context
 import androidx.room.AutoMigration
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -17,9 +18,26 @@ enum class UploadState {
     /** Known to the app (e.g. given a custom title in the Video tab) but not queued for upload. */
     IDLE,
     QUEUED, UPLOADING, DONE, FAILED, SKIPPED,
+    /** Being recorded in the app right now (uploaded live by LiveSession, ignored by the queue worker). */
+    RECORDING,
 }
 
-/** One camera video, keyed by its MediaStore id. */
+/** How a video got into the app. Only AUTO rows are subject to the camera-only rule of the scanner. */
+enum class UploadSource {
+    /** Found by the DCIM/Camera scanner (camera recordings only). */
+    AUTO,
+    /** Picked in the Video tab ("Tải lên"). */
+    MANUAL,
+    /** Sent from another app (Gallery → Send → Youtube Sync). Any video, any folder. */
+    SHARE,
+    /** Recorded in the app with "Quay & đồng bộ" and uploaded while recording. */
+    LIVE,
+}
+
+/**
+ * One video, keyed by its MediaStore id. Shared videos that aren't in MediaStore (an app's private
+ * file) are copied into the app: they get a negative id and [localPath].
+ */
 @Entity(tableName = "uploads")
 data class UploadItem(
     @PrimaryKey val mediaId: Long,
@@ -43,6 +61,9 @@ data class UploadItem(
     val titleOverride: String? = null,
     /** Title actually sent to YouTube (set when the upload session starts / after a rename). */
     val title: String? = null,
+    @ColumnInfo(defaultValue = "AUTO") val source: UploadSource = UploadSource.AUTO,
+    /** App-private copy of a shared video that has no MediaStore entry; deleted after upload. */
+    val localPath: String? = null,
 )
 
 @Dao
@@ -53,12 +74,17 @@ interface UploadDao {
     @Query("SELECT * FROM uploads")
     fun observeAll(): Flow<List<UploadItem>>
 
+    /** Recordings the app was in the middle of when its process died. */
+    @Query("SELECT * FROM uploads WHERE state = 'RECORDING'")
+    suspend fun recordingRows(): List<UploadItem>
+
     /** Videos the user parked as IDLE that are now inside the auto-sync window get queued. */
     @Query("UPDATE uploads SET state = 'QUEUED', updatedAt = :now WHERE state = 'IDLE' AND mediaId IN (:ids)")
     suspend fun promoteIdle(ids: List<Long>, now: Long = System.currentTimeMillis())
 
-    @Query("UPDATE uploads SET state = 'QUEUED', error = NULL, attempts = 0, updatedAt = :now WHERE mediaId IN (:ids) AND state IN ('IDLE','SKIPPED','FAILED')")
-    suspend fun queue(ids: List<Long>, now: Long = System.currentTimeMillis())
+    /** Queue by hand (Video tab / Share): marks the source so the camera-only scanner leaves them alone. */
+    @Query("UPDATE uploads SET state = 'QUEUED', source = :source, error = NULL, attempts = 0, updatedAt = :now WHERE mediaId IN (:ids) AND state IN ('IDLE','SKIPPED','FAILED')")
+    suspend fun queue(ids: List<Long>, source: UploadSource, now: Long = System.currentTimeMillis())
 
     @Query("UPDATE uploads SET titleOverride = :title, updatedAt = :now WHERE mediaId = :id")
     suspend fun setTitleOverride(id: Long, title: String?, now: Long = System.currentTimeMillis())
@@ -100,9 +126,12 @@ interface UploadDao {
 
 @Database(
     entities = [UploadItem::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)], // 1.0.4: + titleOverride, title (nullable)
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2), // 1.1.0: + titleOverride, title
+        AutoMigration(from = 2, to = 3), // 1.3.0: + source (default AUTO), localPath
+    ],
 )
 abstract class UploadDb : RoomDatabase() {
     abstract fun dao(): UploadDao
