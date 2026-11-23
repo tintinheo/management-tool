@@ -21,9 +21,13 @@ internal static class Theme
     public static readonly Color AccentDeep = Color.FromArgb(132, 100, 52);  // gold for small text (contrast)
     public static readonly Color AccentSoft = Color.FromArgb(216, 196, 159); // active card outline, frame border
     public static readonly Color Warning = Color.FromArgb(160, 72, 42);      // terracotta
+    // The Notion side (Notion, Calendar) uses Notion's own ink on white, so it never looks like the file side.
+    public static readonly Color Ink = Color.FromArgb(55, 53, 47);           // Notion text colour
+    public static readonly Color InkMuted = Color.FromArgb(120, 119, 116);
+    public static readonly Color NotionSurface = Color.White;
 
     static readonly string SansName = Has("Segoe UI Variable Text") ? "Segoe UI Variable Text" : "Segoe UI";
-    static readonly string SerifName = Has("Georgia") ? "Georgia" : Has("Cambria") ? "Cambria" : "Times New Roman";
+    public static readonly string SerifName = Has("Georgia") ? "Georgia" : Has("Cambria") ? "Cambria" : "Times New Roman";
 
     public static readonly Font Ui = new(SansName, 9f);
     public static readonly Font UiSmall = new(SansName, 8.25f);
@@ -46,6 +50,7 @@ internal static class Theme
     public const string GlyphAdd = "";
     public const string GlyphClose = "";
     public const string GlyphMore = "";
+    public const string GlyphOpenApp = ""; // open in new window
     public const string GlyphTree = ""; // "open pane"
 
     public static GraphicsPath Rounded(RectangleF r, float radius)
@@ -68,7 +73,7 @@ internal static class Theme
     public static int ColorRef(Color c) => c.R | (c.G << 8) | (c.B << 16);
 
     /// <summary>Windows 11: ivory caption, charcoal caption text, gold hairline border, rounded corners. Ignored on older Windows.</summary>
-    public static void StyleFrame(Form form)
+    public static void StyleFrame(Form form, Color? border = null)
     {
         if (!form.IsHandleCreated) return;
         void Set(int attribute, int value)
@@ -76,7 +81,7 @@ internal static class Theme
             try { DwmSetWindowAttribute(form.Handle, attribute, ref value, sizeof(int)); } catch { }
         }
         Set(33, 2);                       // DWMWA_WINDOW_CORNER_PREFERENCE = round
-        Set(34, ColorRef(AccentSoft));    // DWMWA_BORDER_COLOR
+        Set(34, ColorRef(border ?? AccentSoft)); // DWMWA_BORDER_COLOR
         Set(35, ColorRef(Window));        // DWMWA_CAPTION_COLOR
         Set(36, ColorRef(Text));          // DWMWA_TEXT_COLOR
     }
@@ -161,7 +166,8 @@ internal class FlatButton : Button
         }
     }
 
-    protected override void OnPaint(PaintEventArgs e)
+    /// <summary>Parent colour plus the rounded hover / pressed highlight.</summary>
+    protected void PaintBackground(PaintEventArgs e)
     {
         var g = e.Graphics;
         g.Clear(BackgroundColor);
@@ -173,6 +179,12 @@ internal class FlatButton : Button
             using var brush = new SolidBrush(_down ? Theme.Pressed : Theme.Hover);
             g.FillPath(brush, path);
         }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        PaintBackground(e);
         if (Text.Length > 0)
             TextRenderer.DrawText(g, Text, Font, ClientRectangle, Enabled ? ForeColor : Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);

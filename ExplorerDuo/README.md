@@ -1,4 +1,4 @@
-# ExplorerDuo 2.4.0
+# ExplorerDuo 2.5.1
 
 ExplorerDuo is a dual-panel file manager with tabs, in the style of Multi Commander. Each tab shows a
 real Windows Explorer view (the official `IExplorerBrowser` shell component). The file list,
@@ -9,7 +9,7 @@ folder tree, bookmarks, colour highlighting and commander-style commands.
 ## Run
 
 ```
-dist\ExplorerDuo-2.4.0\ExplorerDuo.exe [folder ...]
+dist\ExplorerDuo-2.5.1\ExplorerDuo.exe [folder ...]
 ```
 
 You need the .NET 8 Desktop Runtime. Each folder you pass opens as a tab. If ExplorerDuo is already
@@ -18,7 +18,7 @@ running, the folders open as tabs in that window.
 Build and test from source:
 
 ```
-dotnet publish src/ExplorerDuo/ExplorerDuo.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o dist/ExplorerDuo-2.4.0
+dotnet publish src/ExplorerDuo/ExplorerDuo.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o dist/ExplorerDuo-2.5.1
 dotnet test
 ```
 
@@ -39,6 +39,45 @@ In OneDrive folders, the Windows **Status** column (synced, available online onl
 syncing) is added automatically, right after Name. This also works in other cloud folders that are
 registered with Windows, such as Dropbox, Google Drive and iCloud. Turn it off under ⋯ → **Cloud status
 column in OneDrive folders**.
+
+## Notion and Notion Calendar
+ExplorerDuo can show three things across the whole window. Pick one with the switch at the top right:
+**Files** (your two Explorer panes), **Notion**, or **Calendar** (Notion Calendar).
+
+- **Ctrl+J** switches between your files and Notion. It goes back to whichever you used last, Notion
+  or Calendar, and it works while you're typing in Notion too.
+- **Ctrl+Shift+J** switches between Notion and Notion Calendar.
+- You can also click **Notion** in the bottom bar (it has the black N mark), or **Files** in the
+  Notion header to go back.
+- A bookmark you click, or a folder opened from Windows Explorer, takes you back to Files.
+
+You can always tell which side you're on:
+- **Files** keeps the ivory and gold look.
+- **Notion** uses Notion's own white and ink. It has a white header with the Notion or Calendar mark
+  and the page title, and the window border turns ink.
+- The window title shows the Notion page, for example "Roadmap — Notion — ExplorerDuo".
+- Until you first open Notion, a small gold dot on the switch points it out.
+
+The other details:
+- **Sign in once.** ExplorerDuo remembers your sign-in and the last page you had open, also after a
+  restart, and starts on the side you were last using. This sign-in is separate from your web
+  browser and the Notion apps.
+- **Calendar** shows the Google accounts you've connected in Notion Calendar.
+- **Links to other websites** open in your default browser. Notion pages opened from Calendar show
+  in Notion.
+- Header buttons: back, reload, open the page in the Notion desktop app (or Notion Calendar), and
+  **Files**.
+- **Sign out** under ⋯ → **Notion**. This clears ExplorerDuo's Notion cookies and cache only.
+- Nothing loads until you open Notion the first time, and Calendar loads only when you first show it.
+  While you're in Files, the Notion pages are paused so they use no CPU.
+- Notion needs the Microsoft Edge WebView2 Runtime. Windows 11 includes it.
+
+Notion Calendar has no public API, so ExplorerDuo shows the Notion Calendar web app itself rather than
+its own calendar view.
+
+## Taskbar icon
+ExplorerDuo has its own icon, a charcoal tile with two ivory panes and gold tab marks. It shows on the
+taskbar, in Alt+Tab, in Start and when you pin the program, and stays sharp at any display scaling.
 
 ## Middle-click: open in the other pane
 - **Folder in the file list**: opens that folder in the opposite pane. Hold **Shift** to open it as a
@@ -101,6 +140,7 @@ The bar under the title shows your bookmarks.
 | Ctrl+R | Refresh |
 | Ctrl+B | Show / hide the folder tree on the left |
 | Ctrl+Shift+B | A folder tree inside each pane (on / off) |
+| Ctrl+J / Ctrl+Shift+J | Files ↔ Notion (full window) · Notion ↔ Notion Calendar |
 
 Explorer's own keys also work: Ctrl+C/X/V, Ctrl+Z, F2, Ctrl+A, Ctrl+Shift+N and Alt+Enter.
 
@@ -178,6 +218,10 @@ Settings are stored in `%AppData%\ExplorerDuo\settings.json`:
 - `treeMode` (`left`, `panes` or `none`), plus the tree widths
 - `unloadIdleTabsMinutes` (10 by default; 0 = never unload)
 - `showCloudStatus` (true by default)
+- `workspace` (`files`, `notion` or `calendar`), `notionDockTab` (the Notion side used last), and the
+  last Notion and Calendar pages (`notionUrl`, `calendarUrl`)
 - your session
+
+Notion keeps its sign-in in `%LocalAppData%\ExplorerDuo\WebView2`.
 
 Errors are written to `%AppData%\ExplorerDuo\log.txt`.

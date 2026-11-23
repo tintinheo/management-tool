@@ -4,26 +4,69 @@ namespace ExplorerDuo;
 
 internal static class AppIcon
 {
-    /// <summary>Two panes with tab marks.</summary>
+    /// <summary>Sizes written into app.ico (the exe's icon: taskbar, Alt+Tab, Start, pinned).</summary>
+    public static readonly int[] IcoSizes = { 16, 20, 24, 32, 40, 48, 64, 96, 128, 256 };
+
+    /// <summary>The window icon: every size from the embedded app.ico, so the taskbar gets a sharp one at any DPI.</summary>
     public static Icon Create()
     {
-        using var bmp = new Bitmap(32, 32);
-        using (var g = Graphics.FromImage(bmp))
+        try
         {
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.Clear(Color.Transparent);
-            // Charcoal tile, two ivory panes, gold tab marks.
-            using (var path = RoundRect(new Rectangle(1, 1, 30, 30), 7))
-            using (var bg = new SolidBrush(Theme.Text))
-                g.FillPath(bg, path);
-            using var pane = new SolidBrush(Theme.Window);
-            g.FillRectangle(pane, 5, 11, 10, 15);
-            g.FillRectangle(pane, 17, 11, 10, 15);
-            using var tab = new SolidBrush(Theme.Accent);
-            g.FillRectangle(tab, 5, 7, 6, 2);
-            g.FillRectangle(tab, 17, 7, 6, 2);
+            using var stream = typeof(AppIcon).Assembly.GetManifestResourceStream("ExplorerDuo.app.ico");
+            if (stream != null) return new Icon(stream);
         }
+        catch
+        {
+            // fall back to drawing it
+        }
+        using var bmp = Render(32);
         return Icon.FromHandle(bmp.GetHicon());
+    }
+
+    /// <summary>Charcoal tile, two ivory panes, gold tab marks: drawn on a 32-unit grid scaled to <paramref name="size"/>.</summary>
+    public static Bitmap Render(int size)
+    {
+        var bmp = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        g.Clear(Color.Transparent);
+        float k = size / 32f;
+        RectangleF R(float x, float y, float w, float h) => new(x * k, y * k, w * k, h * k);
+        using (var path = Theme.Rounded(R(1, 1, 30, 30), 7 * k))
+        using (var bg = new SolidBrush(Theme.Text))
+            g.FillPath(bg, path);
+        using var pane = new SolidBrush(Theme.Window);
+        g.FillRectangle(pane, R(5, 11, 10, 15));
+        g.FillRectangle(pane, R(17, 11, 10, 15));
+        using var tab = new SolidBrush(Theme.Accent);
+        g.FillRectangle(tab, R(5, 7, 6, 2));
+        g.FillRectangle(tab, R(17, 7, 6, 2));
+        return bmp;
+    }
+
+    /// <summary>Writes a multi-size .ico (PNG-compressed entries, supported since Windows Vista).</summary>
+    public static void WriteIco(string path)
+    {
+        var images = IcoSizes.Select(size =>
+        {
+            using var bmp = Render(size);
+            using var ms = new MemoryStream();
+            bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+            return (size, data: ms.ToArray());
+        }).ToList();
+        using var w = new BinaryWriter(File.Create(path));
+        w.Write((short)0); w.Write((short)1); w.Write((short)images.Count); // ICONDIR
+        int offset = 6 + 16 * images.Count;
+        foreach (var (size, data) in images)
+        {
+            w.Write((byte)(size >= 256 ? 0 : size)); w.Write((byte)(size >= 256 ? 0 : size));
+            w.Write((byte)0); w.Write((byte)0);       // palette, reserved
+            w.Write((short)1); w.Write((short)32);    // planes, bit count
+            w.Write(data.Length); w.Write(offset);
+            offset += data.Length;
+        }
+        foreach (var (_, data) in images) w.Write(data);
     }
 
     static GraphicsPath RoundRect(Rectangle r, int radius)

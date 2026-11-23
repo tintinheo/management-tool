@@ -31,6 +31,8 @@ internal sealed class MainForm : Form, IMessageFilter
         ("Ctrl+R", "Refresh"),
         ("Ctrl+B", "Show / hide the folder tree on the left (Tab in the tree jumps to the active pane)"),
         ("Ctrl+Shift+B", "A folder tree inside each pane"),
+        ("Ctrl+J", "Switch between your files and Notion, full window (also works inside Notion)"),
+        ("Ctrl+Shift+J", "Switch between Notion and Notion Calendar"),
         ("", ""),
         ("Middle-click", "On a folder (list, tree or bookmark): open it in the OTHER pane · Shift: as new tab · on a tab: close"),
         ("Right-click", "Full Windows menu (Shift: extended items) plus ExplorerDuo commands on top"),
@@ -45,6 +47,12 @@ internal sealed class MainForm : Form, IMessageFilter
     readonly Pane _right = new();
     readonly SplitContainer _split;
     readonly SplitContainer _outer;
+    readonly NotionDock _notion;
+    readonly WorkspaceSwitch _switch = new();
+    readonly Control _functionBar;
+    /// <summary>"files", "notion" or "calendar": what fills the window.</summary>
+    string _workspace = Workspace.Files;
+    readonly System.Windows.Forms.Timer _notionSave = new() { Interval = 3000 };
     readonly FolderTree _tree = new();
     readonly BookmarkBar _bookmarkBar = new();
     readonly System.Windows.Forms.Timer _statusTimer = new() { Interval = 500 };
@@ -86,7 +94,8 @@ internal sealed class MainForm : Form, IMessageFilter
         _split.SplitterMoved += (_, _) =>
         {
             // SplitContainer also raises this during its own initial layout; only a mouse drag sets the ratio.
-            if (MouseButtons != MouseButtons.Left) return;
+            // MouseButtons is global: a button held elsewhere during start-up must not count (no handle yet).
+            if (MouseButtons != MouseButtons.Left || !IsHandleCreated) return;
             _ratio = CurrentRatio();
             BeginInvoke(() => _active.FocusView());
         };
@@ -124,12 +133,26 @@ internal sealed class MainForm : Form, IMessageFilter
             BookmarksChanged();
         };
 
+        // Notion / Notion Calendar: fills the window in place of the panes (Ctrl+J). Web views are created on first show.
+        _notion = new NotionDock(settings.NotionDockTab, settings.NotionUrl, settings.CalendarUrl) { Dock = DockStyle.Fill, Visible = false };
+        _notion.ToggleRequested += ToggleNotion;
+        _notion.SwitchRequested += SwitchNotionTab;
+        _notion.CloseRequested += () => SetWorkspace(Workspace.Files);
+        _notion.StateChanged += () => { CopyNotionState(); _notionSave.Stop(); _notionSave.Start(); };
+        _notion.TitleChanged += UpdateTitle;
+        _notionSave.Tick += (_, _) => { _notionSave.Stop(); _settings.Save(); };
+        _switch.Spotlight = !settings.NotionIntroSeen;
+        _switch.Selected += ws => SetWorkspace(ws);
+        _bookmarkBar.Controls.Add(_switch);
+
         // Ivory margin around the cards.
         var stage = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Window, Padding = new Padding(12, 2, 12, 0) };
         stage.Controls.Add(_outer);
+        stage.Controls.Add(_notion);
         Controls.Add(stage);
         Controls.Add(_bookmarkBar);
-        Controls.Add(BuildFunctionBar());
+        _functionBar = BuildFunctionBar();
+        Controls.Add(_functionBar);
 
         foreach (var pane in new[] { _left, _right })
         {
@@ -319,6 +342,7 @@ internal sealed class MainForm : Form, IMessageFilter
         ApplyTreeWidth();
         RestoreSession();
         if (TreeMode == "panes") ApplyTreeMode();
+        if (Workspace.IsNotion(_settings.Workspace)) SetWorkspace(_settings.Workspace, focus: false);
         Application.AddMessageFilter(this);
         _statusTimer.Start();
         _idleTimer.Start();
@@ -339,7 +363,8 @@ internal sealed class MainForm : Form, IMessageFilter
         RevealInTree();
         RevealInPaneTree(_left);
         RevealInPaneTree(_right);
-        _active.FocusView();
+        if (NotionVisible) _notion.ShowTab(_notion.ActiveTab, focus: true); // the web view needs a shown window
+        else _active.FocusView();
     }
 
     protected override void OnActivated(EventArgs e)
@@ -436,11 +461,13 @@ internal sealed class MainForm : Form, IMessageFilter
         var b =WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
         s.Bounds = new[] { b.X, b.Y, b.Width, b.Height };
         s.Maximized = WindowState == FormWindowState.Maximized;
+        CopyNotionState();
         _settings.Save();
     }
 
     void ReceiveArgs(string[] args)
     {
+        if (NotionVisible) SetWorkspace(Workspace.Files, focus: false); // folders opened from Explorer
         OpenPaths(CommandLine.Parse(args).Paths);
         if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
         Activate();
@@ -491,6 +518,13 @@ internal sealed class MainForm : Form, IMessageFilter
 
     void UpdateTitle()
     {
+        if (NotionVisible)
+        {
+            var app = _workspace == Workspace.Calendar ? "Notion Calendar" : "Notion";
+            var page = _notion.PageTitle;
+            Text = page.Length > 0 ? $"{page} — {app} — ExplorerDuo" : $"{app} — ExplorerDuo";
+            return;
+        }
         var title = _active.Current?.Title;
         Text = string.IsNullOrEmpty(title) ? "ExplorerDuo" : $"{title} — ExplorerDuo";
     }
@@ -527,6 +561,14 @@ internal sealed class MainForm : Form, IMessageFilter
         }
         if (m.Msg is not (Native.WM_KEYDOWN or Native.WM_SYSKEYDOWN)) return false;
         if (!Native.IsWithin(this, m.HWnd)) return false; // dialogs, menus, other windows
+        if (NotionVisible || Native.IsWithin(_notion, m.HWnd))
+        {
+            // Notion is showing: none of the file commands (F5, Tab, Ctrl+H …) apply there.
+            var k = ((Keys)(int)m.WParam & Keys.KeyCode) | ModifierKeys;
+            if (k == (Keys.Control | Keys.J)) { ToggleNotion(); return true; }
+            if (k == (Keys.Control | Keys.Shift | Keys.J)) { SwitchNotionTab(); return true; }
+            return false;
+        }
 
         var keyCode = ((Keys)(int)m.WParam & Keys.KeyCode) | ModifierKeys;
         if (keyCode == Keys.Tab && TreeAt(m.HWnd) is { } fromTree)
@@ -620,6 +662,8 @@ internal sealed class MainForm : Form, IMessageFilter
             case Keys.Control | Keys.U: SwapFolders(); return true;
             case Keys.Control | Keys.B: ToggleTree(); return true;
             case Keys.Control | Keys.Shift | Keys.B: SetTreeMode(TreeMode == "panes" ? "none" : "panes"); return true;
+            case Keys.Control | Keys.J: ToggleNotion(); return true;
+            case Keys.Control | Keys.Shift | Keys.J: SwitchNotionTab(); return true;
         }
 
         var key = keyData & Keys.KeyCode;
@@ -965,6 +1009,7 @@ internal sealed class MainForm : Form, IMessageFilter
 
     void OpenBookmark(Bookmark bm, OpenTarget target)
     {
+        if (NotionVisible) SetWorkspace(Workspace.Files, focus: false); // bookmarks are folders: back to the panes
         switch (target)
         {
             case OpenTarget.NewTab: _active.AddTab(bm.Path); break;
@@ -1231,6 +1276,7 @@ internal sealed class MainForm : Form, IMessageFilter
         flow.Controls.Add(Fn("Ctrl+M", "Rename", MultiRename));
         flow.Controls.Add(Fn("Alt+F5", "Zip", Pack));
         flow.Controls.Add(Fn("Ctrl+F", "Search", Search));
+        flow.Controls.Add(FnNotion());
         var highlight = Fn("Ctrl+H", "Highlight", () => { });
         highlight.Click += (_, _) => ShowHighlightMenu(highlight.PointToScreen(new Point(0, 0)));
         flow.Controls.Add(highlight);
@@ -1242,6 +1288,15 @@ internal sealed class MainForm : Form, IMessageFilter
         bar.Controls.Add(flow);
         bar.Controls.Add(more);
         return bar;
+    }
+
+    FnButton FnNotion()
+    {
+        // Not Fn(): that hands focus back to the file list, but opening Notion should focus Notion.
+        var b = new NotionFnButton();
+        new ToolTip().SetToolTip(b, "Open Notion in this window (Ctrl+J) · Ctrl+Shift+J: Notion Calendar");
+        b.Click += (_, _) => ToggleNotion();
+        return b;
     }
 
     FnButton Fn(string key, string label, Action action)
@@ -1280,6 +1335,21 @@ internal sealed class MainForm : Form, IMessageFilter
         var trees = new ToolStripMenuItem("Folder tree");
         AddTreeModeItems(trees.DropDownItems);
         menu.Items.Add(trees);
+        var notion = new ToolStripMenuItem("Notion");
+        notion.DropDownItems.Add(new ToolStripMenuItem("Open Notion", null, (_, _) => SetWorkspace(Workspace.Notion))
+            { ShortcutKeyDisplayString = "Ctrl+J", Checked = _workspace == Workspace.Notion });
+        notion.DropDownItems.Add(new ToolStripMenuItem("Open Notion Calendar", null, (_, _) => SetWorkspace(Workspace.Calendar))
+            { ShortcutKeyDisplayString = "Ctrl+Shift+J", Checked = _workspace == Workspace.Calendar });
+        notion.DropDownItems.Add(new ToolStripMenuItem("Back to files", null, (_, _) => SetWorkspace(Workspace.Files)) { Enabled = NotionVisible });
+        notion.DropDownItems.Add(new ToolStripSeparator());
+        notion.DropDownItems.Add(new ToolStripMenuItem("Sign out (clear Notion data in ExplorerDuo)…", null, async (_, _) =>
+        {
+            if (MessageBox.Show(this, "Sign out of Notion and Notion Calendar inside ExplorerDuo?\n\nThis deletes ExplorerDuo's Notion cookies and cache. Your Notion data and the Notion apps are not affected.",
+                    "Notion", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK) return;
+            try { await _notion.ClearDataAsync(); _settings.Save(); }
+            catch (Exception ex) { Log.Write("notion sign out: " + ex); _active.ShowMessage(ex.Message); }
+        }));
+        menu.Items.Add(notion);
         menu.Items.Add(new ToolStripMenuItem($"Unload tabs unused for {Math.Max(_settings.UnloadIdleTabsMinutes, 10)} min (saves memory)", null, (_, _) =>
         {
             _settings.UnloadIdleTabsMinutes = _settings.UnloadIdleTabsMinutes > 0 ? 0 : 10;
@@ -1324,6 +1394,65 @@ internal sealed class MainForm : Form, IMessageFilter
         return menu;
     }
 
+    // ───────────────────────────── Notion dock ─────────────────────────────
+
+    internal bool NotionVisible => Workspace.IsNotion(_workspace);
+    internal string CurrentWorkspace => _workspace;
+    internal NotionDock NotionPanel => _notion;
+    internal WorkspaceSwitch WorkspaceSwitcher => _switch;
+
+    /// <summary>Ctrl+J: files ↔ the Notion side you used last.</summary>
+    internal void ToggleNotion() => SetWorkspace(NotionVisible ? Workspace.Files : _notion.ActiveTab);
+
+    /// <summary>Ctrl+Shift+J: Notion ↔ Calendar (from the files, opens the one not shown last time).</summary>
+    void SwitchNotionTab() =>
+        SetWorkspace(_workspace == Workspace.Calendar ? Workspace.Notion
+            : _workspace == Workspace.Notion ? Workspace.Calendar
+            : _notion.ActiveTab == Workspace.Notion ? Workspace.Calendar : Workspace.Notion);
+
+    /// <summary>Shows the file panes or Notion / Notion Calendar across the whole window.</summary>
+    internal void SetWorkspace(string workspace, bool focus = true)
+    {
+        workspace = Workspace.Normalize(workspace);
+        bool notion = Workspace.IsNotion(workspace);
+        bool changed = workspace != _workspace;
+        _workspace = workspace;
+        _switch.Active = workspace;
+        _settings.Workspace = workspace;
+
+        SuspendLayout();
+        _outer.Visible = !notion;
+        _functionBar.Visible = !notion;
+        _notion.Visible = notion;
+        ResumeLayout(true);
+
+        if (notion)
+        {
+            if (!_settings.NotionIntroSeen)
+            {
+                _settings.NotionIntroSeen = true;
+                _switch.Spotlight = false;
+            }
+            _notion.ShowTab(workspace, focus);
+        }
+        else if (changed)
+        {
+            _notion.Suspend();
+            ApplyRatio();
+            if (focus) _active.FocusView();
+        }
+        Theme.StyleFrame(this, notion ? Theme.Ink : null); // window border: ink for Notion, gold for files
+        UpdateTitle();
+        if (changed) _settings.Save();
+    }
+
+    void CopyNotionState()
+    {
+        _settings.NotionDockTab = _notion.ActiveTab;
+        _settings.NotionUrl = _notion.NotionUrl;
+        _settings.CalendarUrl = _notion.CalendarUrl;
+    }
+
     void ShowShortcuts()
     {
         var text = string.Join(Environment.NewLine,
@@ -1336,6 +1465,7 @@ internal sealed class MainForm : Form, IMessageFilter
         if (disposing)
         {
             _statusTimer.Dispose();
+            _notionSave.Dispose();
             _cts.Dispose();
         }
         base.Dispose(disposing);
@@ -1343,10 +1473,12 @@ internal sealed class MainForm : Form, IMessageFilter
 }
 
 /// <summary>Function-key bar button: key hint in grey, action in black.</summary>
-internal sealed class FnButton : FlatButton
+internal class FnButton : FlatButton
 {
     readonly string _key;
     readonly string _label;
+    protected string Key => _key;
+    protected string Label => _label;
 
     public FnButton(string key, string label)
     {

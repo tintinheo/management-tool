@@ -58,6 +58,15 @@ public sealed class Settings
     /// <summary>F4 opens selected files with this program.</summary>
     public string Editor { get; set; } = "notepad.exe";
 
+    /// <summary>What fills the window: "files" (the panes), "notion" or "calendar". Ctrl+J switches.</summary>
+    public string Workspace { get; set; } = "files";
+    /// <summary>Notion was opened once: the gold "new" dot on the switch goes away.</summary>
+    public bool NotionIntroSeen { get; set; }
+    /// <summary>The Notion side shown last: "notion" or "calendar".</summary>
+    public string NotionDockTab { get; set; } = "notion";
+    public string NotionUrl { get; set; } = "";
+    public string CalendarUrl { get; set; } = "";
+
     [JsonIgnore] public DateTime SavedUtc { get; private set; }
     public bool RestoreSession { get; set; } = true;
 
@@ -87,6 +96,10 @@ public sealed class Settings
         var mode = (settings.TreeMode ?? "").Trim().ToLowerInvariant();
         settings.TreeMode = mode is "left" or "panes" or "none" ? mode : settings.ShowTree ? "left" : "none"; // 2.2 and earlier: ShowTree
         if (settings.UnloadIdleTabsMinutes < 0) settings.UnloadIdleTabsMinutes = 0;
+        settings.Workspace = ExplorerDuo.Workspace.Normalize(settings.Workspace);
+        settings.NotionDockTab = settings.NotionDockTab == "calendar" ? "calendar" : "notion";
+        settings.NotionUrl ??= "";
+        settings.CalendarUrl ??= "";
         if (settings.PaletteVersion < 2)
         {
             // The bright Windows colours of 2.2/2.3 → the softer palette (only exact old values change).

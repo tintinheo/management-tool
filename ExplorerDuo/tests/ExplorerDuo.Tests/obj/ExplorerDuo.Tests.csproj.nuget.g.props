@@ -22,5 +22,6 @@
   </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <Pkgxunit_analyzers Condition=" '$(Pkgxunit_analyzers)' == '' ">C:\Users\TheCaptain7th\.nuget\packages\xunit.analyzers\1.16.0</Pkgxunit_analyzers>
+    <PkgMicrosoft_Web_WebView2 Condition=" '$(PkgMicrosoft_Web_WebView2)' == '' ">C:\Users\TheCaptain7th\.nuget\packages\microsoft.web.webview2\1.0.4370.26</PkgMicrosoft_Web_WebView2>
   </PropertyGroup>
 </Project>

@@ -1,13 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "BHp2dqbHnzA=",
+  "dgSpecHash": "BHJDhdZr0Gs=",
   "success": true,
-  "projectFilePath": "D:\\portfolio\\management-tool\\myNation\\ExplorerDuo\\tests\\ExplorerDuo.Tests\\ExplorerDuo.Tests.csproj",
+  "projectFilePath": "D:\\portfolio\\management-tool\\ExplorerDuo\\tests\\ExplorerDuo.Tests\\ExplorerDuo.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.codecoverage\\17.11.1\\microsoft.codecoverage.17.11.1.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.net.test.sdk\\17.11.1\\microsoft.net.test.sdk.17.11.1.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.testplatform.objectmodel\\17.11.1\\microsoft.testplatform.objectmodel.17.11.1.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.testplatform.testhost\\17.11.1\\microsoft.testplatform.testhost.17.11.1.nupkg.sha512",
+    "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.web.webview2\\1.0.4370.26\\microsoft.web.webview2.1.0.4370.26.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\newtonsoft.json\\13.0.1\\newtonsoft.json.13.0.1.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\system.reflection.metadata\\1.6.0\\system.reflection.metadata.1.6.0.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\xunit\\2.9.2\\xunit.2.9.2.nupkg.sha512",

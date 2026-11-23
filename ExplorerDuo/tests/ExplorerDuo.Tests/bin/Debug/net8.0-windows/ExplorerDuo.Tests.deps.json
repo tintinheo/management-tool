@@ -8,9 +8,12 @@
     ".NETCoreApp,Version=v8.0": {
       "ExplorerDuo.Tests/1.0.0": {
         "dependencies": {
-          "ExplorerDuo": "2.4.0",
+          "ExplorerDuo": "2.5.0",
           "Microsoft.NET.Test.Sdk": "17.11.1",
-          "xunit": "2.9.2"
+          "xunit": "2.9.2",
+          "Microsoft.Web.WebView2.Core": "1.0.4370.26",
+          "Microsoft.Web.WebView2.WinForms": "1.0.4370.26",
+          "Microsoft.Web.WebView2.Wpf": "1.0.4370.26"
         },
         "runtime": {
           "ExplorerDuo.Tests.dll": {}
@@ -273,6 +276,25 @@
           }
         }
       },
+      "Microsoft.Web.WebView2/1.0.4370.26": {
+        "runtimeTargets": {
+          "runtimes/win-arm64/native/WebView2Loader.dll": {
+            "rid": "win-arm64",
+            "assetType": "native",
+            "fileVersion": "1.0.4370.26"
+          },
+          "runtimes/win-x64/native/WebView2Loader.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "1.0.4370.26"
+          },
+          "runtimes/win-x86/native/WebView2Loader.dll": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "fileVersion": "1.0.4370.26"
+          }
+        }
+      },
       "Newtonsoft.Json/13.0.1": {
         "runtime": {
           "lib/netstandard2.0/Newtonsoft.Json.dll": {
@@ -331,11 +353,38 @@
           }
         }
       },
-      "ExplorerDuo/2.4.0": {
+      "ExplorerDuo/2.5.0": {
+        "dependencies": {
+          "Microsoft.Web.WebView2": "1.0.4370.26"
+        },
         "runtime": {
           "ExplorerDuo.dll": {
-            "assemblyVersion": "2.4.0.0",
-            "fileVersion": "2.4.0.0"
+            "assemblyVersion": "2.5.0.0",
+            "fileVersion": "2.5.0.0"
+          }
+        }
+      },
+      "Microsoft.Web.WebView2.Core/1.0.4370.26": {
+        "runtime": {
+          "Microsoft.Web.WebView2.Core.dll": {
+            "assemblyVersion": "1.0.4370.26",
+            "fileVersion": "1.0.4370.26"
+          }
+        }
+      },
+      "Microsoft.Web.WebView2.WinForms/1.0.4370.26": {
+        "runtime": {
+          "Microsoft.Web.WebView2.WinForms.dll": {
+            "assemblyVersion": "1.0.4370.26",
+            "fileVersion": "1.0.4370.26"
+          }
+        }
+      },
+      "Microsoft.Web.WebView2.Wpf/1.0.4370.26": {
+        "runtime": {
+          "Microsoft.Web.WebView2.Wpf.dll": {
+            "assemblyVersion": "1.0.4370.26",
+            "fileVersion": "1.0.4370.26"
           }
         }
       }
@@ -374,6 +423,13 @@
       "sha512": "sha512-DnG+GOqJXO/CkoqlJWeDFTgPhqD/V6VqUIL3vINizCWZ3X+HshCtbbyDdSHQQEjrc2Sl/K3yaxX6s+5LFEdYuw==",
       "path": "microsoft.testplatform.testhost/17.11.1",
       "hashPath": "microsoft.testplatform.testhost.17.11.1.nupkg.sha512"
+    },
+    "Microsoft.Web.WebView2/1.0.4370.26": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-fCmdjhw8Gg+cbvEkyF+ygObcByFk35WVxTUmLkjSwjhDuLg4V9P7EVPn3rj3g9M2I3WHes/efHS2tIpGX/NCEA==",
+      "path": "microsoft.web.webview2/1.0.4370.26",
+      "hashPath": "microsoft.web.webview2.1.0.4370.26.nupkg.sha512"
     },
     "Newtonsoft.Json/13.0.1": {
       "type": "package",
@@ -424,8 +480,23 @@
       "path": "xunit.extensibility.execution/2.9.2",
       "hashPath": "xunit.extensibility.execution.2.9.2.nupkg.sha512"
     },
-    "ExplorerDuo/2.4.0": {
+    "ExplorerDuo/2.5.0": {
       "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Web.WebView2.Core/1.0.4370.26": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Web.WebView2.WinForms/1.0.4370.26": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Web.WebView2.Wpf/1.0.4370.26": {
+      "type": "reference",
       "serviceable": false,
       "sha512": ""
     }

@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "60Sool0+a5o=",
+  "dgSpecHash": "9744k+q+8Lo=",
   "success": true,
-  "projectFilePath": "D:\\portfolio\\management-tool\\myNation\\ExplorerDuo\\src\\ExplorerDuo\\ExplorerDuo.csproj",
+  "projectFilePath": "D:\\portfolio\\management-tool\\ExplorerDuo\\src\\ExplorerDuo\\ExplorerDuo.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.31\\microsoft.net.illink.tasks.8.0.31.nupkg.sha512",
+    "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.web.webview2\\1.0.4370.26\\microsoft.web.webview2.1.0.4370.26.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.31\\microsoft.netcore.app.runtime.win-x64.8.0.31.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.31\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.31.nupkg.sha512",
     "C:\\Users\\TheCaptain7th\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.31\\microsoft.aspnetcore.app.runtime.win-x64.8.0.31.nupkg.sha512",

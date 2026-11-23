@@ -1,0 +1,2 @@
+D:\portfolio\management-tool\myNation\ExplorerDuo\dist\ExplorerDuo-2.4.0\ExplorerDuo.pdb
+D:\portfolio\management-tool\myNation\ExplorerDuo\dist\ExplorerDuo-2.4.0\ExplorerDuo.exe

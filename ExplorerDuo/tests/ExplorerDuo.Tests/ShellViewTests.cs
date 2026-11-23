@@ -362,6 +362,11 @@ public class ShellViewTests
             settings.Session.Right = new() { @"C:\Users", @"C:\Windows\System32" };
             settings.Session.LeftIndex = 0;
             settings.TreeMode = Environment.GetEnvironmentVariable("EXPLORERDUO_SHOT_TREE") ?? "left";
+            if (Environment.GetEnvironmentVariable("EXPLORERDUO_SHOT_NOTION") == "1")
+            {
+                settings.Workspace = Environment.GetEnvironmentVariable("EXPLORERDUO_SHOT_WS") ?? "notion";
+                NotionDock.DataFolder = Path.Combine(Path.GetTempPath(), "explorerduo-shot-webview");
+            }
             settings.Highlights[@"C:\Windows\Boot"] = "#D13438";
             settings.Highlights[@"C:\Windows\System32"] = "#107C10";
             settings.Highlights[@"C:\Users\Public"] = "#8764B8";

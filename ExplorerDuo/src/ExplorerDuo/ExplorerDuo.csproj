@@ -9,8 +9,10 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AssemblyName>ExplorerDuo</AssemblyName>
     <RootNamespace>ExplorerDuo</RootNamespace>
-    <Version>2.4.0</Version>
+    <Version>2.5.1</Version>
     <Product>ExplorerDuo</Product>
+    <!-- Exe icon (taskbar, Alt+Tab, Start, pinned). Regenerate with the App_icon test and EXPLORERDUO_WRITE_ICON=path. -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <Description>Dual-pane, multi-tab file manager built on the Windows Explorer shell view</Description>
   </PropertyGroup>
 
@@ -21,6 +23,8 @@
     <TieredPGO>true</TieredPGO>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- Precompiled code: faster start-up, less JIT CPU on first use of each window/menu. -->
+    <!-- WebView2Loader.dll (Notion panel) inside the single-file exe. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != ''">true</PublishReadyToRun>
   </PropertyGroup>
 
@@ -31,6 +35,15 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ExplorerDuo.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Same icon for the window, with every size (AppIcon.Create). -->
+    <EmbeddedResource Include="app.ico" LogicalName="ExplorerDuo.app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4370.26" />
   </ItemGroup>
 
 </Project>
