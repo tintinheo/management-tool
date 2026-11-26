@@ -133,6 +133,28 @@ Video bạn đã tự chọn, qua Chia sẻ hoặc nút "Tải lên" ở tab Vid
 
 **Mất mạng giữa chừng:** app tự thử lại, rồi hỏi YouTube đã nhận đến byte nào để gửi tiếp. Nếu quay xong mà vẫn chưa gửi hết, phần còn lại được hàng đợi tải tiếp, không gửi lại từ đầu. Nếu app bị tắt đột ngột trong lúc quay, lần mở sau app giữ phần đã quay (đọc được tới mảnh cuối cùng đã ghi xong) và tải lên.
 
+## Quản lý video & xoá khỏi máy (1.5.0)
+
+Tab **Video** giờ liệt kê **mọi video app biết tới**, không chỉ video quay bằng camera:
+- video camera trong DCIM/Camera;
+- video bạn **tự chọn** để tải, hoặc **gửi từ Thư viện**, ở bất kỳ thư mục nào (Download/, Zalo/…);
+- video quay bằng **Quay & đồng bộ**;
+- video **đã đồng bộ**, kể cả khi bản trên máy đã xoá. Những video này có icon ☁✓ và dòng "Đã lên YouTube · đã xoá khỏi máy".
+
+Bộ lọc ở đầu tab (cuộn ngang): **Tất cả · Chưa đồng bộ · Đang chờ · Đã lên YouTube**. Mỗi video ghi rõ nguồn: *Gửi từ Thư viện*, *Tự chọn*, hoặc *Quay & đồng bộ*. Video do app khác lưu vào DCIM/Camera mà bạn chưa từng chọn vẫn bị ẩn sau dòng "Đã ẩn N video… · Hiện".
+
+**Xoá khỏi máy để giải phóng bộ nhớ**, có 3 cách:
+- thẻ **Dọn máy** ở đầu tab: xoá tất cả video đã lên YouTube mà còn trên máy;
+- chọn nhiều video → **Xoá khỏi máy (N)**;
+- mở một video → **Xoá khỏi máy**.
+
+Quy tắc an toàn, vì video đã xoá khỏi máy thì không tải lại được:
+1. Chỉ xoá video **đã lên YouTube**. Video chưa đồng bộ, đang chờ hoặc đang tải được giữ lại.
+2. Ngay trước khi xoá, app **hỏi YouTube** về từng video. Video chỉ bị xoá nếu còn trên kênh và đã ở trạng thái **xử lý xong** (`processed`). Video YouTube còn đang xử lý, xử lý lỗi, hoặc đã bị xoá trên kênh thì **được giữ lại**. Nếu không liên lạc được với YouTube, app không xoá gì.
+3. Android hiện hộp thoại xác nhận của hệ thống một lần cho cả nhóm. Bấm Huỷ là không có gì bị xoá.
+
+Video đã xoá vẫn ở lại trong danh sách, với lịch sử, tiêu đề và nút **Mở Studio**.
+
 ## Ngày giờ trong tên = lúc QUAY video
 
 Mọi biến ngày giờ (`{YYYYMMDD}`, `{HH}`…), ở cả tên tự động lẫn tên đặt theo nhóm, đều lấy theo **thời điểm quay**. App xác định thời điểm này theo thứ tự ưu tiên:

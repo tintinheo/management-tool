@@ -32,7 +32,9 @@ class GalleryScreenshotTest {
         override fun openStudio(videoId: String) {}
         override fun requestVideoPermission() {}
         override fun setShowOthers(show: Boolean) {}
-        override suspend fun thumbnail(id: Long): ImageBitmap? = null
+        override fun setFilter(filter: GalleryFilter) {}
+        override fun deleteFromPhone(ids: List<Long>) {}
+        override suspend fun thumbnail(video: CameraVideo): ImageBitmap? = null
     }
 
     private fun t(d: Int, h: Int, m: Int) = LocalDateTime.of(2026, 11, d, h, m, 12).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -46,7 +48,18 @@ class GalleryScreenshotTest {
         GalleryEntry(v(3, t(9, 9, 5), 41_000, 85_000_000), UploadItem(3, "VID_3.mp4", 1, "video/mp4", t(9, 9, 5), state = UploadState.IDLE, titleOverride = "20261109 Đà Lạt 2")),
         GalleryEntry(v(2, t(8, 21, 0), 300_000, 320_000_000), UploadItem(2, "VID_2.mp4", 1, "video/mp4", t(8, 21, 0), state = UploadState.DONE, videoId = "abc", title = "20261108 Đà Lạt 1")),
         GalleryEntry(v(1, t(8, 9, 0), 12_000, 40_000_000), UploadItem(1, "VID_1.mp4", 1, "video/mp4", t(8, 9, 0), state = UploadState.QUEUED)),
+        // shared from Download/ via Gallery → Send
+        GalleryEntry(v(7, t(9, 20, 5), 45_000, 30_000_000).copy(fromCamera = false, displayName = "tiktok_7301.mp4"),
+            UploadItem(7, "tiktok_7301.mp4", 1, "video/mp4", t(9, 20, 5), state = UploadState.QUEUED, source = com.ytsync.data.UploadSource.SHARE)),
+        // recorded in-app, synced, then deleted from the phone
+        GalleryEntry(v(8, t(7, 18, 0), 600_000, 900_000_000).copy(onDevice = false),
+            UploadItem(8, "VID_8.mp4", 1, "video/mp4", t(7, 18, 0), state = UploadState.DONE, videoId = "d", title = "20261107 Video 18:00", source = com.ytsync.data.UploadSource.LIVE, localDeleted = true)),
     )
+
+    @Test fun syncedFilterWithCleanup() {
+        compose.setContent { YtTheme { GalleryScreen(GalleryState(entries = entries, filter = GalleryFilter.SYNCED), noop) } }
+        compose.onRoot().captureRoboImage("build/screenshots/gallery_synced.png")
+    }
 
     @Test fun list() {
         compose.setContent { YtTheme { GalleryScreen(GalleryState(entries = entries), noop) } }

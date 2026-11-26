@@ -64,6 +64,8 @@ data class UploadItem(
     @ColumnInfo(defaultValue = "AUTO") val source: UploadSource = UploadSource.AUTO,
     /** App-private copy of a shared video that has no MediaStore entry; deleted after upload. */
     val localPath: String? = null,
+    /** The phone copy was deleted from the Video tab ("Xoá khỏi máy") after it reached YouTube. */
+    @ColumnInfo(defaultValue = "0") val localDeleted: Boolean = false,
 )
 
 @Dao
@@ -73,6 +75,12 @@ interface UploadDao {
 
     @Query("SELECT * FROM uploads")
     fun observeAll(): Flow<List<UploadItem>>
+
+    @Query("SELECT * FROM uploads")
+    suspend fun all(): List<UploadItem>
+
+    @Query("UPDATE uploads SET localDeleted = 1, localPath = NULL, updatedAt = :now WHERE mediaId IN (:ids)")
+    suspend fun markLocalDeleted(ids: List<Long>, now: Long = System.currentTimeMillis())
 
     /** Recordings the app was in the middle of when its process died. */
     @Query("SELECT * FROM uploads WHERE state = 'RECORDING'")
@@ -126,11 +134,12 @@ interface UploadDao {
 
 @Database(
     entities = [UploadItem::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2), // 1.1.0: + titleOverride, title
         AutoMigration(from = 2, to = 3), // 1.3.0: + source (default AUTO), localPath
+        AutoMigration(from = 3, to = 4), // 1.5.0: + localDeleted
     ],
 )
 abstract class UploadDb : RoomDatabase() {

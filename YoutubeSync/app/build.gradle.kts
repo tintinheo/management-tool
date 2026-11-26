@@ -14,8 +14,8 @@ android {
         applicationId = "com.ytsync"
         minSdk = 33 // READ_MEDIA_VIDEO + POST_NOTIFICATIONS; Xiaomi 14T ships with Android 14+
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.4.0"
+        versionCode = 9
+        versionName = "1.5.0"
     }
 
     signingConfigs {

@@ -298,6 +298,8 @@ private class FakeDao : UploadDao {
     override suspend fun skip(id: Long, now: Long) { rows[id]?.let { rows[id] = it.copy(state = UploadState.SKIPPED) } }
     override fun observeAll(): Flow<List<UploadItem>> = flow
     override suspend fun recordingRows() = rows.values.filter { it.state == UploadState.RECORDING }
+    override suspend fun all() = rows.values.toList()
+    override suspend fun markLocalDeleted(ids: List<Long>, now: Long) = ids.forEach { id -> rows[id]?.let { rows[id] = it.copy(localDeleted = true, localPath = null) } }
     override suspend fun promoteIdle(ids: List<Long>, now: Long) = ids.forEach { id -> rows[id]?.takeIf { it.state == UploadState.IDLE }?.let { rows[id] = it.copy(state = UploadState.QUEUED) } }
     override suspend fun queue(ids: List<Long>, source: com.ytsync.data.UploadSource, now: Long) = ids.forEach { id -> rows[id]?.let { rows[id] = it.copy(state = UploadState.QUEUED, source = source) } }
     override suspend fun setTitleOverride(id: Long, title: String?, now: Long) { rows[id]?.let { rows[id] = it.copy(titleOverride = title) } }

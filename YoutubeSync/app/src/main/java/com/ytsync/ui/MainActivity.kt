@@ -28,6 +28,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import com.ytsync.data.UploadState
 import com.ytsync.media.CameraVideo
 import com.ytsync.media.CameraVideos
+import com.ytsync.media.VideoLibrary
+import android.media.ThumbnailUtils
+import android.provider.MediaStore
+import android.util.Size
+import java.io.File
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -102,7 +107,7 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
                 )
             }
             val rows by dao.observeAll().collectAsState(initial = emptyList())
-            val gallery = remember(galleryVideos, rows, selected, galleryLoading, settings, tick, othersVisible) {
+            val gallery = remember(galleryVideos, rows, selected, galleryLoading, settings, tick, othersVisible, galleryFilter) {
                 val byId = rows.associateBy { it.mediaId }
                 GalleryState(
                     entries = galleryVideos.map { v ->
@@ -113,9 +118,12 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
                     autoTemplate = settings?.titleTemplate ?: com.ytsync.youtube.VideoMetadata.DEFAULT_TEMPLATE,
                     hasPermission = hasVideo(),
                     showOthers = othersVisible,
+                    filter = galleryFilter,
                 )
             }
-            LaunchedEffect(tab, tick) { if (tab == 1) refreshGallery() }
+            // Re-list when a video joins/leaves the queue (share, live recording, delete), not on progress ticks.
+            val rowKey = remember(rows) { rows.map { it.mediaId to it.localDeleted }.toSet() }
+            LaunchedEffect(tab, tick, rowKey) { if (tab == 1) refreshGallery() }
             BackHandler(enabled = tab == 1 && selected.isNotEmpty()) { selected = emptySet() }
 
             YtTheme {
@@ -169,7 +177,15 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
         if (!hasVideo() || galleryLoading) return
         galleryLoading = true
         lifecycleScope.launch {
-            galleryVideos = withContext(Dispatchers.IO) { runCatching { CameraVideos.listAll(this@MainActivity) }.getOrDefault(emptyList()) }
+            galleryVideos = withContext(Dispatchers.IO) {
+                runCatching {
+                    val ctx = this@MainActivity
+                    val camera = CameraVideos.listAll(ctx)
+                    val rows = dao.all()
+                    val elsewhere = CameraVideos.byIds(ctx, VideoLibrary.idsOutsideCamera(camera, rows))
+                    VideoLibrary.merge(camera, elsewhere, rows) { File(it).exists() }
+                }.getOrDefault(emptyList())
+            }
             val ids = galleryVideos.mapTo(HashSet()) { it.mediaId }
             selected = selected.filterTo(HashSet()) { it in ids }
             galleryLoading = false
@@ -200,8 +216,78 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
         }.getOrDefault(pkg)
     }
 
-    override suspend fun thumbnail(id: Long): ImageBitmap? = thumbs.get(id) ?: withContext(Dispatchers.IO) {
-        CameraVideos.thumbnail(this@MainActivity, id)?.asImageBitmap()?.also { thumbs.put(id, it) }
+    override suspend fun thumbnail(video: CameraVideo): ImageBitmap? = thumbs.get(video.mediaId) ?: withContext(Dispatchers.IO) {
+        val bmp = video.localPath?.let { p ->
+            runCatching { ThumbnailUtils.createVideoThumbnail(File(p), Size(320, 320), null) }.getOrNull()
+        } ?: CameraVideos.thumbnail(this@MainActivity, video.mediaId)
+        bmp?.asImageBitmap()?.also { thumbs.put(video.mediaId, it) }
+    }
+
+    private var galleryFilter by mutableStateOf(GalleryFilter.ALL)
+    override fun setFilter(filter: GalleryFilter) { galleryFilter = filter; selected = emptySet() }
+
+    // ---- delete phone copies of synced videos ----
+
+    /** (mediaId, size) waiting for Android's delete confirmation. */
+    private var pendingDelete: List<Pair<Long, Long>> = emptyList()
+
+    private val deleteLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { res ->
+        val done = pendingDelete
+        pendingDelete = emptyList()
+        if (res.resultCode != RESULT_OK || done.isEmpty()) {
+            message = "Đã huỷ — không xoá video nào."
+            return@registerForActivityResult
+        }
+        lifecycleScope.launch {
+            dao.markLocalDeleted(done.map { it.first })
+            selected = emptySet()
+            message = "Đã xoá ${done.size} video khỏi máy (giải phóng ${mb(done.sumOf { it.second })}). Video vẫn ở trên YouTube."
+            refreshGallery()
+        }
+    }
+
+    override fun deleteFromPhone(ids: List<Long>) {
+        lifecycleScope.launch {
+            val byId = dao.all().associateBy { it.mediaId }
+            val wanted = ids.toSet()
+            val chosen = galleryVideos.filter { it.mediaId in wanted }.map { GalleryEntry(it, byId[it.mediaId]) }
+            val (candidates, _) = DeletePlan.candidates(chosen)
+            if (candidates.isEmpty()) {
+                message = "Không có video nào đủ điều kiện xoá (phải đã lên YouTube và còn trên máy)."
+                return@launch
+            }
+            busy = true
+            // Ask YouTube right now — never delete a phone copy YouTube doesn't fully have.
+            val statuses = withContext(Dispatchers.IO) {
+                when (val t = YouTubeAuth.token(this@MainActivity)) {
+                    is YouTubeAuth.Result.Token -> runCatching { YouTubeApi().uploadStatuses(t.accessToken, candidates.map { it.row!!.videoId!! }) }
+                    else -> Result.failure(IllegalStateException("Cần kết nối YouTube để kiểm tra trước khi xoá"))
+                }
+            }
+            busy = false
+            val result = statuses.map { DeletePlan.plan(chosen, it) }.getOrElse {
+                message = "Không kiểm tra được với YouTube nên chưa xoá gì: ${it.message}"
+                return@launch
+            }
+            if (result.delete.isEmpty()) {
+                message = "Chưa xoá video nào: ${DeletePlan.skippedText(result.skipped)}."
+                return@launch
+            }
+            // App-private copies (shared from other apps' storage) are ours to delete directly.
+            val (copies, media) = result.delete.partition { it.video.localPath != null }
+            copies.forEach { File(it.video.localPath!!).delete() }
+            if (copies.isNotEmpty()) dao.markLocalDeleted(copies.map { it.id })
+            if (media.isEmpty()) {
+                message = "Đã xoá ${copies.size} bản sao khỏi máy."
+                refreshGallery()
+                return@launch
+            }
+            pendingDelete = media.map { it.id to it.video.sizeBytes }
+            if (result.skipped.isNotEmpty()) message = "Giữ lại: ${DeletePlan.skippedText(result.skipped)}."
+            // Android 11+: one system confirmation for the whole batch (works for any app's videos).
+            val request = MediaStore.createDeleteRequest(contentResolver, media.map { CameraVideos.uriOf(it.id) })
+            deleteLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        }
     }
 
     override fun openStudio(videoId: String) = PhoneSetup.openUrl(this, "https://studio.youtube.com/video/$videoId/edit")
@@ -216,9 +302,9 @@ class MainActivity : ComponentActivity(), HomeActions, GalleryActions {
             val s = store.current()
             if (!s.connected) { message = "Hãy kết nối YouTube ở tab Đồng bộ trước."; return@launch }
             val known = dao.knownIds().toHashSet()
-            val videos = entriesFor(ids).map { it.video }
+            val videos = entriesFor(ids).map { it.video }.filter { it.onDevice } // nothing to upload if the file is gone
             dao.insertNew(videos.filter { it.mediaId !in known }.map { it.toItem(UploadState.QUEUED).copy(source = com.ytsync.data.UploadSource.MANUAL) })
-            dao.queue(ids, com.ytsync.data.UploadSource.MANUAL)
+            dao.queue(videos.map { it.mediaId }, com.ytsync.data.UploadSource.MANUAL)
             SyncScheduler.enqueueUpload(this@MainActivity, s)
             selected = emptySet()
             message = "Đã thêm ${videos.size} video vào hàng đợi." + if (s.wifiOnly) " Sẽ tải khi có Wi‑Fi." else ""

@@ -234,6 +234,29 @@ class YouTubeApi(
         http.newCall(put).execute().use { r -> if (!r.isSuccessful) throw r.toError() }
     }
 
+    /**
+     * `status.uploadStatus` per video id (processed / uploaded / failed / rejected / deleted), 50 ids per
+     * call (1 quota unit each). Ids YouTube doesn't return are absent from the map (gone from the channel).
+     */
+    fun uploadStatuses(token: String, videoIds: Collection<String>): Map<String, String> {
+        val out = HashMap<String, String>()
+        videoIds.distinct().chunked(50).forEach { batch ->
+            val req = Request.Builder()
+                .url("$baseUrl/youtube/v3/videos?part=status&maxResults=50&id=${batch.joinToString(",")}")
+                .header("Authorization", "Bearer $token")
+                .get().build()
+            http.newCall(req).execute().use { r ->
+                if (!r.isSuccessful) throw r.toError()
+                json.parseToJsonElement(r.body.string()).jsonObject["items"]?.jsonArray?.forEach { item ->
+                    val o = item.jsonObject
+                    val id = o["id"]?.jsonPrimitive?.content ?: return@forEach
+                    out[id] = o["status"]?.jsonObject?.get("uploadStatus")?.jsonPrimitive?.content ?: "unknown"
+                }
+            }
+        }
+        return out
+    }
+
     /** Title of the authorised user's channel (for the "connected as" line). */
     fun myChannelTitle(token: String): String? {
         val req = Request.Builder()

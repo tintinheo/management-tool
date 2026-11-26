@@ -27,10 +27,14 @@ data class CameraVideo(
     val ownerPackage: String? = null,
     /** Filmed by a camera app — see [CameraVideos.isFromCamera]. Others are never auto-uploaded. */
     val fromCamera: Boolean = true,
+    /** The file is still on the phone (false = deleted, or only ever on YouTube). */
+    val onDevice: Boolean = true,
+    /** App-private copy of a shared video (not in MediaStore). */
+    val localPath: String? = null,
 ) {
     fun toItem(state: com.ytsync.data.UploadState = com.ytsync.data.UploadState.QUEUED) = UploadItem(
         mediaId = mediaId, displayName = displayName, sizeBytes = sizeBytes, mimeType = mimeType,
-        takenAt = recordedAt, durationMs = durationMs, state = state,
+        takenAt = recordedAt, durationMs = durationMs, state = state, localPath = localPath,
     )
 }
 
